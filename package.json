@@ -25,9 +25,10 @@
   },
   "exports": {
     "./*": {
-      "import": "./dist/*.js",
+      "development": "./src/*.ts",
       "require": "./dist/*.js",
-      "types": "./dist/*.d.ts"
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.d.js"
     }
   },
   "files": [
