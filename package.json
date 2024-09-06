@@ -23,6 +23,13 @@
     "three": "^0.168.0",
     "typescript": "^5.5.4"
   },
+  "exports": {
+    "./*": {
+      "import": "./dist/*.js",
+      "require": "./dist/*.js",
+      "types": "./dist/*.d.ts"
+    }
+  },
   "files": [
     "dist"
   ]
