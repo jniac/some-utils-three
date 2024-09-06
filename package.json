@@ -1,0 +1,29 @@
+{
+  "name": "some-utils-three",
+  "version": "1.0.0",
+  "description": "A library for Three.js utilities and components",
+  "main": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "three.js",
+    "typescript",
+    "3d",
+    "graphics",
+    "webgl"
+  ],
+  "author": "jniac",
+  "license": "ISC",
+  "peerDependencies": {
+    "three": "^0.168.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.168.0",
+    "three": "^0.168.0",
+    "typescript": "^5.5.4"
+  },
+  "files": [
+    "dist"
+  ]
+}
