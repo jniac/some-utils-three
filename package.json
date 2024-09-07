@@ -15,6 +15,9 @@
   ],
   "author": "jniac",
   "license": "ISC",
+  "dependencies": {
+    "some-utils-ts": "workspace:*"
+  },
   "peerDependencies": {
     "three": "^0.168.0"
   },
@@ -25,13 +28,10 @@
   },
   "exports": {
     "./*": {
-      "development": "./src/*.ts",
-      "require": "./dist/*.js",
-      "types": "./dist/*.d.ts",
-      "default": "./dist/*.d.js"
+      "default": "./src/*.ts"
     }
   },
   "files": [
-    "dist"
+    "src"
   ]
 }
