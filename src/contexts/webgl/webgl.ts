@@ -18,7 +18,7 @@ import { BasicPipeline } from './pipelines/BasicPipeline'
 export class ThreeWebglContext extends UnifiedLoader implements ThreeContextBase {
   width = 300
   height = 150
-  pixelRatio = window.devicePixelRatio
+  pixelRatio = 1
 
   renderer = new WebGLRenderer()
   perspectiveCamera = new PerspectiveCamera()
