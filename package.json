@@ -15,10 +15,9 @@
   ],
   "author": "jniac",
   "license": "ISC",
-  "dependencies": {
-    "some-utils-ts": "workspace:*"
-  },
   "peerDependencies": {
+    "some-utils-ts": "workspace:*",
+    "some-utils-dom": "workspace:*",
     "three": "^0.168.0"
   },
   "devDependencies": {
