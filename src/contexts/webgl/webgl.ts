@@ -6,6 +6,7 @@ import { destroy } from 'some-utils-ts/misc/destroy'
 import { Tick, Ticker } from 'some-utils-ts/ticker'
 import { Destroyable } from 'some-utils-ts/types'
 
+import { solveVector3Declaration, Vector3Declaration } from '../../declaration'
 import { ThreeContextBase } from '../types'
 import { Pointer, PointerButton } from '../utils/pointer'
 import { UnifiedLoader } from '../utils/unified-loader'
@@ -36,6 +37,7 @@ export class ThreeWebglContext extends UnifiedLoader implements ThreeContextBase
     size: new Vector2(),
     fullSize: new Vector2(),
     destroyables: [] as Destroyable[],
+    orbitControls: null as null | OrbitControls,
   }
 
   // Accessors:
@@ -62,12 +64,19 @@ export class ThreeWebglContext extends UnifiedLoader implements ThreeContextBase
     // this.pipeline.setScene(scene)
   }
 
-  useOrbitControls() {
-    const controls = new OrbitControls(this.camera, this.renderer.domElement)
-    this.internal.destroyables.push(this.ticker.onTick(tick => {
-      controls.update(tick.deltaTime)
-    }))
-    return controls
+  useOrbitControls({
+    position = null as null | Vector3Declaration,
+    target = null as null | Vector3Declaration,
+  } = {}): OrbitControls {
+    this.internal.orbitControls ??= new OrbitControls(this.camera, this.renderer.domElement)
+    if (position) {
+      solveVector3Declaration(position, this.internal.orbitControls.object.position)
+    }
+    if (target) {
+      solveVector3Declaration(target, this.internal.orbitControls.target)
+    }
+    this.internal.orbitControls.update()
+    return this.internal.orbitControls
   }
 
   init(domContainer: HTMLElement): this {
@@ -111,7 +120,7 @@ export class ThreeWebglContext extends UnifiedLoader implements ThreeContextBase
     // Tick
     this.internal.destroyables.push(
       handleAnyUserInteraction(this.ticker.requestActivation),
-      this.ticker.onTick(this.render),
+      this.ticker.onTick(this.update),
     )
 
     return this
@@ -149,11 +158,12 @@ export class ThreeWebglContext extends UnifiedLoader implements ThreeContextBase
     return this
   }
 
-  render = (tick: Tick) => {
+  update = (tick: Tick) => {
+    this.internal.orbitControls?.update(tick.deltaTime)
     this.pipeline.render(tick.deltaTime)
   };
 
-  *findAll(query: string | RegExp | ((object: any) => boolean)) {
+  * findAll(query: string | RegExp | ((object: any) => boolean)) {
     const findDelegate =
       typeof query === 'string' ? (object: any) => object.name === query :
         query instanceof RegExp ? (object: any) => query.test(object.name) :
