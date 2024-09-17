@@ -166,3 +166,7 @@ export const solveTransformDeclaration = (() => {
   }
   return solveTransformDeclaration
 })()
+
+export function makeMatrix4(props: TransformDeclaration): Matrix4 {
+  return solveTransformDeclaration(props, new Matrix4())
+}
