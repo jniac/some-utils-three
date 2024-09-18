@@ -21,9 +21,49 @@ type Vector3DeclarationBase =
 
 export type Vector3Declaration = ReadonlyOrNot<Vector3DeclarationBase>
 
-type EulerDeclarationBase =
-  | [x: number, y: number, z: number, order?: Euler['order']]
-  | { x: number; y: number; z: number; order?: Euler['order']; useDegree?: boolean }
+export type AngleUnit = 'rad' | 'deg' | 'turn'
+export type AngleDeclaration = number | `${number}` | `${number}${AngleUnit}`
+const angleScalar: Record<AngleUnit, number> = {
+  rad: 1,
+  deg: Math.PI / 180,
+  turn: Math.PI * 2,
+}
+
+function formatNumber(x: number, fractionDigits: number): string {
+  return x
+    .toFixed(fractionDigits)
+    .replace(/\.([0-9]+[1-9])?0+$/, (m, m0) => m0?.length > 0 ? `.${m0}` : '')
+}
+
+export function solveAngleDeclaration(declaration: AngleDeclaration, defaultUnit: AngleUnit = 'rad'): number {
+  let unit: AngleUnit = defaultUnit
+  let value: number = 0
+  if (typeof declaration === 'number') {
+    value = declaration
+  } else {
+    const match = declaration.match(/^(-?[0-9.]+)(rad|deg|turn)$/)
+    if (match) {
+      value = Number.parseFloat(match[1])
+      unit = match[2] as AngleUnit
+    } else {
+      value = Number.parseFloat(declaration)
+    }
+  }
+  return value * angleScalar[unit]
+}
+
+export function toAngleDeclarationString(value: number, unit: AngleUnit = 'rad'): string {
+  const fractionDigits = {
+    rad: 3,
+    deg: 1,
+    turn: 4,
+  }[unit]
+  return `${formatNumber(value / angleScalar[unit], fractionDigits)}${unit}`
+}
+
+type EulerDeclarationArray = [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration, unit?: AngleUnit, order?: Euler['order']]
+type EulerDeclarationObject = { x: AngleDeclaration; y: AngleDeclaration; z: AngleDeclaration; unit?: AngleUnit; order?: Euler['order'] }
+type EulerDeclarationBase = EulerDeclarationArray | EulerDeclarationObject
 
 export type EulerDeclaration = ReadonlyOrNot<EulerDeclarationBase>
 
@@ -99,16 +139,46 @@ export function solveVector3Declaration(arg: Vector3Declaration, out: Vector3 = 
   return out.set(x, y, z)
 }
 
+export function toVector3Declaration(arg: Vector3Declaration): Vector3Declaration {
+  const { x, y, z } = solveVector3Declaration(arg)
+  return [x, y, z]
+}
+
 export function solveEulerDeclaration(arg: EulerDeclaration, out: Euler = new Euler()): Euler {
-  if (Array.isArray(arg)) {
-    const [x, y, z, order = 'XYZ'] = arg
-    return out.set(x, y, z, order)
+  if (arg instanceof Euler) {
+    return out.copy(arg)
   }
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  const { x, y, z, order = 'XYZ', useDegree = false } = arg
-  const s = useDegree ? Math.PI / 180 : 1
-  return out.set(x * s, y * s, z * s, order)
+  if (Array.isArray(arg)) {
+    const [x, y, z, unit = 'rad', order = 'XYZ'] = arg
+    return out.set(
+      solveAngleDeclaration(x, unit),
+      solveAngleDeclaration(y, unit),
+      solveAngleDeclaration(z, unit),
+      order)
+  }
+  const { x, y, z, order = 'XYZ', unit = 'rad' } = arg as EulerDeclarationObject
+  return out.set(
+    solveAngleDeclaration(x, unit),
+    solveAngleDeclaration(y, unit),
+    solveAngleDeclaration(z, unit),
+    order)
+}
+
+export function toEulerDeclarationString(arg: EulerDeclaration, unit: AngleUnit = 'deg'): string {
+  const { x, y, z, order } = solveEulerDeclaration(arg)
+  const scalar = angleScalar[unit]
+
+  const fd = {
+    rad: 3,
+    deg: 1,
+    turn: 4,
+  }[unit]
+
+  const xStr = formatNumber(x / scalar, fd)
+  const yStr = formatNumber(y / scalar, fd)
+  const zStr = formatNumber(z / scalar, fd)
+
+  return `[${xStr}, ${yStr}, ${zStr}, '${unit}', '${order}']`
 }
 
 export const solveTransformDeclaration = (() => {
