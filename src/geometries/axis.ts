@@ -56,7 +56,6 @@ function createAxisGeometry(options?: Partial<typeof defaultAxisOptions>) {
     .rotateZ(-Math.PI / 2)
     .translate(cylDistance, 0, 0)
 
-  console.log({ baseCap })
   const cap = baseCap === 'none'
     ? new BufferGeometry()
     : baseCap === 'flat'
