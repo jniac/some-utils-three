@@ -13,7 +13,7 @@ const defaultAxisOptions = {
   /**
    * The number of the radial segments. Defaults to 12.
    */
-  radialSegments: 6,
+  radialSegments: 12,
   radius: .01,
   coneRatio: .1,
   radiusScale: 1,
