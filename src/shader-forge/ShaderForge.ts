@@ -141,7 +141,12 @@ class ShaderTool<T> {
   }
 }
 
-const defines = (defines: Record<string, string | number>) => {
+function shaderName(name: string) {
+  current.shaderName = `${name} (ShaderForge)`
+  return ShaderForge
+}
+
+function defines(defines: Record<string, string | number>) {
   if ((current as any).defines) {
     Object.assign((current as any).defines, defines)
   } else {
@@ -150,7 +155,7 @@ const defines = (defines: Record<string, string | number>) => {
   return ShaderForge
 }
 
-const mergeUniforms = (uniforms: Uniforms) => {
+function mergeUniforms(uniforms: Uniforms) {
   for (const [key, uniformDeclaration] of Object.entries(uniforms)) {
     const uniform = Uniform.from(key, uniformDeclaration)
     if (key in current.uniforms) {
@@ -164,7 +169,7 @@ const mergeUniforms = (uniforms: Uniforms) => {
   return ShaderForge
 }
 
-const uniforms = (uniforms: Uniforms | string) => {
+function uniforms(uniforms: Uniforms | string) {
   vertex.uniforms(uniforms)
   fragment.uniforms(uniforms)
   return ShaderForge
@@ -194,7 +199,7 @@ function varying(varying: string | Record<string, VaryingType>) {
  * `header()` will prepend the shader program with an header (debug purpose 
  * essentially).
  */
-const header = (str: string) => {
+function header(str: string) {
   fragment.header(str)
   vertex.header(str)
   return ShaderForge
@@ -205,7 +210,7 @@ const header = (str: string) => {
  * comments (because injected chunks may be chained one after the other, so the 
  * following patterns will be removed: [END][whitespaces][START])
  */
-const clean = () => {
+function clean() {
   fragment.clean()
   vertex.clean()
   return ShaderForge
@@ -216,15 +221,16 @@ const vertex = new ShaderTool<MeshPhysicalMaterialVertexTokens>('vertexShader')
 
 type ShaderForgeType = {
   (shader?: WebGLProgramParametersWithUniforms): ShaderForgeType
+  shaderName: typeof shaderName
   defines: typeof defines
-  uniforms: typeof uniforms,
-  varying: typeof varying,
-  vertex: typeof vertex,
-  fragment: typeof fragment,
-  header: typeof header,
-  clean: typeof clean,
-  with: typeof withShader,
-  wrap: typeof wrap,
+  uniforms: typeof uniforms
+  varying: typeof varying
+  vertex: typeof vertex
+  fragment: typeof fragment
+  header: typeof header
+  clean: typeof clean
+  with: typeof withShader
+  wrap: typeof wrap
 }
 
 /**
@@ -252,6 +258,7 @@ export const ShaderForge: ShaderForgeType = Object.assign(function (shader?: Web
   }
   return ShaderForge
 }, {
+  shaderName,
   defines,
   uniforms,
   varying,
