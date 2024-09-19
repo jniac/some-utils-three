@@ -26,7 +26,11 @@ export class ThreeWebglContext extends UnifiedLoader implements ThreeContextBase
   scene = new Scene()
   gizmoScene = new Scene()
   pointer = new Pointer()
-  ticker = new Ticker({ activeDuration: 8 })
+
+  // NOTE: The ticker is not explicitly created, but rather is require through a
+  // name ("three"). This is to allow the user to use the same ticker, even before
+  // it is eventually created here.
+  ticker = Ticker.get('three').set({ activeDuration: 8 })
 
   pipeline = new BasicPipeline(this.renderer, this.scene, this.gizmoScene, this.perspectiveCamera)
 
