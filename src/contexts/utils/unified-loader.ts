@@ -1,3 +1,4 @@
+import { DestroyableObject } from 'some-utils-ts/types'
 import { Texture, TextureLoader } from 'three'
 import { EXRLoader } from 'three/addons/loaders/EXRLoader.js'
 import { GLTF, GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
@@ -17,6 +18,22 @@ function isTextureExtension(extension: string): extension is TextureExtension {
 
 type Extension = GltfExtension | TextureExtension
 
+class Callbacks<T extends [] = []> {
+  listeners = new Set<() => void>()
+
+  add(listener: (...args: T) => void): DestroyableObject {
+    this.listeners.add(listener)
+    const destroy = () => this.listeners.delete(listener)
+    return { destroy }
+  }
+
+  call(...args: T) {
+    for (const listener of this.listeners) {
+      listener.apply(null, args)
+    }
+  }
+}
+
 export class UnifiedLoader {
   private loaders = {
     gltf: new GLTFLoader(),
@@ -25,21 +42,36 @@ export class UnifiedLoader {
     exrLoader: new EXRLoader(),
   }
 
+  private _onAfterLoad = new Callbacks()
+  onAfterLoad(listener: () => void) {
+    return this._onAfterLoad.add(listener)
+  }
+
   async loadGltf(url: string): Promise<GLTF> {
     return new Promise((resolve, reject) => {
-      this.loaders.gltf.load(url, resolve, undefined, reject)
+      this.loaders.gltf.load(url, value => {
+        resolve(value)
+        this._onAfterLoad.call()
+      }, undefined, reject)
     })
   }
 
   async loadRgbe(url: string): Promise<Texture> {
     return new Promise((resolve, reject) => {
-      this.loaders.rgbeLoader.load(url, resolve, undefined, reject)
+      this.loaders.rgbeLoader.load(url, value => {
+        resolve(value)
+        this._onAfterLoad.call()
+      }, undefined, reject)
     })
   }
 
   async loadExr(url: string): Promise<Texture> {
     return new Promise((resolve, reject) => {
-      this.loaders.exrLoader.load(url, resolve, undefined, reject)
+      this.loaders.exrLoader.load(url, value => {
+        resolve(value)
+        this._onAfterLoad.call()
+      }, undefined, reject)
+      this._onAfterLoad.call()
     })
   }
 
@@ -54,7 +86,10 @@ export class UnifiedLoader {
 
     if (isTextureExtension(extension)) {
       return new Promise((resolve, reject) => {
-        this.loaders.texture.load(url, resolve, undefined, reject)
+        this.loaders.texture.load(url, value => {
+          resolve(value)
+          this._onAfterLoad.call()
+        }, undefined, reject)
       })
     }
 
