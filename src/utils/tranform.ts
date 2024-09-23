@@ -1,6 +1,6 @@
 import { Euler, Object3D, Vector3 } from 'three'
 
-import { AngleDeclaration, AngleUnit, EulerDeclaration, solveEulerDeclaration, solveVector3Declaration, Vector3Declaration } from '../declaration'
+import { AngleDeclaration, AngleUnit, EulerDeclaration, fromEulerDeclaration, fromVector3Declaration, Vector3Declaration } from '../declaration'
 
 const defaultTransform = {
   position: new Vector3(0, 0, 0),
@@ -59,9 +59,9 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
     visible,
   } = { ...defaultTransformProps, ...props }
 
-  solveVector3Declaration(position, target.position)
-  solveEulerDeclaration(rotation ?? [rotationX, rotationY, rotationZ, rotationUnit, rotationOrder], target.rotation)
-  solveVector3Declaration(scale, target.scale)
+  fromVector3Declaration(position, target.position)
+  fromEulerDeclaration(rotation ?? [rotationX, rotationY, rotationZ, rotationUnit, rotationOrder], target.rotation)
+  fromVector3Declaration(scale, target.scale)
 
   target.visible = visible
 
