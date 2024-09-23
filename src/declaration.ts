@@ -35,7 +35,10 @@ function formatNumber(x: number, fractionDigits: number): string {
     .replace(/\.([0-9]+[1-9])?0+$/, (m, m0) => m0?.length > 0 ? `.${m0}` : '')
 }
 
-export function solveAngleDeclaration(declaration: AngleDeclaration, defaultUnit: AngleUnit = 'rad'): number {
+/**
+ * Transforms the given angle declaration into a number in radians.
+ */
+export function fromAngleDeclaration(declaration: AngleDeclaration, defaultUnit: AngleUnit = 'rad'): number {
   let unit: AngleUnit = defaultUnit
   let value: number = 0
   if (typeof declaration === 'number') {
@@ -97,7 +100,7 @@ export function isVector2Declaration(arg: any): arg is Vector2Declaration {
   return false
 }
 
-export function solveVector2Declaration(arg: Vector2Declaration, out: Vector2 = new Vector2()): Vector2 {
+export function fromVector2Declaration(arg: Vector2Declaration, out: Vector2 = new Vector2()): Vector2 {
   if (typeof arg === 'number') {
     return out.set(arg, arg)
   }
@@ -123,7 +126,7 @@ export function isVector3Declaration(arg: any): arg is Vector3Declaration {
   return false
 }
 
-export function solveVector3Declaration(arg: Vector3Declaration, out: Vector3 = new Vector3()): Vector3 {
+export function fromVector3Declaration(arg: Vector3Declaration, out: Vector3 = new Vector3()): Vector3 {
   if (typeof arg === 'number') {
     return out.set(arg, arg, arg)
   }
@@ -140,32 +143,32 @@ export function solveVector3Declaration(arg: Vector3Declaration, out: Vector3 = 
 }
 
 export function toVector3Declaration(arg: Vector3Declaration): Vector3Declaration {
-  const { x, y, z } = solveVector3Declaration(arg)
+  const { x, y, z } = fromVector3Declaration(arg)
   return [x, y, z]
 }
 
-export function solveEulerDeclaration(arg: EulerDeclaration, out: Euler = new Euler()): Euler {
+export function fromEulerDeclaration(arg: EulerDeclaration, out: Euler = new Euler()): Euler {
   if (arg instanceof Euler) {
     return out.copy(arg)
   }
   if (Array.isArray(arg)) {
     const [x, y, z, unit = 'rad', order = 'XYZ'] = arg
     return out.set(
-      solveAngleDeclaration(x, unit),
-      solveAngleDeclaration(y, unit),
-      solveAngleDeclaration(z, unit),
+      fromAngleDeclaration(x, unit),
+      fromAngleDeclaration(y, unit),
+      fromAngleDeclaration(z, unit),
       order)
   }
   const { x, y, z, order = 'XYZ', unit = 'rad' } = arg as EulerDeclarationObject
   return out.set(
-    solveAngleDeclaration(x, unit),
-    solveAngleDeclaration(y, unit),
-    solveAngleDeclaration(z, unit),
+    fromAngleDeclaration(x, unit),
+    fromAngleDeclaration(y, unit),
+    fromAngleDeclaration(z, unit),
     order)
 }
 
 export function toEulerDeclarationString(arg: EulerDeclaration, unit: AngleUnit = 'deg'): string {
-  const { x, y, z, order } = solveEulerDeclaration(arg)
+  const { x, y, z, order } = fromEulerDeclaration(arg)
   const scalar = angleScalar[unit]
 
   const fd = {
@@ -181,15 +184,15 @@ export function toEulerDeclarationString(arg: EulerDeclaration, unit: AngleUnit 
   return `[${xStr}, ${yStr}, ${zStr}, '${unit}', '${order}']`
 }
 
-export const solveTransformDeclaration = (() => {
+export const fromTransformDeclaration = (() => {
   const _position = new Vector3()
   const _rotation = new Euler()
   const _scale = new Vector3()
   const _quaternion = new Quaternion()
 
-  function solveTransformDeclaration(props: TransformDeclaration, out: Matrix4): Matrix4
-  function solveTransformDeclaration<T extends Object3D>(props: TransformDeclaration, out: T): T
-  function solveTransformDeclaration(props: any, out: any): any {
+  function fromTransformDeclaration(props: TransformDeclaration, out: Matrix4): Matrix4
+  function fromTransformDeclaration<T extends Object3D>(props: TransformDeclaration, out: T): T
+  function fromTransformDeclaration(props: any, out: any): any {
     const {
       x = 0,
       y = 0,
@@ -218,22 +221,22 @@ export const solveTransformDeclaration = (() => {
     }
 
     if (out instanceof Matrix4) {
-      solveVector3Declaration(position, _position)
-      solveEulerDeclaration(rotation, _rotation)
-      solveVector3Declaration(scale, _scale).multiplyScalar(scaleScalar)
+      fromVector3Declaration(position, _position)
+      fromEulerDeclaration(rotation, _rotation)
+      fromVector3Declaration(scale, _scale).multiplyScalar(scaleScalar)
       _quaternion.setFromEuler(_rotation)
       return out.compose(_position, _quaternion, _scale)
     }
 
     if (out instanceof Object3D) {
-      solveVector3Declaration(position, out.position)
-      solveEulerDeclaration(rotation, out.rotation)
-      solveVector3Declaration(scale, out.scale).multiplyScalar(scaleScalar)
+      fromVector3Declaration(position, out.position)
+      fromEulerDeclaration(rotation, out.rotation)
+      fromVector3Declaration(scale, out.scale).multiplyScalar(scaleScalar)
       return out
     }
 
     throw new Error('Invalid out argument')
   }
-  return solveTransformDeclaration
+  return fromTransformDeclaration
 })()
 

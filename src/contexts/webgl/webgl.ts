@@ -6,7 +6,7 @@ import { destroy } from 'some-utils-ts/misc/destroy'
 import { Tick, Ticker } from 'some-utils-ts/ticker'
 import { Destroyable } from 'some-utils-ts/types'
 
-import { solveVector3Declaration, Vector3Declaration } from '../../declaration'
+import { fromVector3Declaration, Vector3Declaration } from '../../declaration'
 import { ThreeContextBase } from '../types'
 import { Pointer, PointerButton } from '../utils/pointer'
 import { UnifiedLoader } from '../utils/unified-loader'
@@ -74,10 +74,10 @@ export class ThreeWebglContext extends UnifiedLoader implements ThreeContextBase
   } = {}): OrbitControls {
     this.internal.orbitControls ??= new OrbitControls(this.camera, this.renderer.domElement)
     if (position) {
-      solveVector3Declaration(position, this.internal.orbitControls.object.position)
+      fromVector3Declaration(position, this.internal.orbitControls.object.position)
     }
     if (target) {
-      solveVector3Declaration(target, this.internal.orbitControls.target)
+      fromVector3Declaration(target, this.internal.orbitControls.target)
     }
     this.internal.orbitControls.update()
     return this.internal.orbitControls

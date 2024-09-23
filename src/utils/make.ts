@@ -1,6 +1,6 @@
 import { Color, ColorRepresentation, Matrix4 } from 'three'
 
-import { TransformDeclaration, solveTransformDeclaration } from '../declaration'
+import { TransformDeclaration, fromTransformDeclaration } from '../declaration'
 
 const _matrix4 = new Matrix4()
 /**
@@ -10,7 +10,7 @@ const _matrix4 = new Matrix4()
  * be used immediately or copied / cloned if it needs to be stored.
  */
 export function makeMatrix4(props: TransformDeclaration): Matrix4 {
-  return solveTransformDeclaration(props, _matrix4)
+  return fromTransformDeclaration(props, _matrix4)
 }
 
 const _color = new Color()
