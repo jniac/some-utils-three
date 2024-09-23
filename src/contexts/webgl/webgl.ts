@@ -15,7 +15,7 @@ import { BasicPipeline } from './pipelines/BasicPipeline'
 /**
  * A context that provides a WebGLRenderer, a Scene, a Camera, and a Ticker.
  */
-export class ThreeWebglContext extends UnifiedLoader implements ThreeContextBase {
+export class ThreeWebglContext implements ThreeContextBase {
   width = 300
   height = 150
   pixelRatio = 1
@@ -57,8 +57,9 @@ export class ThreeWebglContext extends UnifiedLoader implements ThreeContextBase
 
   onTick = this.ticker.onTick.bind(this.ticker)
 
+  loader = new UnifiedLoader()
+
   constructor() {
-    super()
     this.camera.position.set(0, 1, 10)
     this.camera.lookAt(0, 0, 0)
   }

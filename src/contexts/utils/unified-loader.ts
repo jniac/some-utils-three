@@ -42,6 +42,13 @@ export class UnifiedLoader {
     exrLoader: new EXRLoader(),
   }
 
+  setPath(path: string) {
+    this.loaders.gltf.setPath(path)
+    this.loaders.texture.setPath(path)
+    this.loaders.rgbeLoader.setPath(path)
+    this.loaders.exrLoader.setPath(path)
+  }
+
   private _onAfterLoad = new Callbacks()
   onAfterLoad(listener: () => void) {
     return this._onAfterLoad.add(listener)
