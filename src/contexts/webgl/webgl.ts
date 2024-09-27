@@ -57,6 +57,8 @@ export class ThreeWebglContext implements ThreeContextBase {
 
   onTick = this.ticker.onTick.bind(this.ticker)
 
+  onDestroy = this.internal.destroyables.push.bind(this.internal.destroyables)
+
   loader = new UnifiedLoader()
 
   constructor() {
@@ -72,8 +74,16 @@ export class ThreeWebglContext implements ThreeContextBase {
   useOrbitControls({
     position = null as null | Vector3Declaration,
     target = null as null | Vector3Declaration,
+    element = null as null | HTMLElement | string,
   } = {}): OrbitControls {
     this.internal.orbitControls ??= new OrbitControls(this.camera, this.renderer.domElement)
+    if (typeof element === 'string') {
+      element = document.querySelector(element) as HTMLElement | null
+    }
+    if (element && element !== this.internal.orbitControls.domElement) {
+      this.internal.orbitControls.dispose()
+      this.internal.orbitControls = new OrbitControls(this.camera, element)
+    }
     if (position) {
       fromVector3Declaration(position, this.internal.orbitControls.object.position)
     }
@@ -85,6 +95,7 @@ export class ThreeWebglContext implements ThreeContextBase {
   }
 
   init(domContainer: HTMLElement): this {
+    const { onDestroy } = this
     domContainer.appendChild(this.renderer.domElement)
 
     // Resize
@@ -97,7 +108,7 @@ export class ThreeWebglContext implements ThreeContextBase {
     }
     const observer = new ResizeObserver(resize)
     observer.observe(domContainer)
-    this.internal.destroyables.push(() => {
+    onDestroy(() => {
       observer.disconnect()
     })
     resize()
@@ -116,17 +127,22 @@ export class ThreeWebglContext implements ThreeContextBase {
     domContainer.addEventListener('pointermove', onPointerMove)
     domContainer.addEventListener('pointerdown', onPointerDown)
     domContainer.addEventListener('pointerup', onPointerUp)
-    this.internal.destroyables.push(() => {
+    onDestroy(() => {
       domContainer.removeEventListener('pointermove', onPointerMove)
       domContainer.removeEventListener('pointerdown', onPointerDown)
       domContainer.removeEventListener('pointerup', onPointerUp)
     })
 
     // Tick
-    this.internal.destroyables.push(
+    onDestroy(
       handleAnyUserInteraction(this.ticker.requestActivation),
       this.ticker.onTick(this.update),
     )
+
+    // Orbit controls
+    onDestroy(() => {
+      this.internal.orbitControls?.dispose()
+    })
 
     return this
   }

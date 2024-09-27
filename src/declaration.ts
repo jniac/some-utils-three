@@ -22,7 +22,7 @@ type Vector3DeclarationBase =
 export type Vector3Declaration = ReadonlyOrNot<Vector3DeclarationBase>
 
 export type AngleUnit = 'rad' | 'deg' | 'turn'
-export type AngleDeclaration = number | `${number}` | `${number}${AngleUnit}`
+export type AngleDeclaration = number | `${number}` | `${number}${AngleUnit}` | `${number}/${number}${AngleUnit}`
 const angleScalar: Record<AngleUnit, number> = {
   rad: 1,
   deg: Math.PI / 180,
@@ -44,10 +44,14 @@ export function fromAngleDeclaration(declaration: AngleDeclaration, defaultUnit:
   if (typeof declaration === 'number') {
     value = declaration
   } else {
-    const match = declaration.match(/^(-?[0-9.]+)(rad|deg|turn)$/)
+    const match = declaration.match(/^\s*(-?[0-9.]+)\s*(\/\s*-?[0-9.]+)?\s*(rad|deg|turn)\s*$/)
     if (match) {
-      value = Number.parseFloat(match[1])
-      unit = match[2] as AngleUnit
+      const [_, v, d, u] = match
+      value = Number.parseFloat(v)
+      if (d) {
+        value /= Number.parseFloat(d.slice(1))
+      }
+      unit = u as AngleUnit
     } else {
       value = Number.parseFloat(declaration)
     }
