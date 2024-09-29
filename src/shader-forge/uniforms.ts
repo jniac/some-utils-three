@@ -1,5 +1,5 @@
 // @ts-ignore
-import { Color, CubeTexture, IUniform, Matrix3, Matrix4, Quaternion, Texture, Vector2, Vector3, Vector4 } from 'three'
+import { Color, CubeTexture, IUniform, Matrix3, Matrix4, Quaternion, Texture, Uniform, Vector2, Vector3, Vector4 } from 'three'
 
 import { Observable } from 'some-utils-ts/observables'
 
@@ -20,22 +20,22 @@ type UniformDeclaration = IUniform<UniformValueType> | UniformValueType
 /**
  * Little wrapper around a uniform value. Used to generate the declaration string.
  */
-export class Uniform<T> implements IUniform<T> {
-  static from<T = any>(name: string, value: any): Uniform<T> {
+export class UniformWrapper<T> implements IUniform<T> {
+  static from<T = any>(name: string, value: any): UniformWrapper<T> {
     if (value instanceof Observable) {
       if (typeof value.value === 'number') {
-        return new Uniform(name, value) as Uniform<T>
+        return new UniformWrapper(name, value) as UniformWrapper<T>
       }
       throw new Error(`Observable value must be a number`)
     }
     const type = typeof value
-    if (type === 'object' && value.constructor === Object && 'value' in value) {
-      return new Uniform(name, value) as Uniform<T>
+    if (type === 'object' && (value.constructor === Object || value instanceof Uniform) && 'value' in value) {
+      return new UniformWrapper(name, value) as UniformWrapper<T>
     }
     if (type === 'string') {
-      return new Uniform(name, { value: new Color(value) }) as Uniform<T>
+      return new UniformWrapper(name, { value: new Color(value) }) as UniformWrapper<T>
     }
-    return new Uniform(name, { value })
+    return new UniformWrapper(name, { value })
   }
 
   name: string
