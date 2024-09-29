@@ -181,7 +181,7 @@ export class ThreeWebglContext implements ThreeContextBase {
 
   update = (tick: Tick) => {
     this.internal.orbitControls?.update(tick.deltaTime)
-    this.pipeline.render(tick.deltaTime)
+    this.pipeline.render(tick)
   };
 
   * findAll(query: string | RegExp | ((object: any) => boolean)) {

@@ -1,6 +1,7 @@
 import { Scene } from 'three'
 import { Pass } from 'three/examples/jsm/Addons.js'
 
+import { Tick } from 'some-utils-ts/ticker'
 import { DestroyableObject } from 'some-utils-ts/types'
 
 export enum PassType {
@@ -30,7 +31,7 @@ export type PipelineBase = {
 
   removePass(pass: Pass): boolean
 
-  render(deltaTime: number): void
+  render(tick: Tick): void
 
   setSize(width: number, height: number, pixelRatio?: number): void
 }

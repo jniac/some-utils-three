@@ -6,8 +6,8 @@ import { Pass } from 'three/examples/jsm/postprocessing/Pass.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js'
-// import { EffectComposer, FXAAShader, OutlinePass, OutputPass, Pass, RenderPass, ShaderPass } from 'three/examples/jsm/Addons.js'
 
+import { Tick } from 'some-utils-ts/ticker'
 import { DestroyableObject } from 'some-utils-ts/types'
 
 import { PassMetadata, PassType, PipelineBase } from './types'
@@ -28,6 +28,8 @@ import { PassMetadata, PassType, PipelineBase } from './types'
  * const aoPass = new GTAOPass(scene, camera)
  * pipeline.insertPass(aoPass, { type: PassType.PostProcessing })
  * ```
+ * 
+ * NOTE: Every object in the scene trees that has an `onTick` method will have it called before rendering.
  */
 export class BasicPipeline implements PipelineBase {
   composer: EffectComposer
@@ -155,8 +157,18 @@ export class BasicPipeline implements PipelineBase {
     }
   }
 
-  render(deltaTime: number): void {
-    this.composer.render(deltaTime)
+  render(tick: Tick): void {
+    for (const pass of this.composer.passes) {
+      if (pass instanceof RenderPass) {
+        pass.scene.traverseVisible(object => {
+          if ('onTick' in object) {
+            (object as any).onTick(tick)
+          }
+        })
+      }
+    }
+
+    this.composer.render(tick.deltaTime)
   }
 
   getPassesInfo() {
