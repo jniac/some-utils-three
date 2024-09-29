@@ -130,7 +130,7 @@ export class ManhattanBox2Falloff extends AbstractFalloff<typeof defaultManhatta
       p = (falloff.matrix * vec4(p, 1.0)).xyz;
       float x = abs(p.x) - falloff.width * 0.5;
       float y = abs(p.y) - falloff.height * 0.5;
-      return 1.0 - max(x, y) * 2.0 / falloff.falloff;
+      return 1.0 - max(x, y) / falloff.falloff;
     }
   `
 
@@ -156,6 +156,6 @@ export class ManhattanBox2Falloff extends AbstractFalloff<typeof defaultManhatta
     const { box0, box1 } = this.parts
     const { width, height, falloff } = this.props
     box0.scale.set(width, height, 1)
-    box1.scale.set(width + falloff, height + falloff, 1)
+    box1.scale.set(width + falloff * 2, height + falloff * 2, 1)
   }
 }
