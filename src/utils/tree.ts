@@ -2,9 +2,17 @@ import { Object3D } from 'three'
 
 import { applyTransform, TransformProps } from './tranform'
 
-export function addTo<T extends Object3D>(child: T, parent: Object3D, transformProps?: TransformProps): T {
+export function addTo<T extends Object3D>(
+  child: T,
+  parent: Object3D,
+  transformProps?: TransformProps | null,
+  callback?: (instance: T) => void,
+): T {
   parent.add(child)
-  applyTransform(child, transformProps)
+  if (transformProps) {
+    applyTransform(child, transformProps)
+  }
+  callback?.(child)
   return child
 }
 

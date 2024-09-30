@@ -34,15 +34,14 @@ const geometries = {
 }
 
 class AbstractFalloff<Props> extends Group {
-  props: Props
+  props!: Props
 
   setupUniforms({ value: matrix }: Uniform<Matrix4>, { value: vector }: Uniform<Vector4>) {
     matrix.copy(this.matrixWorld)
     matrix.invert()
   }
 
-  constructor(props: Props) {
-    super()
+  init(props: Props) {
     this.props = props
     this.renderOrder = 1 // Transparent + renderOrder: Gives a chance to render after all other objects.
   }
@@ -92,7 +91,8 @@ export class CircleFalloff extends AbstractFalloff<typeof defaultCircleFalloffPr
   }
 
   constructor(props?: Partial<typeof CircleFalloff.prototype.props>) {
-    super({ ...defaultCircleFalloffProps, ...props })
+    super()
+    this.init({ ...defaultCircleFalloffProps, ...props })
     this.add(this.parts.circle0)
     this.add(this.parts.circle1)
     this.setup()
@@ -140,7 +140,8 @@ export class ManhattanBox2Falloff extends AbstractFalloff<typeof defaultManhatta
   }
 
   constructor(props?: Partial<typeof ManhattanBox2Falloff.prototype.props>) {
-    super({ ...defaultManhattanBox2FalloffProps, ...props })
+    super()
+    this.init({ ...defaultManhattanBox2FalloffProps, ...props })
     this.add(this.parts.box0)
     this.add(this.parts.box1)
     this.setup()
@@ -159,3 +160,36 @@ export class ManhattanBox2Falloff extends AbstractFalloff<typeof defaultManhatta
     box1.scale.set(width + falloff * 2, height + falloff * 2, 1)
   }
 }
+
+// Powerful but tricky?
+// Automatically extends a class with properties from an object.
+
+// function extendsAbstratBase<T>(props: T, _class: new () => {}) {
+//   for (const key in props) {
+//     Object.defineProperty(_class.prototype, key, {
+//       get() { return this.props[key] },
+//       set(value) {
+//         this.props[key] = value
+//         this.setup()
+//       },
+//     })
+//   }
+//   return _class as new () => AbstractFalloff<T> & T
+// }
+
+// const defaultFooProps = { foo: 1 }
+// const Foo = extendsAbstratBase(defaultFooProps, class extends AbstractFalloff<typeof defaultFooProps> {
+//   bar = 2
+//   constructor() {
+//     super()
+//     this.initProps({ ...defaultFooProps })
+//     this.setup()
+//   }
+//   fooBar() {
+//     return this.props.foo
+//   }
+// })
+// const foo = new Foo()
+// foo.foo = 4
+// foo.props.foo
+
