@@ -1,4 +1,4 @@
-import { Euler, Matrix4, PerspectiveCamera, Vector2, Vector3 } from 'three'
+import { Camera, Euler, Matrix4, Vector2, Vector3 } from 'three'
 
 import { EulerDeclaration, fromEulerDeclaration, fromVector2Declaration, fromVector3Declaration, Vector2Declaration, Vector3Declaration } from '../declaration'
 
@@ -12,25 +12,29 @@ type Props = Partial<{
    */
   perspective: number
   /**
+   * The zoom of the camera.
+   */
+  zoom: number
+  /**
    * The position of the focus point (where the camera is looking at).
    */
-  focusPosition: Vector3Declaration
+  focus: Vector3Declaration
   /**
    * The size of the focus area. Camera will fit this area into the screen (according to the `frame` property).
    */
-  focusSize: Vector2Declaration
+  size: Vector2Declaration
   /**
    * The distance before the focus point that will be visible.
    * 
    * Determines the `near` property of the camera.
    */
-  focusBefore: number
+  before: number
   /**
    * The distance between the focus point and the far plane.
    * 
    * Determines the `far` property of the camera.
    */
-  focusAfter: number
+  after: number
   /**
    * The rotation of the camera.
    */
@@ -48,16 +52,17 @@ export class Vertigo {
 
   // General settings:
   perspective = 1
-  focusPosition = new Vector3()
-  focusSize = new Vector2(4, 4)
-  focusBefore = 100
-  focusAfter = 1000
-  rotation = new Euler()
-  frame = 0
+  zoom = 1
+  focus = new Vector3()
+  size = new Vector2(4, 4)
+  before = 100
+  after = 1000
+  rotation = new Euler(0, 0, 0, 'ZYX')
+  frame = 1
 
   // Deep settings:
   allowOrthographic = true
-  orthographicNear = 0.1
+  nearMin = 0.1
   fovEpsilon = 1.5 // degree
 
   constructor(props?: Props) {
@@ -66,11 +71,12 @@ export class Vertigo {
 
   set(props: Props): this {
     const {
-      focusPosition,
-      focusSize,
-      focusBefore,
-      focusAfter,
       perspective,
+      zoom,
+      focus,
+      size,
+      before,
+      after,
       rotation,
       frame,
     } = props
@@ -78,20 +84,23 @@ export class Vertigo {
     if (perspective !== undefined)
       this.perspective = perspective
 
+    if (zoom !== undefined)
+      this.zoom = zoom
+
     if (frame !== undefined)
       this.frame = typeof frame === 'string' ? (frame === 'cover' ? 0 : 1) : frame
 
-    if (focusPosition !== undefined)
-      fromVector3Declaration(focusPosition, this.focusPosition)
+    if (focus !== undefined)
+      fromVector3Declaration(focus, this.focus)
 
-    if (focusSize !== undefined)
-      fromVector2Declaration(focusSize, this.focusSize)
+    if (size !== undefined)
+      fromVector2Declaration(size, this.size)
 
-    if (focusBefore !== undefined)
-      this.focusBefore = focusBefore
+    if (before !== undefined)
+      this.before = before
 
-    if (focusAfter !== undefined)
-      this.focusAfter = focusAfter
+    if (after !== undefined)
+      this.after = after
 
     if (rotation !== undefined)
       fromEulerDeclaration(rotation, this.rotation)
@@ -99,13 +108,14 @@ export class Vertigo {
     return this
   }
 
-  apply(camera: PerspectiveCamera, aspect: number): this {
-    const sizeAspect = this.focusSize.x / this.focusSize.y
+  apply(camera: Camera, aspect: number): this {
+    const sizeAspect = this.size.x / this.size.y
     const aspectAspect = sizeAspect / aspect
 
+    // Critical part of the algorithm (how to fit the focus area into the screen):
     const lerpT = aspectAspect > 1 ? this.frame : 1 - this.frame
     const heightScalar = 1 + lerpT * (aspectAspect - 1) // lerp(1, aspectAspect, lerpT)
-    const height = this.focusSize.y * heightScalar
+    const height = this.size.y * this.zoom * heightScalar
 
     const fovEpsilon = this.fovEpsilon * Math.PI / 180
     let fov = this.perspective * Vertigo.PERSPECTIVE_ONE * Math.PI / 180
@@ -116,12 +126,12 @@ export class Vertigo {
     const distance = height / 2 / Math.tan(fov / 2)
     const isPerspective = fov >= fovEpsilon
 
-    const backward = isPerspective ? distance : this.focusBefore + this.orthographicNear
+    const backward = isPerspective ? distance : this.before + this.nearMin
     _matrix.makeRotationFromEuler(this.rotation)
     _vector
       .set(_matrix.elements[8], _matrix.elements[9], _matrix.elements[10])
       .multiplyScalar(backward)
-      .add(this.focusPosition)
+      .add(this.focus)
 
     // camera.matrixAutoUpdate = false // Not cancelled because of OrbitControls
     camera.position.copy(_vector)
@@ -136,24 +146,26 @@ export class Vertigo {
     camera.isOrthographicCamera = !isPerspective
 
     if (isPerspective) {
-      const near = Math.max(0.1, distance - this.focusBefore)
-      const far = distance + this.focusAfter
+      const near = Math.max(this.nearMin, distance - this.before)
+      const far = distance + this.after
 
       const mHeight = height * near / distance / 2
       const mWidth = mHeight * aspect
 
+      // @ts-ignore
       camera.fov = fov * 180 / Math.PI
       camera.projectionMatrix.makePerspective(-mWidth, mWidth, mHeight, -mHeight, near, far)
     }
 
     // Orthographic
     else {
-      const near = this.orthographicNear
-      const far = this.orthographicNear + this.focusBefore + this.focusAfter
+      const near = this.nearMin
+      const far = this.nearMin + this.before + this.after
 
       const mHeight = height / 2
       const mWidth = mHeight * aspect
 
+      // @ts-ignore
       camera.fov = 0
       camera.projectionMatrix.makeOrthographic(-mWidth, mWidth, mHeight, -mHeight, near, far)
     }
@@ -161,3 +173,6 @@ export class Vertigo {
     return this
   }
 }
+
+export type { Props as VertigoProps }
+
