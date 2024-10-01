@@ -1,30 +1,33 @@
 import { BufferGeometry, ColorRepresentation, LineBasicMaterial, LineSegments, Vector3 } from 'three'
 
-import { fromVector2Declaration, fromVector3Declaration, Vector2Declaration, Vector3Declaration } from '../declaration'
+import { fromVector2Declaration, Vector2Declaration } from '../declaration'
+import { applyTransform, TransformProps } from '../utils/tranform'
 
 const defaultSimpleGridProps = {
   color: <ColorRepresentation>'white',
+  opacity: .5,
+
   size: <Vector2Declaration>[8, 8],
   divisions: <Vector2Declaration | undefined>undefined,
   align: <Vector2Declaration>[.5, .5],
-  opacity: .5,
-  position: <Vector3Declaration | undefined>undefined,
 }
 
+type SimpleGridProps = Partial<typeof defaultSimpleGridProps>
+
 export class SimpleGridHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
-  constructor(props?: Partial<typeof defaultSimpleGridProps>) {
+  constructor(props?: SimpleGridProps) {
     super()
     this.set(props ?? defaultSimpleGridProps)
   }
 
-  set(props: Partial<typeof defaultSimpleGridProps>) {
+  set(props: SimpleGridProps): this {
     const {
       color,
       opacity,
       size: sizeArg,
       divisions: divisionsArg,
       align: alignArg,
-      position: positionArg,
+      ...rest
     } = { ...defaultSimpleGridProps, ...props }
 
     const size = fromVector2Declaration(sizeArg)
@@ -55,8 +58,11 @@ export class SimpleGridHelper extends LineSegments<BufferGeometry, LineBasicMate
     this.material.opacity = opacity
     this.material.transparent = opacity < 1
 
-    if (positionArg) {
-      fromVector3Declaration(positionArg, this.position)
-    }
+    return this
+  }
+
+  transfrom(props?: TransformProps): this {
+    applyTransform(this, props)
+    return this
   }
 }

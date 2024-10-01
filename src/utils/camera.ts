@@ -5,9 +5,9 @@
  * @returns Vertical field of view in degrees.
  */
 export function calculateVFOV(hfov: number, aspectRatio: number): number {
-  const hfovRadians = (hfov * Math.PI) / 180
+  const hfovRadians = hfov * Math.PI / 180
   const vfovRadians = 2 * Math.atan(Math.tan(hfovRadians / 2) / aspectRatio)
-  return (vfovRadians * 180) / Math.PI
+  return vfovRadians * 180 / Math.PI
 }
 
 /**
@@ -17,7 +17,7 @@ export function calculateVFOV(hfov: number, aspectRatio: number): number {
  * @returns Horizontal field of view in degrees.
  */
 export function calculateHFOV(vfov: number, aspectRatio: number): number {
-  const vfovRadians = (vfov * Math.PI) / 180
+  const vfovRadians = vfov * Math.PI / 180
   const hfovRadians = 2 * Math.atan(Math.tan(vfovRadians / 2) * aspectRatio)
-  return (hfovRadians * 180) / Math.PI
+  return hfovRadians * 180 / Math.PI
 }
