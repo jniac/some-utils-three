@@ -33,8 +33,9 @@ export class VertigoControls {
 
   init(element: HTMLElement = document.body) {
     handlePointer(element, {
+      dragButton: ~0,
       onDrag: info => {
-        if (info.altKey) {
+        if (info.button === 0) {
           this.rotate(info.delta.y * -.01, info.delta.x * -.01)
         } else {
           this.pan(info.delta.x * -.01, info.delta.y * .01)
