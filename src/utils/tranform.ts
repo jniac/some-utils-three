@@ -27,7 +27,25 @@ const defaultTransformProps = {
   scaleZ: 1,
   scaleScalar: 1,
 
-  visible: true,
+  // Extra:
+  /**
+   * Applies only if defined.
+   * 
+   * Defaults to `undefined`.
+   */
+  visible: <boolean | undefined>undefined,
+  /**
+   * Applies only if defined.
+   * 
+   * Defaults to `undefined`.
+   */
+  name: <string | undefined>undefined,
+  /**
+   * Applies only if defined.
+   * 
+   * Defaults to `undefined`.
+   */
+  parent: <Object3D | undefined>undefined,
 }
 
 export type TransformProps = Partial<typeof defaultTransformProps & {
@@ -57,13 +75,25 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
     scale = new Vector3(scaleX, scaleY, scaleZ).multiplyScalar(scaleScalar),
 
     visible,
+    name,
+    parent,
   } = { ...defaultTransformProps, ...props }
 
   fromVector3Declaration(position, target.position)
   fromEulerDeclaration(rotation ?? [rotationX, rotationY, rotationZ, rotationUnit, rotationOrder], target.rotation)
   fromVector3Declaration(scale, target.scale)
 
-  target.visible = visible
+  if (visible !== undefined) {
+    target.visible = visible
+  }
+
+  if (name !== undefined) {
+    target.name = name
+  }
+
+  if (parent !== undefined) {
+    parent.add(target)
+  }
 
   return target
 }
