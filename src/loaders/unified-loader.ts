@@ -38,6 +38,9 @@ class Callbacks<T extends [] = []> {
 
 export type TextureLoadResult<T> = { value: T, promise: Promise<T> }
 
+/**
+ * One loader to rule them all.
+ */
 export class UnifiedLoader {
   private static nextId = 0
   private static instances: UnifiedLoader[] = []
