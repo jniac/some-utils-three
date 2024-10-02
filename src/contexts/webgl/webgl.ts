@@ -7,9 +7,9 @@ import { Tick, Ticker } from 'some-utils-ts/ticker'
 import { Destroyable } from 'some-utils-ts/types'
 
 import { fromVector3Declaration, Vector3Declaration } from '../../declaration'
+import { UnifiedLoader } from '../../loaders/unified-loader'
 import { ThreeContextBase } from '../types'
 import { Pointer, PointerButton } from '../utils/pointer'
-import { UnifiedLoader } from '../utils/unified-loader'
 import { BasicPipeline } from './pipelines/BasicPipeline'
 
 /**
