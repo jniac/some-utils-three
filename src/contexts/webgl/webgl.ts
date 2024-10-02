@@ -64,7 +64,10 @@ export class ThreeWebglContext implements ThreeContextBase {
 
   onDestroy = this.internal.destroyables.push.bind(this.internal.destroyables)
 
-  loader = new UnifiedLoader()
+  // NOTE: Same as the ticker, the loader is not explicitly created, but rather is
+  // required through a name ("three"). This is to allow the user to use the same
+  // loader, even before it is eventually created here.
+  loader = UnifiedLoader.get('three')
 
   constructor() {
     this.camera.position.set(0, 1, 10)

@@ -39,10 +39,17 @@ class Callbacks<T extends [] = []> {
 export type TextureLoadResult<T> = { value: T, promise: Promise<T> }
 
 export class UnifiedLoader {
+  private static nextId = 0
   private static instances: UnifiedLoader[] = []
   static current() {
     return this.instances[this.instances.length - 1] ?? new UnifiedLoader()
   }
+  static get(name: string) {
+    return this.instances.find(instance => instance.name === name) ?? new UnifiedLoader({ name })
+  }
+
+  id = UnifiedLoader.nextId++
+  readonly name: string
 
   private loaders = {
     gltf: new GLTFLoader(),
@@ -51,7 +58,8 @@ export class UnifiedLoader {
     exrLoader: new EXRLoader(),
   }
 
-  constructor() {
+  constructor({ name }: { name?: string } = {}) {
+    this.name = name ?? `UnifiedLoader-${this.id}`
     UnifiedLoader.instances.push(this)
   }
 
@@ -96,8 +104,9 @@ export class UnifiedLoader {
     return texture
   }
 
-  loadTexture(url: string) {
+  loadTexture(url: string, callback?: (texture: Texture) => void) {
     const texture = promisify(this.loaders.texture.load(url, value => {
+      callback?.(value)
       texture.resolve()
       this._onAfterLoad.call()
     }, undefined, () => {
