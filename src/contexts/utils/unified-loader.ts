@@ -89,7 +89,7 @@ export class UnifiedLoader {
       texture.resolve()
       this._onAfterLoad.call()
     }, undefined, () => {
-      texture.reject(new Error(`Failed to load EXR: ${url}`))
+      console.log(`Failed to load RGBE: ${url}`)
     }))
     return texture
   }
@@ -99,7 +99,7 @@ export class UnifiedLoader {
       texture.resolve()
       this._onAfterLoad.call()
     }, undefined, () => {
-      texture.reject(new Error(`Failed to load EXR: ${url}`))
+      console.log(`Failed to load EXR: ${url}`)
     }))
     return texture
   }
@@ -110,7 +110,7 @@ export class UnifiedLoader {
       texture.resolve()
       this._onAfterLoad.call()
     }, undefined, () => {
-      texture.reject(new Error(`Failed to load texture: ${url}`))
+      console.log(`Failed to load texture: ${url}`)
     }))
 
     return texture
