@@ -16,6 +16,11 @@ import { BasicPipeline } from './pipelines/BasicPipeline'
  * A context that provides a WebGLRenderer, a Scene, a Camera, and a Ticker.
  */
 export class ThreeWebglContext implements ThreeContextBase {
+  private static instances: ThreeWebglContext[] = []
+  static current() {
+    return this.instances[this.instances.length - 1]
+  }
+
   width = 300
   height = 150
   pixelRatio = 1
@@ -64,6 +69,7 @@ export class ThreeWebglContext implements ThreeContextBase {
   constructor() {
     this.camera.position.set(0, 1, 10)
     this.camera.lookAt(0, 0, 0)
+    ThreeWebglContext.instances.push(this)
   }
 
   setScene(scene: Scene): void {
@@ -94,7 +100,14 @@ export class ThreeWebglContext implements ThreeContextBase {
     return this.internal.orbitControls
   }
 
-  init(domContainer: HTMLElement): this {
+  initialized = false
+  initialize(domContainer: HTMLElement): this {
+    if (this.initialized) {
+      console.warn('ThreeWebglContext is already initialized.')
+      return this
+    }
+    Object.defineProperty(this, 'initialized', { value: true, writable: false, configurable: false, enumerable: false })
+
     const { onDestroy } = this
     domContainer.appendChild(this.renderer.domElement)
 
@@ -147,8 +160,16 @@ export class ThreeWebglContext implements ThreeContextBase {
     return this
   }
 
+  destroyed = false
   destroy = () => {
+    if (this.destroyed) {
+      console.warn('ThreeWebglContext is already destroyed.')
+      return
+    }
     destroy(this.internal.destroyables)
+    this.internal.destroyables = []
+    this.renderer.dispose()
+    Object.defineProperty(this, 'destroyed', { value: true, writable: false, configurable: false, enumerable: false })
   }
 
   setSize(size: Partial<{

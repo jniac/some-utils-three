@@ -1,8 +1,10 @@
-import { DestroyableObject } from 'some-utils-ts/types'
 import { Texture, TextureLoader } from 'three'
 import { EXRLoader } from 'three/addons/loaders/EXRLoader.js'
 import { GLTF, GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js'
+
+import { promisify } from 'some-utils-ts/misc/promisify'
+import { DestroyableObject } from 'some-utils-ts/types'
 
 const gltfExtensions = ['gltf', 'glb'] as const
 type GltfExtension = typeof gltfExtensions[number]
@@ -34,12 +36,23 @@ class Callbacks<T extends [] = []> {
   }
 }
 
+export type TextureLoadResult<T> = { value: T, promise: Promise<T> }
+
 export class UnifiedLoader {
+  private static instances: UnifiedLoader[] = []
+  static current() {
+    return this.instances[this.instances.length - 1] ?? new UnifiedLoader()
+  }
+
   private loaders = {
     gltf: new GLTFLoader(),
     texture: new TextureLoader(),
     rgbeLoader: new RGBELoader(),
     exrLoader: new EXRLoader(),
+  }
+
+  constructor() {
+    UnifiedLoader.instances.push(this)
   }
 
   setPath(path: string) {
@@ -64,22 +77,34 @@ export class UnifiedLoader {
   }
 
   async loadRgbe(url: string): Promise<Texture> {
-    return new Promise((resolve, reject) => {
-      this.loaders.rgbeLoader.load(url, value => {
-        resolve(value)
-        this._onAfterLoad.call()
-      }, undefined, reject)
-    })
+    const texture = promisify(this.loaders.rgbeLoader.load(url, value => {
+      texture.resolve()
+      this._onAfterLoad.call()
+    }, undefined, () => {
+      texture.reject(new Error(`Failed to load EXR: ${url}`))
+    }))
+    return texture
   }
 
-  async loadExr(url: string): Promise<Texture> {
-    return new Promise((resolve, reject) => {
-      this.loaders.exrLoader.load(url, value => {
-        resolve(value)
-        this._onAfterLoad.call()
-      }, undefined, reject)
+  async loadExr(url: string) {
+    const texture = promisify(this.loaders.exrLoader.load(url, value => {
+      texture.resolve()
       this._onAfterLoad.call()
-    })
+    }, undefined, () => {
+      texture.reject(new Error(`Failed to load EXR: ${url}`))
+    }))
+    return texture
+  }
+
+  loadTexture(url: string) {
+    const texture = promisify(this.loaders.texture.load(url, value => {
+      texture.resolve()
+      this._onAfterLoad.call()
+    }, undefined, () => {
+      texture.reject(new Error(`Failed to load texture: ${url}`))
+    }))
+
+    return texture
   }
 
   async load(url: `${string}.${GltfExtension}`): Promise<GLTF>
@@ -92,12 +117,14 @@ export class UnifiedLoader {
     }
 
     if (isTextureExtension(extension)) {
-      return new Promise((resolve, reject) => {
-        this.loaders.texture.load(url, value => {
+      let value: Texture
+      const promise = new Promise((resolve, reject) => {
+        value = this.loaders.texture.load(url, value => {
           resolve(value)
           this._onAfterLoad.call()
         }, undefined, reject)
       })
+      return promise
     }
 
     throw new Error(`Unsupported extension: ${extension}`)
