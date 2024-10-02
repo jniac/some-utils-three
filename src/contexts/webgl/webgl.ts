@@ -166,10 +166,11 @@ export class ThreeWebglContext implements ThreeContextBase {
       console.warn('ThreeWebglContext is already destroyed.')
       return
     }
+    Object.defineProperty(this, 'destroyed', { value: true, writable: false, configurable: false, enumerable: false })
+
     destroy(this.internal.destroyables)
     this.internal.destroyables = []
     this.renderer.dispose()
-    Object.defineProperty(this, 'destroyed', { value: true, writable: false, configurable: false, enumerable: false })
   }
 
   setSize(size: Partial<{
