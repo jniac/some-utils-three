@@ -1,17 +1,20 @@
 import { Camera, Quaternion, Vector3 } from 'three'
 
-import { handlePointer } from 'some-utils-dom/handle/pointer'
+import { handlePointer, PointerButton } from 'some-utils-dom/handle/pointer'
 
+import { handleHtmlElementEvent } from 'some-utils-dom/handle/element-event'
+import { DestroyableInstance } from 'some-utils-ts/misc/destroy'
 import { Vertigo, VertigoProps } from '../vertigo'
 
 const _quaternion = new Quaternion()
 const _vector0 = new Vector3()
 const _vector1 = new Vector3()
 
-export class VertigoControls {
+export class VertigoControls extends DestroyableInstance {
   vertigo = new Vertigo()
 
   constructor(props: VertigoProps = {}) {
+    super()
     this.vertigo.set(props)
   }
 
@@ -31,21 +34,34 @@ export class VertigoControls {
     this.vertigo.rotation.y += yaw
   }
 
-  init(element: HTMLElement = document.body) {
-    handlePointer(element, {
+  private *doInitialize(element: HTMLElement = document.body) {
+    yield handleHtmlElementEvent(element, {
+      contextmenu: event => {
+        event.preventDefault()
+      },
+    })
+    yield handlePointer(element, {
       dragButton: ~0,
       onDrag: info => {
-        if (info.button === 0) {
-          this.rotate(info.delta.y * -.01, info.delta.x * -.01)
-        } else {
-          this.pan(info.delta.x * -.01, info.delta.y * .01)
+        switch (info.button) {
+          case PointerButton.Left: {
+            this.rotate(info.delta.y * -.01, info.delta.x * -.01)
+            break
+          }
+          case PointerButton.Right: {
+            this.pan(info.delta.x * -.01, info.delta.y * .01)
+            break
+          }
         }
       },
       onWheel: info => {
         this.vertigo.zoom *= 1 + info.delta.y * .001
       },
     })
+  }
 
+  initialize(...args: Parameters<VertigoControls['doInitialize']>) {
+    this.collect(this.doInitialize(...args))
   }
 
   update(camera: Camera, aspect: number) {
