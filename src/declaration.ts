@@ -105,6 +105,9 @@ export function isVector2Declaration(arg: any): arg is Vector2Declaration {
 }
 
 export function fromVector2Declaration(arg: Vector2Declaration, out: Vector2 = new Vector2()): Vector2 {
+  if (arg === undefined || arg === null) {
+    return out.set(0, 0)
+  }
   if (typeof arg === 'number') {
     return out.set(arg, arg)
   }
@@ -131,6 +134,9 @@ export function isVector3Declaration(arg: any): arg is Vector3Declaration {
 }
 
 export function fromVector3Declaration(arg: Vector3Declaration, out: Vector3 = new Vector3()): Vector3 {
+  if (arg === undefined || arg === null) {
+    return out.set(0, 0, 0)
+  }
   if (typeof arg === 'number') {
     return out.set(arg, arg, arg)
   }
