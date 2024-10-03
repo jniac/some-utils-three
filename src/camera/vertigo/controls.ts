@@ -60,8 +60,9 @@ export class VertigoControls extends DestroyableInstance {
     })
   }
 
-  initialize(...args: Parameters<VertigoControls['doInitialize']>) {
+  initialize(...args: Parameters<VertigoControls['doInitialize']>): this {
     this.collect(this.doInitialize(...args))
+    return this
   }
 
   update(camera: Camera, aspect: number) {
