@@ -19,7 +19,7 @@ export class VertigoControls extends DestroyableInstance {
   }
 
   pan(x: number, y: number) {
-    const z = this.vertigo.zoom
+    const z = 1 / this.vertigo.zoom
     _quaternion.setFromEuler(this.vertigo.rotation)
     _vector0.set(z, 0, 0).applyQuaternion(_quaternion)
     _vector1.set(0, z, 0).applyQuaternion(_quaternion)
