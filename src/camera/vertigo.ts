@@ -115,7 +115,7 @@ export class Vertigo {
     // Critical part of the algorithm (how to fit the focus area into the screen):
     const lerpT = aspectAspect > 1 ? this.frame : 1 - this.frame
     const heightScalar = 1 + lerpT * (aspectAspect - 1) // lerp(1, aspectAspect, lerpT)
-    const height = this.size.y * this.zoom * heightScalar
+    const height = this.size.y * heightScalar / this.zoom
 
     const fovEpsilon = this.fovEpsilon * Math.PI / 180
     let fov = this.perspective * Vertigo.PERSPECTIVE_ONE * Math.PI / 180

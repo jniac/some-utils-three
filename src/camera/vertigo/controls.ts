@@ -55,7 +55,7 @@ export class VertigoControls extends DestroyableInstance {
         }
       },
       onWheel: info => {
-        this.vertigo.zoom *= 1 + info.delta.y * .001
+        this.vertigo.zoom *= 1 - info.delta.y * .001
       },
     })
   }
