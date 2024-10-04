@@ -3,7 +3,7 @@ import { EXRLoader } from 'three/addons/loaders/EXRLoader.js'
 import { GLTF, GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js'
 
-import { promisify } from 'some-utils-ts/misc/promisify'
+import { Promisified, promisify } from 'some-utils-ts/misc/promisify'
 import { DestroyableObject } from 'some-utils-ts/types'
 
 const gltfExtensions = ['gltf', 'glb'] as const
@@ -40,6 +40,8 @@ export type TextureLoadResult<T> = { value: T, promise: Promise<T> }
 
 /**
  * One loader to rule them all.
+ * 
+ * TODO: Clean that up!!
  */
 export class UnifiedLoader {
   private static nextId = 0
@@ -66,11 +68,13 @@ export class UnifiedLoader {
     UnifiedLoader.instances.push(this)
   }
 
+  path = ''
   setPath(path: string) {
-    this.loaders.gltf.setPath(path)
-    this.loaders.texture.setPath(path)
-    this.loaders.rgbeLoader.setPath(path)
-    this.loaders.exrLoader.setPath(path)
+    this.path = path
+    // this.loaders.gltf.setPath(path)
+    // this.loaders.texture.setPath(path)
+    // this.loaders.rgbeLoader.setPath(path)
+    // this.loaders.exrLoader.setPath(path)
   }
 
   private _onAfterLoad = new Callbacks()
@@ -107,13 +111,21 @@ export class UnifiedLoader {
     return texture
   }
 
-  loadTexture(url: string, callback?: (texture: Texture) => void) {
-    const texture = promisify(this.loaders.texture.load(url, value => {
-      callback?.(value)
+  textureCache = new Map<string, Promisified<Texture>>()
+  loadTexture(url: string, onLoad?: (texture: Texture) => void): Promisified<Texture> {
+    const fullUrl = new URL(this.path + url, window.location.href).href
+    if (this.textureCache.has(fullUrl)) {
+      const texture = this.textureCache.get(fullUrl)!
+      onLoad?.(texture)
+      return texture
+    }
+    const texture = promisify(this.loaders.texture.load(fullUrl, value => {
+      this.textureCache.set(fullUrl, texture)
+      onLoad?.(value)
       texture.resolve()
       this._onAfterLoad.call()
     }, undefined, () => {
-      console.log(`Failed to load texture: ${url}`)
+      console.log(`Failed to load texture: ${fullUrl}`)
     }))
 
     return texture
