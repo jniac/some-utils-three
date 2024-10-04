@@ -1,8 +1,8 @@
-import { LineSegments, Vector2 } from 'three'
+import { BufferGeometry, LineBasicMaterial, LineSegments, Vector2 } from 'three'
 
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 
-export class LineHelper extends LineSegments {
+export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
   points: Vector2[] = []
 
   clear(): this {
@@ -12,7 +12,7 @@ export class LineHelper extends LineSegments {
   }
 
   rectangle(rect: RectangleDeclaration): this {
-    const { x, y, width, height } = Rectangle.from(rect)
+    const { centerX: x, centerY: y, width, height } = Rectangle.from(rect)
     const w2 = width / 2
     const h2 = height / 2
     const a = new Vector2(x - w2, y - h2)
