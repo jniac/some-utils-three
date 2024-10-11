@@ -1,77 +1,98 @@
 import { Camera, Euler, Matrix4, Vector2, Vector3 } from 'three'
 
-import { EulerDeclaration, fromEulerDeclaration, fromVector2Declaration, fromVector3Declaration, Vector2Declaration, Vector3Declaration } from '../declaration'
+import { AngleDeclaration, EulerDeclaration, fromAngleDeclaration, fromEulerDeclaration, fromVector2Declaration, fromVector3Declaration, Vector2Declaration, Vector3Declaration } from '../declaration'
 
 const _matrix = new Matrix4()
 const _vector = new Vector3()
 
-type Props = Partial<{
+const defaultProps = {
   /**
    * - 0: orthographic (if `allowOrthographic` is `true`, otherwise the fovEpislon is used)
    * - 1: perspective (0.8 radians (Vertical FOV) ≈ 45 degrees)
    */
-  perspective: number
+  perspective: <number>1,
+  /**
+   * The base of the perspective (in degrees). If `perspective` is 1, this will 
+   * be the field of view.
+   * 
+   * Defaults to 45 degrees.
+   */
+  perspectiveBase: <AngleDeclaration>'45deg',
   /**
    * The zoom of the camera.
    */
-  zoom: number
+  zoom: <number>1,
   /**
    * The position of the focus point (where the camera is looking at).
    */
-  focus: Vector3Declaration
+  focus: <Vector3Declaration>[0, 0, 0],
   /**
    * The size of the focus area. Camera will fit this area into the screen (according to the `frame` property).
    */
-  size: Vector2Declaration
+  size: <Vector2Declaration>[4, 4],
   /**
    * The distance before the focus point that will be visible.
    * 
    * Determines the `near` property of the camera.
    */
-  before: number
+  before: <number>100,
   /**
    * The distance between the focus point and the far plane.
    * 
    * Determines the `far` property of the camera.
    */
-  after: number
+  after: <number>1000,
   /**
    * The rotation of the camera.
    */
-  rotation: EulerDeclaration
+  rotation: <EulerDeclaration>[0, 0, 0, 'YXZ'],
   /**
    * - 0: cover
    * - 1: contain
    * Intermediates are linearly interpolated.
    */
-  frame: number | 'cover' | 'contain'
-}>
+  frame: <number | 'cover' | 'contain'>'contain',
+  /**
+   * Whether to allow orthographic camera (when the perspective is close to 0).
+   */
+  allowOrthographic: <boolean>true,
+  /**
+   * Whether to switch to orthographic (if allowed) when the perspective is close to 0.
+   */
+  fovEpsilon: <AngleDeclaration>'1.5deg',
+  /**
+   * The minimum value for the `near` property of the camera.
+   */
+  nearMin: <number>0.1,
+}
+
+type Props = Partial<typeof defaultProps>
 
 export class Vertigo {
-  static PERSPECTIVE_ONE = 45 // degree
-
   // General settings:
-  perspective = 1
-  zoom = 1
+  perspective!: number
+  perspectiveBase!: number // radians
+  zoom!: number
   focus = new Vector3()
-  size = new Vector2(4, 4)
-  before = 100
-  after = 1000
-  rotation = new Euler(0, 0, 0, 'ZYX')
-  frame = 1
+  size = new Vector2()
+  before!: number
+  after!: number
+  rotation = new Euler()
+  frame!: number
 
   // Deep settings:
-  allowOrthographic = true
-  nearMin = 0.1
-  fovEpsilon = 1.5 // degree
+  allowOrthographic!: boolean
+  nearMin!: number
+  fovEpsilon!: number // radians
 
   constructor(props?: Props) {
-    this.set(props ?? {})
+    this.set({ ...defaultProps, ...props })
   }
 
   set(props: Props): this {
     const {
       perspective,
+      perspectiveBase,
       zoom,
       focus,
       size,
@@ -79,16 +100,19 @@ export class Vertigo {
       after,
       rotation,
       frame,
+      allowOrthographic,
+      fovEpsilon,
+      nearMin,
     } = props
 
     if (perspective !== undefined)
       this.perspective = perspective
 
+    if (perspectiveBase !== undefined)
+      this.perspectiveBase = fromAngleDeclaration(perspectiveBase)
+
     if (zoom !== undefined)
       this.zoom = zoom
-
-    if (frame !== undefined)
-      this.frame = typeof frame === 'string' ? (frame === 'cover' ? 0 : 1) : frame
 
     if (focus !== undefined)
       fromVector3Declaration(focus, this.focus)
@@ -105,6 +129,18 @@ export class Vertigo {
     if (rotation !== undefined)
       fromEulerDeclaration(rotation, this.rotation)
 
+    if (frame !== undefined)
+      this.frame = typeof frame === 'string' ? (frame === 'cover' ? 0 : 1) : frame
+
+    if (allowOrthographic !== undefined)
+      this.allowOrthographic = allowOrthographic
+
+    if (fovEpsilon !== undefined)
+      this.fovEpsilon = fromAngleDeclaration(fovEpsilon)
+
+    if (nearMin !== undefined)
+      this.nearMin = nearMin
+
     return this
   }
 
@@ -117,8 +153,8 @@ export class Vertigo {
     const heightScalar = 1 + lerpT * (aspectAspect - 1) // lerp(1, aspectAspect, lerpT)
     const height = this.size.y * heightScalar / this.zoom
 
-    const fovEpsilon = this.fovEpsilon * Math.PI / 180
-    let fov = this.perspective * Vertigo.PERSPECTIVE_ONE * Math.PI / 180
+    const fovEpsilon = this.fovEpsilon
+    let fov = this.perspective * this.perspectiveBase
     if (!this.allowOrthographic && fov < fovEpsilon) {
       fov = fovEpsilon
     }
@@ -169,6 +205,11 @@ export class Vertigo {
       camera.fov = 0
       camera.projectionMatrix.makeOrthographic(-mWidth, mWidth, mHeight, -mHeight, near, far)
     }
+
+    // Don't forget to update the inverse matrix (for raycasting) (i forgot it).
+    camera.projectionMatrixInverse
+      .copy(camera.projectionMatrix)
+      .invert()
 
     return this
   }
