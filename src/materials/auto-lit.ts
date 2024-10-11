@@ -18,12 +18,13 @@ varying vec3 vColor;
 
 uniform vec3 uSunPosition;
 uniform vec3 uColor;
+uniform float uLuminosity;
 
 void main() {
   vec3 lightDirection = normalize(uSunPosition);
   float light = dot(vWorldNormal, lightDirection) * 0.5 + 0.5;
   light = pow(light, 2.0);
-  light = mix(0.1, 1.0, light);
+  light = mix(uLuminosity, 1.0, light);
   gl_FragColor = vec4(vColor * uColor * light, 1.0);
 }
 `
@@ -31,6 +32,7 @@ void main() {
 const defaultOptions = {
   vertexColors: true,
   color: <ColorRepresentation>'white',
+  luminosity: .5,
 }
 
 type Options = Partial<Omit<ShaderMaterialParameters, 'fragmentShader' | 'vertexShader'> & typeof defaultOptions>
@@ -44,6 +46,7 @@ export class AutoLitMaterial extends ShaderMaterial {
   constructor(options?: Options) {
     const {
       color,
+      luminosity,
       vertexColors,
       ...rest
     } = { ...defaultOptions, ...options }
@@ -52,6 +55,7 @@ export class AutoLitMaterial extends ShaderMaterial {
       uniforms: {
         uColor: { value: new Color(color) },
         uSunPosition: { value: new Vector3(0.5, 0.7, 0.3) },
+        uLuminosity: { value: luminosity },
       },
       vertexColors,
       vertexShader,
