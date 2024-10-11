@@ -35,7 +35,7 @@ export class ThreeWebglContext implements ThreeContextBase {
   // NOTE: The ticker is not explicitly created, but rather is require through a
   // name ("three"). This is to allow the user to use the same ticker, even before
   // it is eventually created here.
-  ticker = Ticker.get('three').set({ activeDuration: 8 })
+  ticker = Ticker.get('three').set({ minActiveDuration: 8 })
 
   pipeline = new BasicPipeline(this.renderer, this.scene, this.gizmoScene, this.perspectiveCamera)
 
@@ -209,7 +209,7 @@ export class ThreeWebglContext implements ThreeContextBase {
     this.pipeline.render(tick)
   };
 
-  * findAll(query: string | RegExp | ((object: any) => boolean)) {
+  *findAll(query: string | RegExp | ((object: any) => boolean)) {
     const findDelegate =
       typeof query === 'string' ? (object: any) => object.name === query :
         query instanceof RegExp ? (object: any) => query.test(object.name) :
