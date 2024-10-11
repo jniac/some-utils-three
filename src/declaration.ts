@@ -68,11 +68,23 @@ export function toAngleDeclarationString(value: number, unit: AngleUnit = 'rad')
   return `${formatNumber(value / angleScalar[unit], fractionDigits)}${unit}`
 }
 
-type EulerDeclarationArray = [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration, unit?: AngleUnit, order?: Euler['order']]
+type EulerDeclarationArray =
+  | [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration]
+  | [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration, unit: AngleUnit]
+  | [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration, order: Euler['order']]
+  | [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration, unit: AngleUnit, order: Euler['order']]
 type EulerDeclarationObject = { x: AngleDeclaration; y: AngleDeclaration; z: AngleDeclaration; unit?: AngleUnit; order?: Euler['order'] }
 type EulerDeclarationBase = EulerDeclarationArray | EulerDeclarationObject
 
 export type EulerDeclaration = ReadonlyOrNot<EulerDeclarationBase>
+
+function isAngleUnit(arg: any): arg is AngleUnit {
+  return typeof arg === 'string' && /^(rad|deg|turn)$/.test(arg)
+}
+
+function isEulerOrder(arg: any): arg is Euler['order'] {
+  return typeof arg === 'string' && /^(XYZ|XZY|YXZ|YZX|ZXY|ZYX)$/.test(arg)
+}
 
 export type TransformDeclaration = Partial<{
   x: number
@@ -162,7 +174,9 @@ export function fromEulerDeclaration(arg: EulerDeclaration, out: Euler = new Eul
     return out.copy(arg)
   }
   if (Array.isArray(arg)) {
-    const [x, y, z, unit = 'rad', order = 'XYZ'] = arg
+    const [x, y, z, arg0, arg1] = arg
+    const unit = isAngleUnit(arg0) ? arg0 : 'rad'
+    const order = isEulerOrder(arg0) ? arg0 : isEulerOrder(arg1) ? arg1 : 'XYZ'
     return out.set(
       fromAngleDeclaration(x, unit),
       fromAngleDeclaration(y, unit),
