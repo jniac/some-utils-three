@@ -144,6 +144,26 @@ export class Vertigo {
     return this
   }
 
+  copy(other: Vertigo): this {
+    this.perspective = other.perspective
+    this.perspectiveBase = other.perspectiveBase
+    this.zoom = other.zoom
+    this.focus.copy(other.focus)
+    this.size.copy(other.size)
+    this.before = other.before
+    this.after = other.after
+    this.rotation.copy(other.rotation)
+    this.frame = other.frame
+    this.allowOrthographic = other.allowOrthographic
+    this.fovEpsilon = other.fovEpsilon
+    this.nearMin = other.nearMin
+    return this
+  }
+
+  clone(): Vertigo {
+    return new Vertigo().copy(this)
+  }
+
   apply(camera: Camera, aspect: number): this {
     const sizeAspect = this.size.x / this.size.y
     const aspectAspect = sizeAspect / aspect
