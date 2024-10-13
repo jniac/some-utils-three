@@ -80,7 +80,7 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
   } = { ...defaultTransformProps, ...props }
 
   fromVector3Declaration(position, target.position)
-  fromEulerDeclaration(rotation ?? [rotationX, rotationY, rotationZ, rotationUnit, rotationOrder], target.rotation)
+  fromEulerDeclaration(rotation ?? [rotationX, rotationY, rotationZ, rotationOrder, rotationUnit], target.rotation)
   fromVector3Declaration(scale, target.scale)
 
   if (visible !== undefined) {
