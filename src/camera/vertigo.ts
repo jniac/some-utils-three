@@ -1,9 +1,11 @@
-import { Camera, Euler, Matrix4, Vector2, Vector3 } from 'three'
+import { Camera, Euler, Matrix4, Quaternion, Vector2, Vector3 } from 'three'
 
 import { AngleDeclaration, EulerDeclaration, fromAngleDeclaration, fromEulerDeclaration, fromVector2Declaration, fromVector3Declaration, toAngleDeclarationString, Vector2Declaration, Vector3Declaration } from '../declaration'
 
 const _matrix = new Matrix4()
 const _vector = new Vector3()
+const _qa = new Quaternion()
+const _qb = new Quaternion()
 
 const defaultProps = {
   /**
@@ -174,6 +176,32 @@ export class Vertigo {
 
   clone(): Vertigo {
     return new Vertigo().copy(this)
+  }
+
+  lerpVertigos(a: Vertigo, b: Vertigo, t: number): this {
+    this.perspective = a.perspective + (b.perspective - a.perspective) * t
+    this.perspectiveBase = a.perspectiveBase + (b.perspectiveBase - a.perspectiveBase) * t
+    this.zoom = a.zoom + (b.zoom - a.zoom) * t
+    this.focus.lerpVectors(a.focus, b.focus, t)
+    this.size.lerpVectors(a.size, b.size, t)
+    this.before = a.before + (b.before - a.before) * t
+    this.after = a.after + (b.after - a.after) * t
+
+    // Rotation interpolation:
+    _qa.setFromEuler(a.rotation)
+    _qb.setFromEuler(b.rotation)
+    this.rotation.setFromQuaternion(_qa.slerp(_qb, t))
+
+    this.frame = a.frame + (b.frame - a.frame) * t
+    this.allowOrthographic = t < .5 ? a.allowOrthographic : b.allowOrthographic
+    this.fovEpsilon = a.fovEpsilon + (b.fovEpsilon - a.fovEpsilon) * t
+    this.nearMin = a.nearMin + (b.nearMin - a.nearMin) * t
+
+    return this
+  }
+
+  lerp(other: Vertigo, t: number): this {
+    return this.lerpVertigos(this, other, t)
   }
 
   apply(camera: Camera, aspect: number): this {
