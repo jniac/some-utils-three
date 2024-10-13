@@ -2,17 +2,26 @@ import { ColorRepresentation, DoubleSide, LineBasicMaterial, Mesh, MeshBasicMate
 import { LineHelper } from '../../helpers/line'
 import { Vertigo } from '../vertigo'
 
-const canvas = document.createElement('canvas')
-const ctx = canvas.getContext('2d')!
-canvas.width = 1024
-canvas.height = 256
-ctx.fillStyle = 'white'
-ctx.font = '200px Fira Code'
-ctx.textBaseline = 'top'
-ctx.fillText('Vertigo', 20, 20)
+function texture() {
+  const create = () => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')!
+    canvas.width = 1024
+    canvas.height = 256
+    ctx.fillStyle = 'white'
+    ctx.font = '200px Fira Code'
+    ctx.textBaseline = 'top'
+    ctx.fillText('Vertigo', 20, 20)
 
-const texture = new Texture(canvas)
-texture.needsUpdate = true
+    const texture = new Texture(canvas)
+    texture.needsUpdate = true
+
+    return texture
+  }
+
+  let texture: Texture | undefined
+  return texture ??= create()
+}
 
 export class VertigoHelper extends LineHelper {
   constructor(vertigo: Vertigo, { color = <ColorRepresentation>'red' } = {}) {
@@ -31,7 +40,7 @@ export class VertigoHelper extends LineHelper {
       new PlaneGeometry(1, .25),
       new MeshBasicMaterial({
         color,
-        alphaMap: texture,
+        alphaMap: texture(),
         transparent: true,
         side: DoubleSide,
       }),
