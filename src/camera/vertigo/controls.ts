@@ -1,4 +1,4 @@
-import { Camera, Euler, Quaternion, Vector3 } from 'three'
+import { Camera, Euler, Quaternion, Vector2, Vector2Like, Vector3 } from 'three'
 
 import { handleHtmlElementEvent } from 'some-utils-dom/handle/element-event'
 import { handlePointer, PointerButton } from 'some-utils-dom/handle/pointer'
@@ -8,8 +8,14 @@ import { DestroyableInstance } from 'some-utils-ts/misc/destroy'
 import { Vertigo, VertigoProps } from '../vertigo'
 
 const _quaternion = new Quaternion()
-const _vector0 = new Vector3()
-const _vector1 = new Vector3()
+const _vectorX = new Vector3()
+const _vectorY = new Vector3()
+
+function _updateVectorXY(rotation: Euler) {
+  _quaternion.setFromEuler(rotation)
+  _vectorX.set(1, 0, 0).applyQuaternion(_quaternion)
+  _vectorY.set(0, 1, 0).applyQuaternion(_quaternion)
+}
 
 export class VertigoControls extends DestroyableInstance {
   vertigo = new Vertigo()
@@ -65,19 +71,33 @@ export class VertigoControls extends DestroyableInstance {
   }
 
   pan(x: number, y: number) {
+    _updateVectorXY(this.vertigo.rotation)
     const z = 1 / this.vertigo.zoom
-    _quaternion.setFromEuler(this.vertigo.rotation)
-    _vector0.set(z, 0, 0).applyQuaternion(_quaternion)
-    _vector1.set(0, z, 0).applyQuaternion(_quaternion)
-
     this.vertigo.focus
-      .addScaledVector(_vector0, x)
-      .addScaledVector(_vector1, y)
+      .addScaledVector(_vectorX, x * z)
+      .addScaledVector(_vectorY, y * z)
   }
 
   rotate(pitch: number, yaw: number) {
     this.vertigo.rotation.x += pitch
     this.vertigo.rotation.y += yaw
+  }
+
+  zoomAt(newZoom: number, vertigoRelativePointer: Vector2Like) {
+    const currentWidth = this.vertigo.size.x / this.vertigo.zoom
+    const currentHeight = this.vertigo.size.y / this.vertigo.zoom
+    const newWidth = this.vertigo.size.x / newZoom
+    const newHeight = this.vertigo.size.y / newZoom
+    const diffWidth = newWidth - currentWidth
+    const diffHeight = newHeight - currentHeight
+
+    _updateVectorXY(this.vertigo.rotation)
+    const { x, y } = vertigoRelativePointer
+    this.vertigo.focus
+      .addScaledVector(_vectorX, diffWidth * -x)
+      .addScaledVector(_vectorY, diffHeight * -y)
+
+    this.vertigo.zoom = newZoom
   }
 
   private *doInitialize(element: HTMLElement = document.body) {
@@ -86,7 +106,15 @@ export class VertigoControls extends DestroyableInstance {
         event.preventDefault()
       },
     })
+
+    const pointer = new Vector2()
     yield handlePointer(element, {
+      onChange: info => {
+        const rect = element.getBoundingClientRect()
+        const x = (info.localPosition.x - rect.x) / rect.width * 2 - 1
+        const y = -((info.localPosition.y - rect.y) / rect.height * 2 - 1)
+        pointer.set(x / 2, y / 2).multiply(this.vertigo.computedNdcScalar)
+      },
       dragButton: ~0,
       onDrag: info => {
         switch (info.button) {
@@ -101,7 +129,12 @@ export class VertigoControls extends DestroyableInstance {
         }
       },
       onWheel: info => {
-        this.vertigo.zoom *= 1 - info.delta.y * .001
+        const newZoom = this.vertigo.zoom * (1 - info.delta.y * .001)
+        if (info.event.altKey) {
+          this.zoomAt(newZoom, pointer)
+        } else {
+          this.zoomAt(newZoom, { x: 0, y: 0 })
+        }
       },
     })
   }
