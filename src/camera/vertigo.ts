@@ -1,6 +1,6 @@
 import { Camera, Euler, Matrix4, Vector2, Vector3 } from 'three'
 
-import { AngleDeclaration, EulerDeclaration, fromAngleDeclaration, fromEulerDeclaration, fromVector2Declaration, fromVector3Declaration, Vector2Declaration, Vector3Declaration } from '../declaration'
+import { AngleDeclaration, EulerDeclaration, fromAngleDeclaration, fromEulerDeclaration, fromVector2Declaration, fromVector3Declaration, toAngleDeclarationString, Vector2Declaration, Vector3Declaration } from '../declaration'
 
 const _matrix = new Matrix4()
 const _vector = new Vector3()
@@ -11,13 +11,6 @@ const defaultProps = {
    * - 1: perspective (0.8 radians (Vertical FOV) ≈ 45 degrees)
    */
   perspective: <number>1,
-  /**
-   * The base of the perspective (in degrees). If `perspective` is 1, this will 
-   * be the field of view.
-   * 
-   * Defaults to 45 degrees.
-   */
-  perspectiveBase: <AngleDeclaration>'45deg',
   /**
    * The zoom of the camera.
    */
@@ -57,13 +50,21 @@ const defaultProps = {
    */
   allowOrthographic: <boolean>true,
   /**
+   * The base of the perspective (in degrees). If `perspective` is 1, this will 
+   * be the field of view (horizontal or vertical depends on the aspect ratios of
+   * the current focus size and the screen).
+   * 
+   * Defaults to 45 degrees.
+   */
+  fovBase: <AngleDeclaration>'45deg',
+  /**
    * Whether to switch to orthographic (if allowed) when the perspective is close to 0.
    */
   fovEpsilon: <AngleDeclaration>'1.5deg',
   /**
    * The minimum value for the `near` property of the camera.
    */
-  nearMin: <number>0.1,
+  nearMin: <number>.1,
 }
 
 type Props = Partial<typeof defaultProps>
@@ -85,6 +86,17 @@ export class Vertigo {
   nearMin!: number
   fovEpsilon!: number // radians
 
+  // Internal:
+  /**
+   * The scalar that can be applied to convert "screen" NDC coordinates to "camera" 
+   * NDC coordinates.
+   */
+  computedNdcScalar = new Vector2()
+  /**
+   * The computed size of the focus area in the screen (once the `zoom` and the `frame` are applied).
+   */
+  computedSize = new Vector2()
+
   constructor(props?: Props) {
     this.set({ ...defaultProps, ...props })
   }
@@ -92,7 +104,7 @@ export class Vertigo {
   set(props: Props): this {
     const {
       perspective,
-      perspectiveBase,
+      fovBase: perspectiveBase,
       zoom,
       focus,
       size,
@@ -202,7 +214,7 @@ export class Vertigo {
     camera.isOrthographicCamera = !isPerspective
 
     if (isPerspective) {
-      const near = Math.max(this.nearMin, distance - this.before)
+      const near = Math.max(this.nearMin / this.zoom, distance - this.before)
       const far = distance + this.after
 
       const mHeight = height * near / distance / 2
@@ -215,8 +227,8 @@ export class Vertigo {
 
     // Orthographic
     else {
-      const near = this.nearMin
-      const far = this.nearMin + this.before + this.after
+      const near = this.nearMin / this.zoom
+      const far = near + this.before + this.after
 
       const mHeight = height / 2
       const mWidth = mHeight * aspect
@@ -231,7 +243,37 @@ export class Vertigo {
       .copy(camera.projectionMatrix)
       .invert()
 
+    this.computedNdcScalar.set(heightScalar * aspect, heightScalar)
+    this.computedSize.set(height * aspect, height)
+
     return this
+  }
+
+  /**
+   * Return a declaration object that can be used to serialize the camera settings
+   * in a concise way.
+   */
+  toDeclaration(): Props {
+    const rotation = <EulerDeclaration>[
+      toAngleDeclarationString(this.rotation.x, 'deg'),
+      toAngleDeclarationString(this.rotation.y, 'deg'),
+      toAngleDeclarationString(this.rotation.z, 'deg'),
+      this.rotation.order,
+    ]
+    return {
+      perspective: this.perspective,
+      fovBase: toAngleDeclarationString(this.perspectiveBase, 'deg'),
+      zoom: this.zoom,
+      focus: this.focus.toArray(),
+      size: this.size.toArray(),
+      before: this.before,
+      after: this.after,
+      rotation,
+      frame: this.frame,
+      allowOrthographic: this.allowOrthographic,
+      fovEpsilon: toAngleDeclarationString(this.fovEpsilon, 'deg'),
+      nearMin: this.nearMin,
+    }
   }
 }
 
