@@ -59,20 +59,19 @@ export function fromAngleDeclaration(declaration: AngleDeclaration, defaultUnit:
   return value * angleScalar[unit]
 }
 
-export function toAngleDeclarationString(value: number, unit: AngleUnit = 'rad'): string {
+export function toAngleDeclarationString(value: number, unit: AngleUnit = 'rad'): string & AngleDeclaration {
   const fractionDigits = {
     rad: 3,
     deg: 1,
     turn: 4,
   }[unit]
-  return `${formatNumber(value / angleScalar[unit], fractionDigits)}${unit}`
+  return `${formatNumber(value / angleScalar[unit], fractionDigits)}${unit}` as any
 }
 
 type EulerDeclarationArray =
-  | [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration]
+  | [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration, order?: Euler['order']]
+  | [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration, order: Euler['order'], unit: AngleUnit]
   | [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration, unit: AngleUnit]
-  | [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration, order: Euler['order']]
-  | [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration, unit: AngleUnit, order: Euler['order']]
 type EulerDeclarationObject = { x: AngleDeclaration; y: AngleDeclaration; z: AngleDeclaration; unit?: AngleUnit; order?: Euler['order'] }
 type EulerDeclarationBase = EulerDeclarationArray | EulerDeclarationObject
 
@@ -175,7 +174,7 @@ export function fromEulerDeclaration(arg: EulerDeclaration, out: Euler = new Eul
   }
   if (Array.isArray(arg)) {
     const [x, y, z, arg0, arg1] = arg
-    const unit = isAngleUnit(arg0) ? arg0 : 'rad'
+    const unit = isAngleUnit(arg0) ? arg0 : isAngleUnit(arg1) ? arg1 : 'rad'
     const order = isEulerOrder(arg0) ? arg0 : isEulerOrder(arg1) ? arg1 : 'XYZ'
     return out.set(
       fromAngleDeclaration(x, unit),
