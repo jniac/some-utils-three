@@ -5,6 +5,7 @@ import { handlePointer, PointerButton } from 'some-utils-dom/handle/pointer'
 import { Animation } from 'some-utils-ts/animation'
 import { DestroyableInstance } from 'some-utils-ts/misc/destroy'
 
+import { fromVector3Declaration, Vector3Declaration } from '../../declaration'
 import { Vertigo, VertigoProps } from '../vertigo'
 
 const _quaternion = new Quaternion()
@@ -27,6 +28,15 @@ export class VertigoControls extends DestroyableInstance {
         .tween({
           target: [this.vertigo, 'perspective'],
           to: { perspective },
+          duration: 1,
+          ease: 'inOut3',
+        })
+    },
+    focus: (focusPosition: Vector3Declaration) => {
+      Animation
+        .tween({
+          target: this.vertigo.focus,
+          to: fromVector3Declaration(focusPosition),
           duration: 1,
           ease: 'inOut3',
         })
