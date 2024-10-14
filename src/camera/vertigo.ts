@@ -9,6 +9,14 @@ const _qb = new Quaternion()
 
 const defaultProps = {
   /**
+   * The base of the perspective (in degrees). If `perspective` is 1, this will 
+   * be the field of view (horizontal or vertical depends on the aspect ratios of
+   * the current focus size and the screen).
+   * 
+   * Defaults to 45 degrees.
+   */
+  fov: <AngleDeclaration>'45deg',
+  /**
    * - 0: orthographic (if `allowOrthographic` is `true`, otherwise the fovEpislon is used)
    * - 1: perspective (0.8 radians (Vertical FOV) ≈ 45 degrees)
    */
@@ -52,14 +60,6 @@ const defaultProps = {
    */
   allowOrthographic: <boolean>true,
   /**
-   * The base of the perspective (in degrees). If `perspective` is 1, this will 
-   * be the field of view (horizontal or vertical depends on the aspect ratios of
-   * the current focus size and the screen).
-   * 
-   * Defaults to 45 degrees.
-   */
-  fovBase: <AngleDeclaration>'45deg',
-  /**
    * Whether to switch to orthographic (if allowed) when the perspective is close to 0.
    */
   fovEpsilon: <AngleDeclaration>'1.5deg',
@@ -74,7 +74,7 @@ type Props = Partial<typeof defaultProps>
 export class Vertigo {
   // General settings:
   perspective!: number
-  perspectiveBase!: number // radians
+  fov!: number // radians
   zoom!: number
   focus = new Vector3()
   size = new Vector2()
@@ -106,7 +106,7 @@ export class Vertigo {
   set(props: Props): this {
     const {
       perspective,
-      fovBase: perspectiveBase,
+      fov: perspectiveBase,
       zoom,
       focus,
       size,
@@ -123,7 +123,7 @@ export class Vertigo {
       this.perspective = perspective
 
     if (perspectiveBase !== undefined)
-      this.perspectiveBase = fromAngleDeclaration(perspectiveBase)
+      this.fov = fromAngleDeclaration(perspectiveBase)
 
     if (zoom !== undefined)
       this.zoom = zoom
@@ -160,7 +160,7 @@ export class Vertigo {
 
   copy(other: Vertigo): this {
     this.perspective = other.perspective
-    this.perspectiveBase = other.perspectiveBase
+    this.fov = other.fov
     this.zoom = other.zoom
     this.focus.copy(other.focus)
     this.size.copy(other.size)
@@ -180,8 +180,24 @@ export class Vertigo {
 
   lerpVertigos(a: Vertigo, b: Vertigo, t: number): this {
     this.perspective = a.perspective + (b.perspective - a.perspective) * t
-    this.perspectiveBase = a.perspectiveBase + (b.perspectiveBase - a.perspectiveBase) * t
-    this.zoom = a.zoom + (b.zoom - a.zoom) * t
+    this.fov = a.fov + (b.fov - a.fov) * t
+
+    // Zoom interpolation:
+    // Using logarithmic interpolation to avoid the "zooming in" effect.
+    const base = .001
+    const za = Math.log(a.zoom) / Math.log(base)
+    const zb = Math.log(b.zoom) / Math.log(base)
+    const z = za + (zb - za) * t
+    this.zoom = base ** z
+
+    // const p = 1e9
+    // const za = a.zoom ** (1 / p)
+    // const zb = b.zoom ** (1 / p)
+    // const z = za + (zb - za) * t
+    // this.zoom = z ** p
+
+    // this.zoom = a.zoom + (b.zoom - a.zoom) * t
+
     this.focus.lerpVectors(a.focus, b.focus, t)
     this.size.lerpVectors(a.size, b.size, t)
     this.before = a.before + (b.before - a.before) * t
@@ -214,7 +230,7 @@ export class Vertigo {
     const height = this.size.y * heightScalar / this.zoom
 
     const fovEpsilon = this.fovEpsilon
-    let fov = this.perspective * this.perspectiveBase
+    let fov = this.perspective * this.fov
     if (!this.allowOrthographic && fov < fovEpsilon) {
       fov = fovEpsilon
     }
@@ -290,7 +306,7 @@ export class Vertigo {
     ]
     return {
       perspective: this.perspective,
-      fovBase: toAngleDeclarationString(this.perspectiveBase, 'deg'),
+      fov: toAngleDeclarationString(this.fov, 'deg'),
       zoom: this.zoom,
       focus: this.focus.toArray(),
       size: this.size.toArray(),
