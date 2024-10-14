@@ -24,13 +24,21 @@ function texture() {
 }
 
 export class VertigoHelper extends LineHelper {
-  constructor(vertigo: Vertigo, { color = <ColorRepresentation>'red' } = {}) {
+  constructor(vertigo: Vertigo, { color = <ColorRepresentation>'#ffff00' } = {}) {
     super(undefined, new LineBasicMaterial({ color }))
 
     this.position.copy(vertigo.focus)
     this.rotation.copy(vertigo.rotation)
 
-    const { x: sx, y: sy } = vertigo.size
+    let { x: sx, y: sy } = vertigo.size
+
+    if (vertigo.zoom !== 1) {
+      this.rectangle([-sx / 2, -sy / 2, sx, sy])
+    }
+
+    sx /= vertigo.zoom
+    sy /= vertigo.zoom
+
     this
       .rectangle([-sx / 2, -sy / 2, sx, sy])
       .plus([0, 0], .5)
