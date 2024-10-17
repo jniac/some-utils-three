@@ -138,6 +138,7 @@ export class VertigoControls extends DestroyableInstance {
           }
         }
       },
+      wheelPreventDefault: true,
       onWheel: info => {
         const newZoom = this.vertigo.zoom * (1 - info.delta.y * .001)
         if (info.event.altKey) {
