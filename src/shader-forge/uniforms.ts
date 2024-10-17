@@ -8,6 +8,7 @@ type UniformValueType =
   | Vector2
   | Vector3
   | Color
+  | Color[]
   | Vector4
   | Quaternion
   | Matrix3
@@ -53,6 +54,12 @@ export class UniformWrapper<T> implements IUniform<T> {
   computeDeclaration() {
     const name = this.name
     const value = this.target.value as any
+
+    if (Array.isArray(value)) {
+      if (typeof value[0].isColor) {
+        return `uniform vec3 ${name}[${value.length}];`
+      }
+    }
 
     if (typeof value === 'number') {
       return `uniform float ${name};`
