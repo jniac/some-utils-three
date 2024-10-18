@@ -8,7 +8,6 @@ type UniformValueType =
   | Vector2
   | Vector3
   | Color
-  | Color[]
   | Vector4
   | Quaternion
   | Matrix3
@@ -16,7 +15,11 @@ type UniformValueType =
   | Texture
   | CubeTexture
 
-type UniformDeclaration = IUniform<UniformValueType> | UniformValueType
+type UniformDeclaration =
+  | IUniform<UniformValueType[]>
+  | IUniform<UniformValueType>
+  | UniformValueType[]
+  | UniformValueType
 
 /**
  * Little wrapper around a uniform value. Used to generate the declaration string.
@@ -53,41 +56,42 @@ export class UniformWrapper<T> implements IUniform<T> {
 
   computeDeclaration() {
     const name = this.name
-    const value = this.target.value as any
+    let value = this.target.value as any
+    let arraySuffix = ''
+
+    if (value instanceof Float32Array) {
+      return `uniform float ${name}[${value.length}];`
+    }
 
     if (Array.isArray(value)) {
-      if (typeof value[0].isColor) {
-        return `uniform vec3 ${name}[${value.length}];`
-      }
+      arraySuffix = `[${value.length}]`
+      value = value[0]
     }
 
     if (typeof value === 'number') {
-      return `uniform float ${name};`
+      return `uniform float ${name}${arraySuffix};`
     }
     if (value.isVector2) {
-      return `uniform vec2 ${name};`
+      return `uniform vec2 ${name}${arraySuffix};`
     }
     if (value.isVector3 || value.isColor) {
-      return `uniform vec3 ${name};`
+      return `uniform vec3 ${name}${arraySuffix};`
     }
     if (value.isVector4 || value.isQuaternion) {
-      return `uniform vec4 ${name};`
+      return `uniform vec4 ${name}${arraySuffix};`
     }
     if (value.isMatrix3) {
-      return `uniform mat3 ${name};`
+      return `uniform mat3 ${name}${arraySuffix};`
     }
     if (value.isMatrix4) {
-      return `uniform mat4 ${name};`
+      return `uniform mat4 ${name}${arraySuffix};`
     }
     if (value.isTexture) {
       if (value.isCubeTexture) {
-        return `uniform samplerCube ${name};`
+        return `uniform samplerCube ${name}${arraySuffix};`
       } else {
-        return `uniform sampler2D ${name};`
+        return `uniform sampler2D ${name}${arraySuffix};`
       }
-    }
-    if (value instanceof Float32Array) {
-      return `uniform float ${name}[${value.length}];`
     }
 
     console.log(`unhandled value:`, value)
