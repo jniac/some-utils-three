@@ -91,12 +91,11 @@ export type TransformDeclaration = Partial<{
   z: number
   position: Vector3Declaration
 
-  rotationX: number
-  rotationY: number
-  rotationZ: number
+  rotationX: AngleDeclaration
+  rotationY: AngleDeclaration
+  rotationZ: AngleDeclaration
   rotation: EulerDeclaration
   rotationOrder: Euler['order']
-  useDegree: boolean
 
   scale: Vector3Declaration
   scaleX: number
@@ -215,7 +214,7 @@ export const fromTransformDeclaration = (() => {
 
   function fromTransformDeclaration(props: TransformDeclaration, out: Matrix4): Matrix4
   function fromTransformDeclaration<T extends Object3D>(props: TransformDeclaration, out: T): T
-  function fromTransformDeclaration(props: any, out: any): any {
+  function fromTransformDeclaration(props: TransformDeclaration, out: any): any {
     const {
       x = 0,
       y = 0,
@@ -227,7 +226,6 @@ export const fromTransformDeclaration = (() => {
       rotationZ = 0,
       rotationOrder = 'XYZ',
       rotation = { x: rotationX, y: rotationY, z: rotationZ, order: rotationOrder },
-      useDegree = false,
 
       scaleX = 1,
       scaleY = 1,
@@ -235,13 +233,6 @@ export const fromTransformDeclaration = (() => {
       scaleScalar = 1,
       scale = { x: scaleX, y: scaleY, z: scaleZ },
     } = props
-
-    if (useDegree) {
-      const s = Math.PI / 180
-      rotation.x *= s
-      rotation.y *= s
-      rotation.z *= s
-    }
 
     if (out instanceof Matrix4) {
       fromVector3Declaration(position, _position)
