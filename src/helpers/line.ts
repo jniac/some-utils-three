@@ -1,11 +1,12 @@
-import { BufferGeometry, GreaterDepth, LineBasicMaterial, LineSegments, Vector2, Vector3 } from 'three'
+import { BufferGeometry, GreaterDepth, LineBasicMaterial, LineSegments, Matrix4, Vector2, Vector3 } from 'three'
 
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 
-import { fromVector2Declaration, fromVector3Declaration, Vector2Declaration, Vector3Declaration } from '../declaration'
+import { fromTransformDeclaration, fromVector2Declaration, fromVector3Declaration, TransformDeclaration, Vector2Declaration, Vector3Declaration } from '../declaration'
 
 const _vector2 = new Vector2()
 const _vector3 = new Vector3()
+const _m = new Matrix4()
 
 export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
   points: Vector3[] = []
@@ -33,7 +34,33 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     return this
   }
 
-  rectangle(rect: RectangleDeclaration): this {
+  static circleDefaultOptions = { radius: .5, segments: 96 }
+  circle(options?: Partial<typeof LineHelper.circleDefaultOptions> & TransformDeclaration): this {
+    const { radius, segments, ...rest } = { ...LineHelper.circleDefaultOptions, ...options }
+    fromTransformDeclaration(rest, _m)
+    const vx = new Vector3(1, 0, 0)
+    const vy = new Vector3(0, 1, 0)
+    for (let i = 0; i < segments; i++) {
+      const a0 = i / segments * Math.PI * 2
+      const a1 = (i + 1) / segments * Math.PI * 2
+      const x0 = Math.cos(a0) * radius
+      const y0 = Math.sin(a0) * radius
+      const x1 = Math.cos(a1) * radius
+      const y1 = Math.sin(a1) * radius
+      const v0 = new Vector3()
+        .addScaledVector(vx, x0)
+        .addScaledVector(vy, y0)
+        .applyMatrix4(_m)
+      const v1 = new Vector3()
+        .addScaledVector(vx, x1)
+        .addScaledVector(vy, y1)
+        .applyMatrix4(_m)
+      this.points.push(v0, v1)
+    }
+    return this
+  }
+
+  rectangle(rect?: RectangleDeclaration & TransformDeclaration): this {
     const { centerX: x, centerY: y, width, height } = Rectangle.from(rect)
     const w2 = width / 2
     const h2 = height / 2
