@@ -5,6 +5,7 @@ import { handlePointer, PointerButton } from 'some-utils-dom/handle/pointer'
 import { Animation } from 'some-utils-ts/animation'
 import { DestroyableInstance } from 'some-utils-ts/misc/destroy'
 
+import { calculateExponentialDecayLerpRatio } from 'some-utils-ts/math/misc/exponential-decay'
 import { fromVector3Declaration, Vector3Declaration } from '../../declaration'
 import { Vertigo, VertigoProps } from '../vertigo'
 
@@ -19,7 +20,25 @@ function _updateVectorXY(rotation: Euler) {
 }
 
 export class VertigoControls extends DestroyableInstance {
+  /**
+   * The decay factor for the vertigo controls (expresses the missing part after 1 second).
+   * 
+   * Example:
+   * - 0.123 means that 12.3% of the difference will be missing after 1 second.
+   * 
+   * Defaults to `.01` (1% missing after 1 second).
+   */
+  dampingDecayFactor = .01
+
+  /**
+   * The "absolute" vertigo controls (used as a target for the damped vertigo controls).
+   */
   vertigo = new Vertigo()
+
+  /**
+   * The damped vertigo controls (used for smooth camera movement).
+   */
+  dampedVertigo = new Vertigo()
 
   actions = {
     togglePerspective: () => {
@@ -78,6 +97,7 @@ export class VertigoControls extends DestroyableInstance {
   constructor(props: VertigoProps = {}) {
     super()
     this.vertigo.set(props)
+    this.dampedVertigo.set(props)
   }
 
   pan(x: number, y: number) {
@@ -155,7 +175,10 @@ export class VertigoControls extends DestroyableInstance {
     return this
   }
 
-  update(camera: Camera, aspect: number) {
-    this.vertigo.apply(camera, aspect)
+  update(camera: Camera, aspect: number, deltaTime = 1 / 60) {
+    const t = calculateExponentialDecayLerpRatio(this.dampingDecayFactor, deltaTime)
+    this.dampedVertigo
+      .lerp(this.vertigo, t)
+      .apply(camera, aspect)
   }
 }
