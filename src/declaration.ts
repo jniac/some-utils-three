@@ -1,71 +1,25 @@
-import { Euler, Matrix4, Object3D, Quaternion, Vector2, Vector3 } from 'three'
+import { Euler, Matrix4, Object3D, Quaternion, Vector2, Vector3, Vector4 } from 'three'
+
+import * as agnostic from 'some-utils-ts/declaration'
+import {
+  AngleDeclaration,
+  AngleUnit,
+  Vector2Declaration,
+  Vector3Declaration,
+  Vector4Declaration,
+  angleScalars,
+  fromAngleDeclaration,
+} from 'some-utils-ts/declaration'
 
 /**
- * Because readonly types are compatible with their mutable counterparts, we can use this type to handle both cases.
+ * Because readonly types are not compatible with their mutable counterparts, we can use this type to handle both cases.
  */
 type ReadonlyOrNot<T> = T | Readonly<T>
-
-type Vector2DeclarationBase =
-  | number
-  | [x: number, y: number]
-  | { x: number; y: number }
-  | { width: number; height: number }
-
-export type Vector2Declaration = ReadonlyOrNot<Vector2DeclarationBase>
-
-type Vector3DeclarationBase =
-  | number
-  | [x: number, y: number, z?: number]
-  | { x: number; y: number; z?: number }
-  | { width: number; height: number; depth: number }
-
-export type Vector3Declaration = ReadonlyOrNot<Vector3DeclarationBase>
-
-export type AngleUnit = 'rad' | 'deg' | 'turn'
-export type AngleDeclaration = number | `${number}` | `${number}${AngleUnit}` | `${number}/${number}${AngleUnit}`
-const angleScalar: Record<AngleUnit, number> = {
-  rad: 1,
-  deg: Math.PI / 180,
-  turn: Math.PI * 2,
-}
 
 function formatNumber(x: number, fractionDigits: number): string {
   return x
     .toFixed(fractionDigits)
     .replace(/\.([0-9]+[1-9])?0+$/, (m, m0) => m0?.length > 0 ? `.${m0}` : '')
-}
-
-/**
- * Transforms the given angle declaration into a number in radians.
- */
-export function fromAngleDeclaration(declaration: AngleDeclaration, defaultUnit: AngleUnit = 'rad'): number {
-  let unit: AngleUnit = defaultUnit
-  let value: number = 0
-  if (typeof declaration === 'number') {
-    value = declaration
-  } else {
-    const match = declaration.match(/^\s*(-?[0-9.]+)\s*(\/\s*-?[0-9.]+)?\s*(rad|deg|turn)\s*$/)
-    if (match) {
-      const [_, v, d, u] = match
-      value = Number.parseFloat(v)
-      if (d) {
-        value /= Number.parseFloat(d.slice(1))
-      }
-      unit = u as AngleUnit
-    } else {
-      value = Number.parseFloat(declaration)
-    }
-  }
-  return value * angleScalar[unit]
-}
-
-export function toAngleDeclarationString(value: number, unit: AngleUnit = 'rad'): string & AngleDeclaration {
-  const fractionDigits = {
-    rad: 3,
-    deg: 1,
-    turn: 4,
-  }[unit]
-  return `${formatNumber(value / angleScalar[unit], fractionDigits)}${unit}` as any
 }
 
 type EulerDeclarationArray =
@@ -104,67 +58,26 @@ export type TransformDeclaration = Partial<{
   scaleScalar: number
 }>
 
-export function isVector2Declaration(arg: any): arg is Vector2Declaration {
-  if (typeof arg === 'number') return true
-  if (Array.isArray(arg)) return arg.length >= 2 && arg.length <= 3 && arg.every(v => typeof v === 'number')
-  if (typeof arg === 'object') {
-    if ('x' in arg && 'y' in arg) return true
-    if ('width' in arg && 'height' in arg) return true
-  }
-  return false
-}
+export {
+  isVector2Declaration,
+  isVector3Declaration,
+  isVector4Declaration,
+  toAngleDeclarationString,
+  toVector2Declaration,
+  toVector3Declaration,
+  toVector4Declaration
+} from 'some-utils-ts/declaration'
 
 export function fromVector2Declaration(arg: Vector2Declaration, out: Vector2 = new Vector2()): Vector2 {
-  if (arg === undefined || arg === null) {
-    return out.set(0, 0)
-  }
-  if (typeof arg === 'number') {
-    return out.set(arg, arg)
-  }
-  if (Array.isArray(arg)) {
-    const [x, y] = arg
-    return out.set(x, y)
-  }
-  if ('width' in arg) {
-    const { width, height } = arg
-    return out.set(width, height)
-  }
-  const { x, y } = arg as { x: number; y: number }
-  return out.set(x, y)
-}
-
-export function isVector3Declaration(arg: any): arg is Vector3Declaration {
-  if (typeof arg === 'number') return true
-  if (Array.isArray(arg)) return arg.length >= 2 && arg.length <= 3 && arg.every(v => typeof v === 'number')
-  if (typeof arg === 'object') {
-    if ('x' in arg && 'y' in arg) return true
-    if ('width' in arg && 'height' in arg) return true
-  }
-  return false
+  return agnostic.fromVector2Declaration(arg, out)
 }
 
 export function fromVector3Declaration(arg: Vector3Declaration, out: Vector3 = new Vector3()): Vector3 {
-  if (arg === undefined || arg === null) {
-    return out.set(0, 0, 0)
-  }
-  if (typeof arg === 'number') {
-    return out.set(arg, arg, arg)
-  }
-  if (Array.isArray(arg)) {
-    const [x, y, z = 0] = arg
-    return out.set(x, y, z)
-  }
-  if ('width' in arg) {
-    const { width, height, depth } = arg
-    return out.set(width, height, depth)
-  }
-  const { x, y, z = 0 } = arg as { x: number; y: number; z?: number }
-  return out.set(x, y, z)
+  return agnostic.fromVector3Declaration(arg, out)
 }
 
-export function toVector3Declaration(arg: Vector3Declaration): Vector3Declaration {
-  const { x, y, z } = fromVector3Declaration(arg)
-  return [x, y, z]
+export function fromVector4Declaration(arg: Vector4Declaration, out: Vector4 = new Vector4()): Vector4 {
+  return agnostic.fromVector4Declaration(arg, out)
 }
 
 export function fromEulerDeclaration(arg: EulerDeclaration, out: Euler = new Euler()): Euler {
@@ -191,7 +104,7 @@ export function fromEulerDeclaration(arg: EulerDeclaration, out: Euler = new Eul
 
 export function toEulerDeclarationString(arg: EulerDeclaration, unit: AngleUnit = 'deg'): string {
   const { x, y, z, order } = fromEulerDeclaration(arg)
-  const scalar = angleScalar[unit]
+  const scalar = angleScalars[unit]
 
   const fd = {
     rad: 3,
