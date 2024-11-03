@@ -1,6 +1,6 @@
 import { Object3D } from 'three'
 
-import { applyTransform, TransformProps } from './tranform'
+import { applyTransform, TransformProps } from './transform'
 
 type SetupParentOrTransformProps = Object3D | TransformProps | null
 type SetupCallback<T extends Object3D> = (instance: T) => void
