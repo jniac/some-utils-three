@@ -13,6 +13,7 @@ import {
 
 export type {
   AngleDeclaration,
+  AngleUnit,
   Vector2Declaration,
   Vector3Declaration,
   Vector4Declaration
