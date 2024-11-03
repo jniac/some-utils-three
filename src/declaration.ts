@@ -11,6 +11,24 @@ import {
   fromAngleDeclaration,
 } from 'some-utils-ts/declaration'
 
+export type {
+  AngleDeclaration,
+  Vector2Declaration,
+  Vector3Declaration,
+  Vector4Declaration
+} from 'some-utils-ts/declaration'
+
+export {
+  fromAngleDeclaration,
+  isVector2Declaration,
+  isVector3Declaration,
+  isVector4Declaration,
+  toAngleDeclarationString,
+  toVector2Declaration,
+  toVector3Declaration,
+  toVector4Declaration
+} from 'some-utils-ts/declaration'
+
 /**
  * Because readonly types are not compatible with their mutable counterparts, we can use this type to handle both cases.
  */
@@ -57,16 +75,6 @@ export type TransformDeclaration = Partial<{
   scaleZ: number
   scaleScalar: number
 }>
-
-export {
-  isVector2Declaration,
-  isVector3Declaration,
-  isVector4Declaration,
-  toAngleDeclarationString,
-  toVector2Declaration,
-  toVector3Declaration,
-  toVector4Declaration
-} from 'some-utils-ts/declaration'
 
 export function fromVector2Declaration(arg: Vector2Declaration, out: Vector2 = new Vector2()): Vector2 {
   return agnostic.fromVector2Declaration(arg, out)
