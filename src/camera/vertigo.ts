@@ -1,6 +1,16 @@
 import { Camera, Euler, Matrix4, Quaternion, Vector2, Vector3 } from 'three'
 
-import { AngleDeclaration, EulerDeclaration, fromAngleDeclaration, fromEulerDeclaration, fromVector2Declaration, fromVector3Declaration, toAngleDeclarationString, Vector2Declaration, Vector3Declaration } from '../declaration'
+import {
+  AngleDeclaration,
+  EulerDeclaration,
+  fromAngleDeclaration,
+  fromEulerDeclaration,
+  fromVector2Declaration,
+  fromVector3Declaration,
+  toAngleDeclarationString,
+  Vector2Declaration,
+  Vector3Declaration
+} from '../declaration'
 
 const _matrix = new Matrix4()
 const _vector = new Vector3()
