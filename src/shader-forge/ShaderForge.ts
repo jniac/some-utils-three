@@ -33,13 +33,13 @@ const cleanWrappedCode = (code: string) => {
   return code.replaceAll(re, '')
 }
 
-class ShaderTool<T> {
+class ShaderTool<GlslToken> {
   private type: 'vertexShader' | 'fragmentShader'
   constructor(type: 'vertexShader' | 'fragmentShader') {
     this.type = type
   }
 
-  private getPattern(token: T, { throwError = true } = {}) {
+  private getPattern(token: GlslToken, { throwError = true } = {}) {
     const pattern = `#include <${token}>`
     const type = this.type
     if (throwError && current[type].includes(pattern) === false) {
@@ -48,14 +48,20 @@ class ShaderTool<T> {
     return { pattern, type }
   }
 
-  replace(token: T, code: string) {
-    const { type, pattern } = this.getPattern(token)
-    const str = wrapCode(code)
-    current[type] = current[type].replace(pattern, str)
+  replace(token: GlslToken | RegExp, code: string) {
+    if (token instanceof RegExp) {
+      const { type } = this
+      const m = current[type].match(token)
+      current[type] = current[type].replace(token, wrapCode(code))
+    } else {
+      const { type, pattern } = this.getPattern(token)
+      const str = wrapCode(code)
+      current[type] = current[type].replace(pattern, str)
+    }
     return ShaderForge
   }
 
-  inject(position: 'before' | 'after', token: T, code: string) {
+  inject(position: 'before' | 'after', token: GlslToken, code: string) {
     const { type, pattern } = this.getPattern(token)
     const str = position === 'after'
       ? `${pattern}\n${wrapCode(code)}`
@@ -82,12 +88,12 @@ class ShaderTool<T> {
   }
 
   /** Shorthand for `.inject('before', token, code)` */
-  before(token: T, code: string) {
+  before(token: GlslToken, code: string) {
     return this.inject('before', token, code)
   }
 
   /** Shorthand for `.inject('after', token, code)` */
-  after(token: T, code: string) {
+  after(token: GlslToken, code: string) {
     return this.inject('after', token, code)
   }
 
