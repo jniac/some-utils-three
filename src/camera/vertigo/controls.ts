@@ -28,7 +28,7 @@ export class VertigoControls extends DestroyableInstance {
    * 
    * Defaults to `.01` (1% missing after 1 second).
    */
-  dampingDecayFactor = .01
+  dampingDecayFactor = .0001
 
   /**
    * The "absolute" vertigo controls (used as a target for the damped vertigo controls).
