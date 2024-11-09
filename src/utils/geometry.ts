@@ -16,9 +16,16 @@ export function setvertexColors(geometry: BufferGeometry, colorsArg: ColorRepres
   const colorsAttribute = geometry.attributes.color ?? create()
 
   const end = endIndex < 0 ? count : endIndex
-  for (let i = startIndex; i < end; i++) {
-    const color = colors[i % colors.length]
-    colorsAttribute.setXYZ(i, color.r, color.g, color.b)
+  if (colors.length === 1) {
+    const { r, g, b } = colors[0]
+    for (let i = startIndex; i < end; i++) {
+      colorsAttribute.setXYZ(i, r, g, b)
+    }
+  } else {
+    for (let i = startIndex; i < end; i++) {
+      const { r, g, b } = colors[i % colors.length]
+      colorsAttribute.setXYZ(i, r, g, b)
+    }
   }
 
   colorsAttribute.needsUpdate = true
