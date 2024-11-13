@@ -113,7 +113,7 @@ const _normal = {
   },
 }
 
-export class VoxelSpaceFace {
+export class Face {
   position: Vector3
   direction: Direction
   tangent: Direction
