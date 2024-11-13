@@ -52,7 +52,5 @@ export function createNaiveVoxelGeometry(faces: Iterable<Face> | (() => Generato
     'normal',
     new BufferAttribute(_normal.copy(faceCount * STRIDE_3), 3))
 
-  console.log('faceCount', faceCount)
-
   return geometry
 }
