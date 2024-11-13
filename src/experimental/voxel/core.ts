@@ -48,32 +48,33 @@ export enum DirectionFlags {
   B = 1 << Direction.B,
 }
 
-export const defaultDirectionTangent: Record<Direction, Direction> = {
-  [Direction.R]: Direction.B,
-  [Direction.L]: Direction.F,
-  [Direction.U]: Direction.R,
-  [Direction.D]: Direction.L,
-  [Direction.F]: Direction.R,
-  [Direction.B]: Direction.L,
-}
+export const defaultDirectionTangent: Record<Direction, Direction> = [
+  Direction.B,
+  Direction.F,
+  Direction.R,
+  Direction.L,
+  Direction.R,
+  Direction.L,
+]
 
-export const defaultDirectionBitangent: Record<Direction, Direction> = {
-  [Direction.R]: Direction.U,
-  [Direction.L]: Direction.U,
-  [Direction.U]: Direction.B,
-  [Direction.D]: Direction.F,
-  [Direction.F]: Direction.U,
-  [Direction.B]: Direction.U,
-}
 
-export const directionVectors: Record<Direction, Vector3> = {
-  [Direction.R]: new Vector3(+1, 0, 0),
-  [Direction.L]: new Vector3(-1, 0, 0),
-  [Direction.U]: new Vector3(0, +1, 0),
-  [Direction.D]: new Vector3(0, -1, 0),
-  [Direction.F]: new Vector3(0, 0, +1),
-  [Direction.B]: new Vector3(0, 0, -1),
-}
+export const defaultDirectionBitangent: Direction[] = [
+  Direction.U,
+  Direction.U,
+  Direction.B,
+  Direction.F,
+  Direction.U,
+  Direction.U,
+]
+
+export const directionVectors: Vector3[] = [
+  new Vector3(+1, 0, 0), // R
+  new Vector3(-1, 0, 0), // L
+  new Vector3(0, +1, 0), // U
+  new Vector3(0, -1, 0), // D
+  new Vector3(0, 0, +1), // F
+  new Vector3(0, 0, -1), // B
+]
 
 export function oppositeDirection(dir: Direction): Direction {
   // Flip the least significant bit, brilliant!
@@ -84,4 +85,28 @@ export function directionToVector(dir: Direction): Vector3 {
   return directionVectors[dir]
 }
 
+export const CHUNK_COORDS_SIZE = 1624 // even-floor((2 ** 32) ** (1/3))
+const HALF_CHUNK_COORDS_SIZE = CHUNK_COORDS_SIZE / 2
 
+export function toChunkCoordsKey(x: number, y: number, z: number) {
+  if (x < -HALF_CHUNK_COORDS_SIZE || x >= HALF_CHUNK_COORDS_SIZE) {
+    throw new Error(`x is out of bounds: ${x}`)
+  }
+  if (y < -HALF_CHUNK_COORDS_SIZE || y >= HALF_CHUNK_COORDS_SIZE) {
+    throw new Error(`y is out of bounds: ${y}`)
+  }
+  if (z < -HALF_CHUNK_COORDS_SIZE || z >= HALF_CHUNK_COORDS_SIZE) {
+    throw new Error(`z is out of bounds: ${z}`)
+  }
+  return (z + HALF_CHUNK_COORDS_SIZE) * CHUNK_COORDS_SIZE * CHUNK_COORDS_SIZE + (y + HALF_CHUNK_COORDS_SIZE) * CHUNK_COORDS_SIZE + (x + HALF_CHUNK_COORDS_SIZE)
+}
+
+export function fromChunkCoordsKey(key: number, out = new Vector3()) {
+  let n = key
+  const z = Math.floor(n / (CHUNK_COORDS_SIZE * CHUNK_COORDS_SIZE))
+  n -= z * (CHUNK_COORDS_SIZE * CHUNK_COORDS_SIZE)
+  const y = Math.floor(n / CHUNK_COORDS_SIZE)
+  n -= y * CHUNK_COORDS_SIZE
+  const x = n
+  return out.set(x - HALF_CHUNK_COORDS_SIZE, y - HALF_CHUNK_COORDS_SIZE, z - HALF_CHUNK_COORDS_SIZE)
+}

@@ -1,6 +1,6 @@
 import { BufferAttribute, BufferGeometry } from 'three'
 
-import { VoxelSpaceFace } from '../VoxelSpaceFace'
+import { Face } from '../face'
 
 class ResizableFloat32Array {
   array = new Float32Array(0)
@@ -17,17 +17,23 @@ class ResizableFloat32Array {
     }
     return this.array
   }
+  copy(length: number) {
+    return new Float32Array(this.array.buffer, 0, length).slice() // slice to copy the array (otherwise it's a view)
+  }
 }
 
 const _position = new ResizableFloat32Array(256 * 3)
 const _normal = new ResizableFloat32Array(256 * 3)
 
-export function createNaiveVoxelGeometry(faces: Iterable<VoxelSpaceFace> | (() => Generator<VoxelSpaceFace>), {
+export function createNaiveVoxelGeometry(faces: Iterable<Face> | (() => Generator<Face>), {
   geometry = new BufferGeometry(),
 } = {}) {
   const iterableFaces = typeof faces === 'function' ? faces() : faces
 
   const STRIDE_3 = 2 * 3 * 3 // 2 triangles * 3 vertices * 3 components
+
+  _position.array.fill(0)
+  _normal.array.fill(0)
 
   let faceCount = 0
   for (const face of iterableFaces) {
@@ -39,8 +45,14 @@ export function createNaiveVoxelGeometry(faces: Iterable<VoxelSpaceFace> | (() =
     faceCount++
   }
 
-  geometry.setAttribute('position', new BufferAttribute(new Float32Array(_position.array.buffer, 0, faceCount * STRIDE_3), 3))
-  geometry.setAttribute('normal', new BufferAttribute(new Float32Array(_normal.array.buffer, 0, faceCount * STRIDE_3), 3))
+  geometry.setAttribute(
+    'position',
+    new BufferAttribute(_position.copy(faceCount * STRIDE_3), 3))
+  geometry.setAttribute(
+    'normal',
+    new BufferAttribute(_normal.copy(faceCount * STRIDE_3), 3))
+
+  console.log('faceCount', faceCount)
 
   return geometry
 }
