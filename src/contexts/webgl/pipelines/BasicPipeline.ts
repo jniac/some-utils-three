@@ -115,6 +115,13 @@ export class BasicPipeline implements PipelineBase {
     }
   }
 
+  /**
+   * Example: adding an AO pass:
+   * ```
+   * const aoPass = new GTAOPass(three.scene, three.camera)
+   * pipeline.addPass(aoPass, { type: PassType.PostProcessing })
+   * ```
+   */
   addPass(pass: Pass,
     {
       type = PassType.Render,
