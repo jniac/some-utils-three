@@ -1,4 +1,4 @@
-import { Vector3 } from 'three'
+import { Vector3, Vector3Like } from 'three'
 import { directionVectors } from './core'
 import { Face } from './face'
 import { World } from './world'
@@ -24,8 +24,14 @@ export class Chunk {
    * Returns the voxel state at the given coordinates. Coordinates should be within
    * the bounds of the chunk.
    */
-  getVoxelState(x: number, y: number, z: number): DataView {
-    const { size, size2, size3, voxelStateByteSize, voxelState } = this
+  getVoxelState(p: Vector3Like): DataView
+  getVoxelState(x: number, y: number, z: number): DataView
+  getVoxelState(...args: [Vector3Like] | [x: number, y: number, z: number]): DataView {
+    const [x, y, z] = args.length === 1 ? [args[0].x, args[0].y, args[0].z] : args
+    const { size, size2, voxelStateByteSize, voxelState } = this
+    if (x < 0 || x >= size || y < 0 || y >= size || z < 0 || z >= size) {
+      throw new Error(`Coordinates out of bounds: ${x}, ${y}, ${z}, size: ${size}`)
+    }
     const index = x + y * size + z * size2
     return new DataView(voxelState, index * voxelStateByteSize, voxelStateByteSize)
   }
@@ -33,8 +39,11 @@ export class Chunk {
   /**
    * Returns the voxel state at the given coordinates. If the coordinates are out 
    * of bounds, returns null.
-   */
-  tryGetVoxelState(x: number, y: number, z: number): DataView | null {
+  */
+  tryGetVoxelState(p: Vector3Like): DataView
+  tryGetVoxelState(x: number, y: number, z: number): DataView
+  tryGetVoxelState(...args: [Vector3Like] | [x: number, y: number, z: number]): DataView | null {
+    const [x, y, z] = args.length === 1 ? [args[0].x, args[0].y, args[0].z] : args
     const { size } = this
     if (x < 0 || x >= size || y < 0 || y >= size || z < 0 || z >= size) {
       // TODO: Implement a lookup into neighboring chunks if worldConnection is set
