@@ -8,7 +8,14 @@ varying vec3 vColor;
 void main() {
   vWorldNormal = mat3(modelMatrix) * normal;
   vColor = color;
+#ifdef USE_INSTANCING
+  gl_Position = projectionMatrix * viewMatrix * modelMatrix * instanceMatrix * vec4(position, 1.0);
+#else
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+#endif
+#ifdef USE_INSTANCING_COLOR
+	vColor.xyz *= instanceColor.xyz;
+#endif
 }
 `
 
