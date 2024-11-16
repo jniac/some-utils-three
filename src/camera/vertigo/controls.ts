@@ -153,7 +153,7 @@ export class VertigoControls extends DestroyableInstance {
             break
           }
           case PointerButton.Right: {
-            this.pan(info.delta.x * -.005, info.delta.y * .005)
+            this.pan(info.delta.x * -.025, info.delta.y * .025)
             break
           }
         }
