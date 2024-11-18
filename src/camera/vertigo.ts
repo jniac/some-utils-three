@@ -1,5 +1,7 @@
 import { Camera, Euler, Matrix4, Quaternion, Vector2, Vector3 } from 'three'
 
+import { deepFreeze } from 'some-utils-ts/object/deep'
+
 import {
   AngleDeclaration,
   EulerDeclaration,
@@ -82,6 +84,10 @@ const defaultProps = {
 type Props = Partial<typeof defaultProps>
 
 export class Vertigo {
+  static get default() {
+    return defaultVertigo
+  }
+
   // General settings:
   perspective!: number
   fov!: number // radians
@@ -330,6 +336,8 @@ export class Vertigo {
     }
   }
 }
+
+const defaultVertigo = deepFreeze(new Vertigo())
 
 export type { Props as VertigoProps }
 
