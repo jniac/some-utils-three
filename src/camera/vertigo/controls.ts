@@ -40,6 +40,11 @@ export class VertigoControls extends DestroyableInstance {
    */
   dampedVertigo = new Vertigo()
 
+  /**
+   * The element to attach the pointer events to. Must be set through `initialize()`.
+   */
+  element!: HTMLElement
+
   actions = {
     togglePerspective: () => {
       const perspective = this.vertigo.perspective > .5 ? 0 : 1
@@ -130,7 +135,15 @@ export class VertigoControls extends DestroyableInstance {
     this.vertigo.zoom = newZoom
   }
 
-  private *doStart(element: HTMLElement = document.body) {
+  initialize(element: HTMLElement = document.body): this {
+    this.element = element
+    return this
+  }
+
+  /**
+   * @param element The element to attach the pointer events to is the one provided by `initialize()` by default. But you can provide a different one here.
+   */
+  private *doStart(element: HTMLElement = this.element ?? document.body) {
     yield handleHtmlElementEvent(element, {
       contextmenu: event => {
         event.preventDefault()
@@ -172,18 +185,13 @@ export class VertigoControls extends DestroyableInstance {
 
   started = false
 
-  start(...args: Parameters<VertigoControls['doStart']>): this {
+  start(...args: Parameters<typeof this.doStart>): this {
     if (this.started === false) {
       this.started = true
       this.collect(this.doStart(...args))
     }
     return this
   }
-
-  /**
-   * @deprecated Use `start` instead.
-   */
-  initialize = this.start
 
   stop() {
     if (this.started) {
