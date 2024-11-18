@@ -130,7 +130,7 @@ export class VertigoControls extends DestroyableInstance {
     this.vertigo.zoom = newZoom
   }
 
-  private *doInitialize(element: HTMLElement = document.body) {
+  private *doStart(element: HTMLElement = document.body) {
     yield handleHtmlElementEvent(element, {
       contextmenu: event => {
         event.preventDefault()
@@ -170,9 +170,34 @@ export class VertigoControls extends DestroyableInstance {
     })
   }
 
-  initialize(...args: Parameters<VertigoControls['doInitialize']>): this {
-    this.collect(this.doInitialize(...args))
+  started = false
+
+  start(...args: Parameters<VertigoControls['doStart']>): this {
+    if (this.started === false) {
+      this.started = true
+      this.collect(this.doStart(...args))
+    }
     return this
+  }
+
+  /**
+   * @deprecated Use `start` instead.
+   */
+  initialize = this.start
+
+  stop() {
+    if (this.started) {
+      this.started = false
+      this.destroy()
+    }
+  }
+
+  toggle(start = !this.started) {
+    if (start) {
+      this.start()
+    } else {
+      this.stop()
+    }
   }
 
   update(camera: Camera, aspect: number, deltaTime = 1 / 60) {
