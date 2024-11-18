@@ -122,7 +122,7 @@ export class Vertigo {
   set(props: Props): this {
     const {
       perspective,
-      fov: perspectiveBase,
+      fov,
       zoom,
       focus,
       size,
@@ -138,8 +138,8 @@ export class Vertigo {
     if (perspective !== undefined)
       this.perspective = perspective
 
-    if (perspectiveBase !== undefined)
-      this.fov = fromAngleDeclaration(perspectiveBase)
+    if (fov !== undefined)
+      this.fov = fromAngleDeclaration(fov)
 
     if (zoom !== undefined)
       this.zoom = zoom
