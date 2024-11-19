@@ -71,4 +71,6 @@ export class AutoLitMaterial extends ShaderMaterial {
 
     this.sunPosition = this.uniforms.uSunPosition.value
   }
+
+  get color() { return this.uniforms.uColor.value }
 }
