@@ -40,8 +40,8 @@ export class Chunk {
    * Returns the voxel state at the given coordinates. If the coordinates are out 
    * of bounds, returns null.
   */
-  tryGetVoxelState(p: Vector3Like): DataView
-  tryGetVoxelState(x: number, y: number, z: number): DataView
+  tryGetVoxelState(p: Vector3Like): DataView | null
+  tryGetVoxelState(x: number, y: number, z: number): DataView | null
   tryGetVoxelState(...args: [Vector3Like] | [x: number, y: number, z: number]): DataView | null {
     const [x, y, z] = args.length === 1 ? [args[0].x, args[0].y, args[0].z] : args
     const { size } = this
