@@ -104,6 +104,8 @@ const defaultAxesOptions = {
 type AxesOptions = typeof defaultAxesOptions & Omit<typeof defaultAxisOptions, 'color'>
 
 export class AxesGeometry extends BufferGeometry {
+  static get defaultOptions() { return { ...defaultAxesOptions } }
+
   constructor(options?: Partial<AxesOptions>) {
     super()
 
