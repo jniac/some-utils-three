@@ -202,6 +202,15 @@ function varying(varying: string | Record<string, VaryingType>) {
 }
 
 /**
+ * Added code to the top of the vertex and fragment shaders
+ */
+function top(code: string): typeof ShaderForge {
+  vertex.top(code)
+  fragment.top(code)
+  return ShaderForge
+}
+
+/**
  * `header()` will prepend the shader program with an header (debug purpose 
  * essentially).
  */
@@ -231,6 +240,7 @@ type ShaderForgeType = {
   defines: typeof defines
   uniforms: typeof uniforms
   varying: typeof varying
+  top: typeof top
   vertex: typeof vertex
   fragment: typeof fragment
   header: typeof header
@@ -270,6 +280,7 @@ export const ShaderForge: ShaderForgeType = Object.assign(function (shader?: Web
   defines,
   uniforms,
   varying,
+  top,
   vertex,
   fragment,
   header,
