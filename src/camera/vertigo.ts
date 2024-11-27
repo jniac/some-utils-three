@@ -50,7 +50,7 @@ const defaultProps = {
    * 
    * Determines the `near` property of the camera.
    */
-  before: <number>100,
+  before: <number>1000,
   /**
    * The distance between the focus point and the far plane.
    * 
