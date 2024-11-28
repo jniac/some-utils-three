@@ -1,76 +1,50 @@
-'use client'
-import { Color, ColorRepresentation, ShaderMaterial, ShaderMaterialParameters, Vector3 } from 'three'
+import { MeshBasicMaterial, MeshBasicMaterialParameters, Vector3 } from 'three'
 
-const vertexShader = /* glsl */ `
-varying vec3 vWorldNormal;
-varying vec3 vColor;
-
-void main() {
-  vWorldNormal = mat3(modelMatrix) * normal;
-  vColor = color;
-#ifdef USE_INSTANCING
-  gl_Position = projectionMatrix * viewMatrix * modelMatrix * instanceMatrix * vec4(position, 1.0);
-#else
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-#endif
-#ifdef USE_INSTANCING_COLOR
-	vColor.xyz *= instanceColor.xyz;
-#endif
-}
-`
-
-const fragmentShader = /* glsl */ `
-varying vec3 vWorldNormal;
-varying vec3 vColor;
-
-uniform vec3 uSunPosition;
-uniform vec3 uColor;
-uniform float uLuminosity;
-
-void main() {
-  vec3 lightDirection = normalize(uSunPosition);
-  float light = dot(vWorldNormal, lightDirection) * 0.5 + 0.5;
-  light = pow(light, 2.0);
-  light = mix(uLuminosity, 1.0, light);
-  gl_FragColor = vec4(vColor * uColor * light, 1.0);
-}
-`
+import { ShaderForge } from '../shader-forge'
 
 const defaultOptions = {
   vertexColors: true,
-  color: <ColorRepresentation>'white',
   luminosity: .5,
 }
 
-type Options = Partial<Omit<ShaderMaterialParameters, 'fragmentShader' | 'vertexShader'> & typeof defaultOptions>
+// type Options = Partial<Omit<ShaderMaterialParameters, 'fragmentShader' | 'vertexShader'> & typeof defaultOptions>
+type Options = Partial<typeof defaultOptions> & MeshBasicMaterialParameters
 
 /**
  * A simple shader material that uses vertex colors and a simple lighting model.
  */
-export class AutoLitMaterial extends ShaderMaterial {
+export class AutoLitMaterial extends MeshBasicMaterial {
   sunPosition: Vector3
 
   constructor(options?: Options) {
     const {
-      color,
       luminosity,
       vertexColors,
       ...rest
     } = { ...defaultOptions, ...options }
-    super({
-      ...rest,
-      uniforms: {
-        uColor: { value: new Color(color) },
-        uSunPosition: { value: new Vector3(0.5, 0.7, 0.3) },
-        uLuminosity: { value: luminosity },
-      },
-      vertexColors,
-      vertexShader,
-      fragmentShader,
-    })
+    const uniforms = {
+      uSunPosition: { value: new Vector3(0.5, 0.7, 0.3) },
+      uLuminosity: { value: luminosity },
+    }
+    super(rest)
+    this.onBeforeCompile = shader => ShaderForge.with(shader)
+      .uniforms(uniforms)
+      .varying({
+        vWorldNormal: 'vec3',
+      })
+      .vertex.mainAfterAll(/* glsl */`
+          vWorldNormal = mat3(modelMatrix) * normal;
+      `)
+      .fragment.after('map_fragment', /* glsl */`
+        vec3 lightDirection = normalize(uSunPosition);
+        float light = dot(vWorldNormal, lightDirection) * 0.5 + 0.5;
+        light = pow(light, 2.0);
+        light = mix(uLuminosity, 1.0, light);
+        diffuseColor *= light;
+      `)
 
-    this.sunPosition = this.uniforms.uSunPosition.value
+    this.sunPosition = uniforms.uSunPosition.value
   }
 
-  get color() { return this.uniforms.uColor.value }
+  // get color() { return this.uniforms.uColor.value }
 }
