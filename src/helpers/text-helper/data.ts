@@ -14,10 +14,12 @@ import { ceilPowerOfTwo, toff } from 'some-utils-ts/math/basic'
  * #2:
  * - Background Color (3 bytes)
  * - Background Opacity (1 byte)
+ * #3:
+ * - size (4 bytes)
  *
  * Should be a multiple of 4.
  */
-export const DATA_STRIDE_HEADER_BYTE_SIZE = 3 * 4
+export const DATA_STRIDE_HEADER_BYTE_SIZE = 4 * 4
 
 export type SetColorOptions = Partial<{
   /**
@@ -47,8 +49,14 @@ export type SetColorOptions = Partial<{
 export type SetTextOption = SetColorOptions & Partial<{
   /**
    * Whether to trim the text before setting it.
+   * @default false
    */
   trim: boolean
+  /**
+   * The size of the text.
+   * @default 1
+   */
+  size: number
 }>
 
 export class TextHelperData {
@@ -177,6 +185,16 @@ export class TextHelperData {
     }
   }
 
+  setSizeAt(index: number, size: number) {
+    const { array } = this
+    const { strideByteSize: stride } = this.metadata
+
+    const offset = index * stride
+    new DataView(array.buffer).setFloat32(offset + 4 * 3, size)
+
+    return this
+  }
+
   setColorAt(index: number, options: SetColorOptions) {
     const {
       color = '#ffffff',
@@ -213,10 +231,12 @@ export class TextHelperData {
   setTextAt(index: number, text: string, options: SetTextOption = {}) {
     const {
       trim = false,
+      size = 1,
       ...colorOptions
     } = options
 
     this.setColorAt(index, colorOptions)
+    this.setSizeAt(index, size)
 
     const { array } = this
 

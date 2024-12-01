@@ -114,7 +114,15 @@ export class TextHelper extends InstancedMesh {
         vTextColor = getData4(gl_InstanceID, 1);
         vBackgroundColor = getData4(gl_InstanceID, 2);
 
-        vec4 mvPosition = vec4(transformed, 1.0);
+        vec4 sizeBytes = getData4(gl_InstanceID, 3) * 255.0;
+        uint encoded =
+          uint(sizeBytes.x) << 24 |
+          uint(sizeBytes.y) << 16 |
+          uint(sizeBytes.z) << 8  |
+          uint(sizeBytes.w);
+        float size = uintBitsToFloat(encoded);
+
+        vec4 mvPosition = vec4(transformed * size, 1.0);
 
         mat4 localMatrix = instanceMatrix;
 
@@ -146,7 +154,7 @@ export class TextHelper extends InstancedMesh {
           if (lineIndex < 0.0 || lineIndex >= vCurrentLineCount)
             discard;
 
-          float currentLineLength = getData4(vInstanceId, 3 + int(lineIndex)).r * 255.0;
+          float currentLineLength = getData4(vInstanceId, 4 + int(lineIndex)).r * 255.0;
           // vec2 ddx = dFdx(uv);
           // vec2 ddy = dFdy(uv);
           uv.x += (uLineLength - currentLineLength) * -0.5;
