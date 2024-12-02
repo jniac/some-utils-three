@@ -23,10 +23,25 @@ export class Pointer {
 
   camera: Camera | null = null
 
+  /**
+   * The position of the pointer in client space (pixels)
+   * - min: (0, 0) top-left
+   * - max: (width, height) bottom-right
+   */
   clientPosition = new Vector2()
+  /**
+   * The position of the pointer in screen space (NDC)
+   * - min: (-1, -1) bottom-left
+   * - max: (1, 1) top-right
+   */
   screenPosition = new Vector2()
+  /**
+   * The raycaster used to cast rays from the camera. Automatically updated.
+   */
   raycaster = new Raycaster()
-
+  /**
+   * Returns the ray from the camera to the pointer.
+   */
   get ray() { return this.raycaster.ray }
 
   update(camera: Camera, clientPosition: { x: number, y: number }, canvasRect: { x: number, y: number, width: number, height: number }) {
