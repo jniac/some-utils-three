@@ -1,11 +1,11 @@
-import { Color, DataTexture, DoubleSide, InstancedMesh, MeshBasicMaterial, PlaneGeometry, RGBAFormat, UnsignedByteType, Vector2 } from 'three'
+import { BufferGeometry, Color, DataTexture, DoubleSide, InstancedMesh, MeshBasicMaterial, PlaneGeometry, RGBAFormat, UnsignedByteType, Vector2 } from 'three'
 
 import { TransformDeclaration } from 'some-utils-three/declaration'
 import { ShaderForge } from 'some-utils-three/shader-forge'
 import { makeMatrix4 } from 'some-utils-three/utils/make'
 
 import { TextHelperAtlas } from './atlas'
-import { SetTextOption, TextHelperData } from './data'
+import { SetColorOptions, SetTextOption, TextHelperData } from './data'
 import { getDataStringView } from './utils'
 
 export enum Orientation {
@@ -23,7 +23,7 @@ const defaultOptions = {
 }
 
 let nextId = 0
-export class TextHelper extends InstancedMesh {
+export class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicMaterial> {
   // Expose some statics
   static readonly defaultOptions = defaultOptions
   static readonly Orientation = Orientation
@@ -196,13 +196,15 @@ export class TextHelper extends InstancedMesh {
 
     super(geometry, material, options.textCount)
 
+    // Frustum culling cannot be applied since each text position is defined into the data texture.
+    this.frustumCulled = false
+    this.layers
+
     this.options = options
     this.atlas = atlas
     this.data = data
     this.dataTexture = dataTexture
-    this.derived = {
-      planeSize,
-    }
+    this.derived = { planeSize }
   }
 
   setData(data: TextHelperData) {
@@ -226,6 +228,13 @@ export class TextHelper extends InstancedMesh {
   override setColorAt(index: number, color: Color): void {
     this.data.setColorAt(index, { color })
     this.dataTexture.needsUpdate = true
+  }
+
+  setTextColorAt(index: number, options: SetColorOptions): this {
+    this.data.setColorAt(index, options)
+    this.dataTexture.needsUpdate = true
+
+    return this
   }
 
   getDataStringView(start = 0, length = 3) {
