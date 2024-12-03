@@ -1,4 +1,4 @@
-import { Euler, Matrix4, Object3D, Quaternion, Vector2, Vector3, Vector4 } from 'three'
+import { Euler, EulerOrder, Matrix4, Object3D, Quaternion, Vector2, Vector3, Vector4 } from 'three'
 
 import * as agnostic from 'some-utils-ts/declaration'
 import {
@@ -89,21 +89,44 @@ export function fromVector4Declaration(arg: Vector4Declaration, out: Vector4 = n
   return agnostic.fromVector4Declaration(arg, out)
 }
 
-export function fromEulerDeclaration(arg: EulerDeclaration, out: Euler = new Euler()): Euler {
+const defaultFromEulerDeclarationOptions = { defaultOrder: <EulerOrder>'XYZ' }
+type FromEulerDeclarationOptions = typeof defaultFromEulerDeclarationOptions
+export function fromEulerDeclaration(arg: EulerDeclaration, out?: Euler): Euler
+export function fromEulerDeclaration(arg: EulerDeclaration, options: FromEulerDeclarationOptions, out?: Euler): Euler
+export function fromEulerDeclaration(...args: any[]): Euler {
+  const parseArgs = () => {
+    if (args.length === 1)
+      return [args[0], defaultFromEulerDeclarationOptions, new Euler()] as [EulerDeclaration, FromEulerDeclarationOptions, Euler]
+
+    if (args.length === 2) {
+      return args[1] instanceof Euler
+        ? [args[0], defaultFromEulerDeclarationOptions, args[1]] as [EulerDeclaration, FromEulerDeclarationOptions, Euler]
+        : [args[0], args[1], new Euler()] as [EulerDeclaration, FromEulerDeclarationOptions, Euler]
+    }
+
+    if (args.length === 3)
+      return args as [EulerDeclaration, FromEulerDeclarationOptions, Euler]
+
+    throw new Error('Invalid number of arguments')
+  }
+  const [arg, { defaultOrder }, out] = parseArgs()
+
   if (arg instanceof Euler) {
     return out.copy(arg)
   }
+
   if (Array.isArray(arg)) {
     const [x, y, z, arg0, arg1] = arg
     const unit = isAngleUnit(arg0) ? arg0 : isAngleUnit(arg1) ? arg1 : 'rad'
-    const order = isEulerOrder(arg0) ? arg0 : isEulerOrder(arg1) ? arg1 : 'XYZ'
+    const order = isEulerOrder(arg0) ? arg0 : isEulerOrder(arg1) ? arg1 : defaultOrder
     return out.set(
       fromAngleDeclaration(x, unit),
       fromAngleDeclaration(y, unit),
       fromAngleDeclaration(z, unit),
       order)
   }
-  const { x, y, z, order = 'XYZ', unit = 'rad' } = arg as EulerDeclarationObject
+
+  const { x, y, z, order = defaultOrder, unit = 'rad' } = arg as EulerDeclarationObject
   return out.set(
     fromAngleDeclaration(x, unit),
     fromAngleDeclaration(y, unit),

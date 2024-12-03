@@ -157,7 +157,7 @@ export class Vertigo {
       this.after = after
 
     if (rotation !== undefined)
-      fromEulerDeclaration(rotation, this.rotation)
+      fromEulerDeclaration(rotation, { defaultOrder: 'YXZ' }, this.rotation)
 
     if (frame !== undefined)
       this.frame = typeof frame === 'string' ? (frame === 'cover' ? 0 : 1) : frame
