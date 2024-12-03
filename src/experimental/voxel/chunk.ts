@@ -1,4 +1,5 @@
 import { Vector3, Vector3Like } from 'three'
+
 import { directionVectors } from './core'
 import { Face } from './face'
 import { World } from './world'
@@ -34,6 +35,13 @@ export class Chunk {
 
   getSize(out = new Vector3()) {
     return out.set(this.sizeX, this.sizeY, this.sizeZ)
+  }
+
+  getVoxelStateAtIndex(index: number): DataView {
+    if (index < 0 || index >= this.sizeXYZ) {
+      throw new Error(`Index out of bounds: ${index}, size: ${this.sizeXYZ}`)
+    }
+    return new DataView(this.voxelState, index * this.voxelStateByteSize, this.voxelStateByteSize)
   }
 
   /**
