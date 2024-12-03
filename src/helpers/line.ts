@@ -57,7 +57,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
   clear(): this {
     this.points.length = 0
     this.colors.clear()
-    this.geometry.setFromPoints(this.points)
+    this.geometry.setFromPoints([new Vector3(), new Vector3()]) // Geometry needs at least 2 points
     return this
   }
 
@@ -89,6 +89,24 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     const va = fromVector3Declaration(a)
     const vb = fromVector3Declaration(b)
     transformAndPush(this, [va, vb], options)
+    return this
+  }
+
+  polygon(points: Vector3Declaration[], options?: BasicOptions): this {
+    const newPoints = points.map(v => fromVector3Declaration(v))
+    const pairs = [] as Vector3[]
+    for (let i = 0; i < newPoints.length; i++)
+      pairs.push(newPoints[i], newPoints[(i + 1) % newPoints.length])
+    transformAndPush(this, pairs, options)
+    return this
+  }
+
+  polyline(points: Vector3Declaration[], options?: BasicOptions): this {
+    const newPoints = points.map(v => fromVector3Declaration(v))
+    const pairs = [] as Vector3[]
+    for (let i = 0; i < newPoints.length - 1; i++)
+      pairs.push(newPoints[i], newPoints[i + 1])
+    transformAndPush(this, pairs, options)
     return this
   }
 
