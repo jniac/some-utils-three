@@ -83,7 +83,11 @@ export class TextHelperData {
   get strideByteSize() { return this.metadata.strideByteSize }
   get textureSize() { return new Vector2(this.metadata.textureWidth, this.metadata.textureHeight) }
 
-  constructor(symbols: string, textCount: number, lineCount: number, lineLength: number) {
+  constructor(symbols: string, textCount: number, lineCount: number, lineLength: number, {
+    defaultColor = '#ff00ff',
+    defaultTextOpacity = 1,
+    defaultBackgroundOpacity = 0,
+  } = {}) {
     const strideHeader = DATA_STRIDE_HEADER_BYTE_SIZE + lineCount * 4
     const stride = strideHeader + Math.ceil((lineCount * lineLength) / 4) * 4
     const bytes = strideHeader + textCount * stride
@@ -103,7 +107,27 @@ export class TextHelperData {
       textureHeight: height,
     }
 
-    this.array = new Uint8Array(width * height * 4)
+    const array = new Uint8Array(width * height * 4)
+    const { r, g, b } = makeColor(defaultColor)
+    for (let i = 0; i < textCount; i++) {
+      let offset = i * stride
+
+      // Text
+      offset += 4
+      array[offset + 0] = 255 * r
+      array[offset + 1] = 255 * g
+      array[offset + 2] = 255 * b
+      array[offset + 3] = 255 * defaultTextOpacity
+
+      // Background
+      offset += 4
+      array[offset + 0] = 255 * r
+      array[offset + 1] = 255 * g
+      array[offset + 2] = 255 * b
+      array[offset + 3] = 255 * defaultBackgroundOpacity
+    }
+
+    this.array = array
   }
 
   encode() {
@@ -146,7 +170,6 @@ export class TextHelperData {
 
     const {
       symbols,
-      lineCount,
       lineLength,
       strideByteSize: stride,
       strideHeaderByteSize: strideHeader,
@@ -182,6 +205,8 @@ export class TextHelperData {
       textOpacity,
       backgroundColor,
       backgroundOpacity,
+      currentLineCount,
+      currentLineLength,
     }
   }
 
@@ -197,32 +222,42 @@ export class TextHelperData {
 
   setColorAt(index: number, options: SetColorOptions) {
     const {
-      color = '#ffffff',
+      color,
       textColor = color,
-      textOpacity = 1,
+      textOpacity,
       backgroundColor = textColor,
-      backgroundOpacity = 0,
+      backgroundOpacity,
     } = options
 
     const { array } = this
     const { strideByteSize: stride } = this.metadata
 
     {
-      const { r, g, b } = makeColor(textColor)
+      // Text
       const offset = index * stride + 4 * 1
-      array[offset + 0] = r * 255
-      array[offset + 1] = g * 255
-      array[offset + 2] = b * 255
-      array[offset + 3] = toff(textOpacity)
+      if (textColor !== undefined) {
+        const { r, g, b } = makeColor(textColor)
+        array[offset + 0] = r * 255
+        array[offset + 1] = g * 255
+        array[offset + 2] = b * 255
+      }
+      if (textOpacity !== undefined) {
+        array[offset + 3] = toff(textOpacity)
+      }
     }
 
     {
-      const { r, g, b } = makeColor(backgroundColor)
+      // Background      
       const offset = index * stride + 4 * 2
-      array[offset + 0] = r * 255
-      array[offset + 1] = g * 255
-      array[offset + 2] = b * 255
-      array[offset + 3] = toff(backgroundOpacity)
+      if (backgroundColor !== undefined) {
+        const { r, g, b } = makeColor(backgroundColor)
+        array[offset + 0] = r * 255
+        array[offset + 1] = g * 255
+        array[offset + 2] = b * 255
+      }
+      if (backgroundOpacity !== undefined) {
+        array[offset + 3] = toff(backgroundOpacity)
+      }
     }
 
     return this
