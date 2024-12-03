@@ -1,5 +1,6 @@
 import { Object3D } from 'three'
 
+import { isObject3D } from '../declaration'
 import { applyTransform, TransformProps } from './transform'
 
 type SetupParentOrTransformProps = Object3D | TransformProps | null
@@ -23,7 +24,7 @@ export function setup<T extends Object3D>(
   callback?: SetupCallback<T>,
 ): T {
   if (transformProps) {
-    if (transformProps instanceof Object3D) {
+    if (isObject3D(transformProps)) {
       transformProps.add(child)
     } else {
       applyTransform(child, transformProps)

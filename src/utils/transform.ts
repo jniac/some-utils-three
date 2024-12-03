@@ -92,7 +92,13 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
   }
 
   if (parent !== undefined) {
-    parent.add(target)
+    if (parent !== target.parent) {
+      if (parent === null) {
+        target.removeFromParent()
+      } else {
+        parent.add(target)
+      }
+    }
   }
 
   return target
