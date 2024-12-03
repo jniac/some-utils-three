@@ -30,6 +30,18 @@ export {
   toVector4Declaration
 } from 'some-utils-ts/declaration'
 
+export function isEuler(value: any): value is Euler {
+  return !!value.isEuler
+}
+
+export function isMatrix4(value: any): value is Matrix4 {
+  return !!value.isMatrix4
+}
+
+export function isObject3D(value: any): value is Object3D {
+  return !!value.isObject3D
+}
+
 /**
  * Because readonly types are not compatible with their mutable counterparts, we can use this type to handle both cases.
  */
@@ -99,7 +111,7 @@ export function fromEulerDeclaration(...args: any[]): Euler {
       return [args[0], defaultFromEulerDeclarationOptions, new Euler()] as [EulerDeclaration, FromEulerDeclarationOptions, Euler]
 
     if (args.length === 2) {
-      return args[1] instanceof Euler
+      return isEuler(args[1])
         ? [args[0], defaultFromEulerDeclarationOptions, args[1]] as [EulerDeclaration, FromEulerDeclarationOptions, Euler]
         : [args[0], args[1], new Euler()] as [EulerDeclaration, FromEulerDeclarationOptions, Euler]
     }
@@ -111,7 +123,7 @@ export function fromEulerDeclaration(...args: any[]): Euler {
   }
   const [arg, { defaultOrder }, out] = parseArgs()
 
-  if (arg instanceof Euler) {
+  if (isEuler(arg)) {
     return out.copy(arg)
   }
 
@@ -179,7 +191,7 @@ export const fromTransformDeclaration = (() => {
       scale = { x: scaleX, y: scaleY, z: scaleZ },
     } = props
 
-    if (out instanceof Matrix4) {
+    if (isMatrix4(out)) {
       fromVector3Declaration(position, _position)
       fromEulerDeclaration(rotation, _rotation)
       fromVector3Declaration(scale, _scale).multiplyScalar(scaleScalar)
@@ -187,7 +199,7 @@ export const fromTransformDeclaration = (() => {
       return out.compose(_position, _quaternion, _scale)
     }
 
-    if (out instanceof Object3D) {
+    if (isObject3D(out)) {
       fromVector3Declaration(position, out.position)
       fromEulerDeclaration(rotation, out.rotation)
       fromVector3Declaration(scale, out.scale).multiplyScalar(scaleScalar)
