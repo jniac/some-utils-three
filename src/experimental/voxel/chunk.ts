@@ -3,21 +3,37 @@ import { directionVectors } from './core'
 import { Face } from './face'
 import { World } from './world'
 
+/**
+ * Represents a chunk of voxels.
+ * 
+ * Chunk are not necessarily cubes, they can have different sizes in each dimension.
+ */
 export class Chunk {
-  readonly size: number
-  readonly size2: number
-  readonly size3: number
+  readonly sizeX: number
+  readonly sizeY: number
+  readonly sizeZ: number
+  readonly sizeXY: number
+  readonly sizeXYZ: number
   readonly voxelStateByteSize: number
   readonly voxelState: ArrayBuffer
 
   worldConnection: [world: World, worldIndex: number] | null = null
 
-  constructor(size = 16, voxelStateByteSize = 4) {
-    this.size = size
-    this.size2 = size * size
-    this.size3 = size * size * size
+  get size() { return this.getSize() }
+
+  constructor(size: number | Vector3Like = 16, voxelStateByteSize = 4) {
+    const [sizeX, sizeY, sizeZ] = typeof size === 'number' ? [size, size, size] : [size.x, size.y, size.z]
+    this.sizeX = sizeX
+    this.sizeY = sizeY
+    this.sizeZ = sizeZ
+    this.sizeXY = this.sizeX * this.sizeY
+    this.sizeXYZ = this.sizeX * this.sizeY * this.sizeZ
     this.voxelStateByteSize = voxelStateByteSize
-    this.voxelState = new ArrayBuffer((size ** 3) * voxelStateByteSize)
+    this.voxelState = new ArrayBuffer(this.sizeXYZ * voxelStateByteSize)
+  }
+
+  getSize(out = new Vector3()) {
+    return out.set(this.sizeX, this.sizeY, this.sizeZ)
   }
 
   /**
@@ -28,11 +44,11 @@ export class Chunk {
   getVoxelState(x: number, y: number, z: number): DataView
   getVoxelState(...args: [Vector3Like] | [x: number, y: number, z: number]): DataView {
     const [x, y, z] = args.length === 1 ? [args[0].x, args[0].y, args[0].z] : args
-    const { size, size2, voxelStateByteSize, voxelState } = this
-    if (x < 0 || x >= size || y < 0 || y >= size || z < 0 || z >= size) {
-      throw new Error(`Coordinates out of bounds: ${x}, ${y}, ${z}, size: ${size}`)
+    const { sizeX, sizeY, sizeZ, sizeXY, voxelStateByteSize, voxelState } = this
+    if (x < 0 || x >= sizeX || y < 0 || y >= sizeY || z < 0 || z >= sizeZ) {
+      throw new Error(`Coordinates out of bounds: ${x}, ${y}, ${z}, size: (${sizeX}, ${sizeY}, ${sizeZ})`)
     }
-    const index = x + y * size + z * size2
+    const index = x + y * sizeX + z * sizeXY
     return new DataView(voxelState, index * voxelStateByteSize, voxelStateByteSize)
   }
 
@@ -44,8 +60,8 @@ export class Chunk {
   tryGetVoxelState(x: number, y: number, z: number): DataView | null
   tryGetVoxelState(...args: [Vector3Like] | [x: number, y: number, z: number]): DataView | null {
     const [x, y, z] = args.length === 1 ? [args[0].x, args[0].y, args[0].z] : args
-    const { size } = this
-    if (x < 0 || x >= size || y < 0 || y >= size || z < 0 || z >= size) {
+    const { sizeX, sizeY, sizeZ, sizeXY, voxelStateByteSize, voxelState } = this
+    if (x < 0 || x >= sizeX || y < 0 || y >= sizeY || z < 0 || z >= sizeZ) {
       // TODO: Implement a lookup into neighboring chunks if worldConnection is set
       return null
     }
@@ -53,11 +69,11 @@ export class Chunk {
   }
 
   *voxelFaces(isFullDelegate: (data: DataView) => boolean = data => data.getUint8(0) !== 0) {
-    const { size } = this
+    const { sizeX, sizeY, sizeZ } = this
     const face = new Face(new Vector3(), 0)
-    for (let x = 0; x < size; x++) {
-      for (let y = 0; y < size; y++) {
-        for (let z = 0; z < size; z++) {
+    for (let x = 0; x < sizeX; x++) {
+      for (let y = 0; y < sizeY; y++) {
+        for (let z = 0; z < sizeZ; z++) {
           const data = this.getVoxelState(x, y, z)!
           const currentIsFull = isFullDelegate(data)
           if (currentIsFull) {
