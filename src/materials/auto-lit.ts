@@ -3,7 +3,6 @@ import { MeshBasicMaterial, MeshBasicMaterialParameters, Vector3 } from 'three'
 import { ShaderForge } from '../shader-forge'
 
 const defaultOptions = {
-  vertexColors: true,
   luminosity: .5,
 }
 
@@ -19,7 +18,6 @@ export class AutoLitMaterial extends MeshBasicMaterial {
   constructor(options?: Options) {
     const {
       luminosity,
-      vertexColors,
       ...rest
     } = { ...defaultOptions, ...options }
     const uniforms = {
