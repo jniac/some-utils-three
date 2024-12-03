@@ -1,4 +1,5 @@
 import { Vector3 } from 'three'
+
 import { Direction, defaultDirectionTangent } from './core'
 
 let _i = 0
