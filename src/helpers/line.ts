@@ -1,4 +1,4 @@
-import { BufferAttribute, BufferGeometry, Color, ColorRepresentation, GreaterDepth, LineBasicMaterial, LineSegments, Matrix4, Vector2, Vector3 } from 'three'
+import { Box3, BufferAttribute, BufferGeometry, Color, ColorRepresentation, GreaterDepth, LineBasicMaterial, LineSegments, Matrix4, Vector2, Vector3 } from 'three'
 
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 
@@ -160,12 +160,40 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
   /**
    * NOTE: "Transform option" is not implemented here.
    */
-  box({
-    center = <Vector3Declaration>[0, 0, 0],
-    size = <Vector3Declaration>1,
-  } = {}): this {
-    const { x, y, z } = fromVector3Declaration(center, _vector3)
-    const { x: sx, y: sy, z: sz } = fromVector3Declaration(size, _vector3)
+  box(options: BasicOptions & Partial<{
+    center: Vector3Declaration,
+    size: Vector3Declaration,
+    box3: Box3,
+    /**
+     * If true, the box will be drawn as an integer box (inclusive of the max values).
+     */
+    asIntBox3: boolean,
+  }> = {}): this {
+    let x = 0, y = 0, z = 0
+    let sx = 1, sy = 1, sz = 1
+    const { center, size, box3 } = options
+    if (center !== undefined) {
+      ({ x, y, z } = fromVector3Declaration(center, _vector3))
+    }
+    if (size !== undefined) {
+      ({ x: sx, y: sy, z: sz } = fromVector3Declaration(size, _vector3))
+    }
+    if (box3 !== undefined) {
+      const { min, max } = box3
+      const { x: minx, y: miny, z: minz } = min
+      let { x: maxx, y: maxy, z: maxz } = max
+      if (options.asIntBox3) {
+        maxx += 1
+        maxy += 1
+        maxz += 1
+      }
+      x = (minx + maxx) / 2
+      y = (miny + maxy) / 2
+      z = (minz + maxz) / 2
+      sx = maxx - minx
+      sy = maxy - miny
+      sz = maxz - minz
+    }
     const halfX = sx / 2
     const halfY = sy / 2
     const halfZ = sz / 2
