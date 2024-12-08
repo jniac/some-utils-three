@@ -129,6 +129,10 @@ export class Face {
     this.tangent = tangent
   }
 
+  clone(): this {
+    return new (this.constructor as any)(this.position.clone(), this.direction, this.tangent)
+  }
+
   positionToArray<T extends number[] | Float32Array>(out: T, offset = 0): T {
     const { position, direction } = this
     _array = out

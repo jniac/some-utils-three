@@ -1,6 +1,6 @@
 import { Vector3 } from 'three'
 
-export class Indexes extends Vector3 {
+export class WorldIndexes extends Vector3 {
   get superChunk() { return this.x }
   get chunk() { return this.y }
   get voxel() { return this.z }
@@ -118,7 +118,7 @@ export class WorldMetrics {
     )
   }
 
-  toIndexes(x: number, y: number, z: number, out = new Indexes()) {
+  toIndexes(x: number, y: number, z: number, out = new WorldIndexes()) {
     const {
       chunkSizeX,
       chunkSizeY,

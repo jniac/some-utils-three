@@ -1,8 +1,9 @@
-import { Vector3, Vector3Like } from 'three'
+import { Box3, Vector3, Vector3Like } from 'three'
 
 import { directionVectors } from './core'
 import { Face } from './face'
-import { World } from './world'
+
+const _face = new Face(new Vector3(), 0)
 
 /**
  * Represents a chunk of voxels.
@@ -17,8 +18,6 @@ export class Chunk {
   readonly sizeXYZ: number
   readonly voxelStateByteSize: number
   readonly voxelState: ArrayBuffer
-
-  worldConnection: [world: World, worldIndex: number] | null = null
 
   get size() { return this.getSize() }
 
@@ -46,7 +45,7 @@ export class Chunk {
 
   /**
    * Returns the voxel state at the given coordinates. Coordinates should be within
-   * the bounds of the chunk.
+   * the bounds of the chunk [(0, 0, 0), (sizeX, sizeY, sizeZ)].
    */
   getVoxelState(p: Vector3Like): DataView
   getVoxelState(x: number, y: number, z: number): DataView
@@ -58,6 +57,39 @@ export class Chunk {
     }
     const index = x + y * sizeX + z * sizeXY
     return new DataView(voxelState, index * voxelStateByteSize, voxelStateByteSize)
+  }
+
+  *voxelStates() {
+    const { sizeX, sizeXY, sizeY, sizeZ } = this
+    const { voxelState, voxelStateByteSize } = this
+    for (let z = 0; z < sizeZ; z++) {
+      for (let y = 0; y < sizeY; y++) {
+        for (let x = 0; x < sizeX; x++) {
+          const index = x + y * sizeX + z * sizeXY
+          yield new DataView(voxelState, index * voxelStateByteSize, voxelStateByteSize)
+        }
+      }
+    }
+  }
+
+  computeBounds({
+    voxelIsFullDelegate = <(data: DataView) => boolean>(data => data.getUint8(0) !== 0),
+    out = new Box3(),
+  } = {}) {
+    out.makeEmpty()
+    const { sizeX, sizeXY, sizeY, sizeZ, voxelState, voxelStateByteSize } = this
+    for (let z = 0; z < sizeZ; z++) {
+      for (let y = 0; y < sizeY; y++) {
+        for (let x = 0; x < sizeX; x++) {
+          const index = x + y * sizeX + z * sizeXY
+          const data = new DataView(voxelState, index * voxelStateByteSize, voxelStateByteSize)
+          if (voxelIsFullDelegate(data)) {
+            out.expandByPoint(new Vector3(x, y, z))
+          }
+        }
+      }
+    }
+    return out
   }
 
   /**
@@ -76,23 +108,30 @@ export class Chunk {
     return this.getVoxelState(x, y, z)
   }
 
-  *voxelFaces(isFullDelegate: (data: DataView) => boolean = data => data.getUint8(0) !== 0) {
+  /**
+   * NOTE: the face object is reused for each iteration, so it should not be modified, nor stored.
+   */
+  *voxelFaces({
+    offset: { x: offx, y: offy, z: offz } = <Vector3Like>{ x: 0, y: 0, z: 0 },
+    voxelIsFullDelegate = <(data: DataView) => boolean>(data => data.getUint8(0) !== 0),
+  } = {}) {
     const { sizeX, sizeY, sizeZ } = this
-    const face = new Face(new Vector3(), 0)
-    for (let x = 0; x < sizeX; x++) {
+    for (let z = 0; z < sizeZ; z++) {
       for (let y = 0; y < sizeY; y++) {
-        for (let z = 0; z < sizeZ; z++) {
+        for (let x = 0; x < sizeX; x++) {
           const data = this.getVoxelState(x, y, z)!
-          const currentIsFull = isFullDelegate(data)
+          const currentIsFull = voxelIsFullDelegate(data)
           if (currentIsFull) {
             for (let direction = 0; direction < 6; direction++) {
               const v = directionVectors[direction]
+              const nx = x + v.x, ny = y + v.y, nz = z + v.z
+              const border = nx < 0 || nx >= sizeX || ny < 0 || ny >= sizeY || nz < 0 || nz >= sizeZ
               const neighborData = this.tryGetVoxelState(x + v.x, y + v.y, z + v.z)
-              const neighborIsFull = neighborData ? isFullDelegate(neighborData) : false
+              const neighborIsFull = neighborData ? voxelIsFullDelegate(neighborData) : false
               if (!neighborIsFull) {
-                face.position.set(x, y, z)
-                face.direction = direction
-                yield face
+                _face.position.set(offx + x, offy + y, offz + z)
+                _face.direction = direction
+                yield _face
               }
             }
           }
