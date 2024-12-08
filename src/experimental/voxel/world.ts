@@ -1,4 +1,4 @@
-import { Vector3Like } from 'three'
+import { Box3, Vector3, Vector3Like } from 'three'
 
 import { Chunk } from './chunk'
 import { WorldMetrics } from './world-metrics'
@@ -42,6 +42,31 @@ export class World {
       count += superChunk.size
     }
     return count
+  }
+
+  *enumerateChunks() {
+    for (const [superChunkIndex, superChunk] of this.superChunks) {
+      for (const [chunkIndex, chunk] of superChunk) {
+        yield { superChunkIndex, chunkIndex, chunk }
+      }
+    }
+  }
+
+  computeBounds({
+    voxelIsFullDelegate = <(data: DataView) => boolean>(data => data.getUint8(0) !== 0),
+    out = new Box3(),
+  } = {}) {
+    out.makeEmpty()
+    const chunkPosition = new Vector3()
+    const chunkBox3 = new Box3()
+    for (const { superChunkIndex, chunkIndex, chunk } of this.enumerateChunks()) {
+      this.metrics.fromIndexes(superChunkIndex, chunkIndex, 0, chunkPosition)
+      chunk.computeBounds({ voxelIsFullDelegate, out: chunkBox3 })
+      chunkBox3.min.add(chunkPosition)
+      chunkBox3.max.add(chunkPosition)
+      out.union(chunkBox3)
+    }
+    return out
   }
 
   tryGetChunk(p: Vector3Like): Chunk | null
