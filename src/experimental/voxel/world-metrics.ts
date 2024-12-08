@@ -260,4 +260,23 @@ export class WorldMetrics {
 
     return out
   }
+
+  getAdjacentChunkIndexes(superChunkIndex: number, chunkIndex: number) {
+    const {
+      chunkSizeX,
+      chunkSizeY,
+      chunkSizeZ,
+    } = this
+
+    const { x, y, z } = this.fromIndexes(superChunkIndex, chunkIndex, 0)
+
+    return [
+      this.toIndexes(x + chunkSizeX, y, z), // Right
+      this.toIndexes(x - chunkSizeX, y, z), // Left
+      this.toIndexes(x, y + chunkSizeY, z), // Top
+      this.toIndexes(x, y - chunkSizeY, z), // Bottom
+      this.toIndexes(x, y, z + chunkSizeZ), // Front
+      this.toIndexes(x, y, z - chunkSizeZ), // Back
+    ] as const
+  }
 }

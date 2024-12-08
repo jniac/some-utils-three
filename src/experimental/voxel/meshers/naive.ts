@@ -45,12 +45,14 @@ export function createNaiveVoxelGeometry(faces: Iterable<Face> | (() => Generato
     faceCount++
   }
 
-  geometry.setAttribute(
-    'position',
-    new BufferAttribute(_position.copy(faceCount * STRIDE_3), 3))
-  geometry.setAttribute(
-    'normal',
-    new BufferAttribute(_normal.copy(faceCount * STRIDE_3), 3))
+  if (faceCount === 0) {
+    // Empty geometry
+    geometry.setAttribute('position', new BufferAttribute(new Float32Array(9), 3))
+    geometry.setAttribute('normal', new BufferAttribute(new Float32Array(9), 3))
+  } else {
+    geometry.setAttribute('position', new BufferAttribute(_position.copy(faceCount * STRIDE_3), 3))
+    geometry.setAttribute('normal', new BufferAttribute(_normal.copy(faceCount * STRIDE_3), 3))
+  }
 
   return geometry
 }
