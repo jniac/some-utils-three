@@ -1,7 +1,7 @@
 import { Box3, Vector3, Vector3Like } from 'three'
 
-import { Chunk } from './chunk'
-import { WorldMetrics } from './world-metrics'
+import { Chunk, defaultVoxelIsFullDelegate } from './chunk'
+import { WorldIndexes, WorldMetrics } from './world-metrics'
 
 function isDataViewZeroed(dataView: DataView) {
   for (let i = 0; i < dataView.byteLength; i++) {
@@ -52,7 +52,7 @@ export class World {
     }
   }
 
-  computeBounds({
+  computeVoxelBounds({
     voxelIsFullDelegate = <(data: DataView) => boolean>(data => data.getUint8(0) !== 0),
     out = new Box3(),
   } = {}) {
@@ -69,6 +69,27 @@ export class World {
     return out
   }
 
+  computeChunkBounds({
+    out = new Box3(),
+  } = {}) {
+    out.makeEmpty()
+    const chunkPosition = new Vector3()
+    for (const { superChunkIndex, chunkIndex } of this.enumerateChunks()) {
+      this.metrics.fromIndexes(superChunkIndex, chunkIndex, 0, chunkPosition)
+      out.expandByPoint(chunkPosition)
+    }
+    out.max.x += this.metrics.chunkSizeX - 1
+    out.max.y += this.metrics.chunkSizeY - 1
+    out.max.z += this.metrics.chunkSizeZ - 1
+    return out
+  }
+
+  /**
+   * Returns the chunk at the given "chunk" coordinates. If the chunk does not exist,
+   * null is returned.
+   * 
+   * NOTE: To get the "surrounding" chunk of a position, use {@link tryGetSurroundingChunkAt}. 
+   */
   tryGetChunk(p: Vector3Like): Chunk | null
   tryGetChunk(x: number, y: number, z: number): Chunk | null
   tryGetChunk(...args: [Vector3Like] | [x: number, y: number, z: number]): Chunk | null {
@@ -103,6 +124,32 @@ export class World {
       + localZInSuperChunk * superChunkSizeXY
 
     return superChunk.get(chunkIndexX) ?? null
+  }
+
+  /**
+   * Returns the "surrounding" chunk of the given position. If the chunk does not 
+   * exist, null is returned.
+   */
+  tryGetSurroundingChunkAt(x: number, y: number, z: number): Chunk | null
+  tryGetSurroundingChunkAt(p: Vector3Like): Chunk | null
+  tryGetSurroundingChunkAt(...args: [Vector3Like] | [x: number, y: number, z: number]): Chunk | null {
+    const [x, y, z] = args.length === 1 ? [args[0].x, args[0].y, args[0].z] : args
+
+    const indexes = this.metrics.toIndexes(x, y, z)
+
+    return this.tryGetChunkByIndexes(indexes)
+  }
+
+  tryGetChunkByIndexes(superChunkIndex: number, chunkIndex: number, voxelIndex?: number): Chunk | null
+  tryGetChunkByIndexes(indexes: WorldIndexes): Chunk | null
+  tryGetChunkByIndexes(...args: any[]): Chunk | null {
+    const [superChunkIndex, chunkIndex] = args.length === 1 ? [args[0].superChunk, args[0].chunk] : args
+
+    const superChunk = this.superChunks.get(superChunkIndex)
+    if (!superChunk)
+      return null
+
+    return superChunk.get(chunkIndex) ?? null
   }
 
   /**
@@ -153,6 +200,7 @@ export class World {
         return false // No need to create a new chunk if the state is zero
 
       chunk = new Chunk(this.metrics.chunkSize, voxelStateByteSize)
+      chunk.mount(this, indexes.superChunk, indexes.chunk)
       superChunk.set(indexes.chunk, chunk)
     }
 
@@ -167,6 +215,35 @@ export class World {
     }
 
     return hasChanged
+  }
+
+  /**
+   * Enumerates all voxel faces of the chunks that intersect with the given bounds.
+   */
+  *chunkVoxelFaces(bounds: Box3, {
+    voxelIsFullDelegate = defaultVoxelIsFullDelegate,
+  } = {}) {
+    const { chunkSize, chunkSizeX, chunkSizeY, chunkSizeZ } = this.metrics
+    const { x: minChunkX, y: minChunkY, z: minChunkZ } = bounds.min
+      .clone()
+      .divide(chunkSize)
+      .floor()
+    const { x: maxChunkX, y: maxChunkY, z: maxChunkZ } = bounds.max
+      .clone()
+      .divide(chunkSize)
+      .ceil()
+    const offset = new Vector3()
+    for (let z = minChunkZ; z < maxChunkZ; z++) {
+      for (let y = minChunkY; y < maxChunkY; y++) {
+        for (let x = minChunkX; x < maxChunkX; x++) {
+          const chunk = this.tryGetChunk(x, y, z)
+          if (chunk) {
+            offset.set(x * chunkSizeX, y * chunkSizeY, z * chunkSizeZ)
+            yield* chunk.voxelFaces({ offset, voxelIsFullDelegate })
+          }
+        }
+      }
+    }
   }
 }
 

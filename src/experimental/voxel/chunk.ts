@@ -1,9 +1,21 @@
 import { Box3, Vector3, Vector3Like } from 'three'
 
-import { directionVectors } from './core'
+import { Direction, directionVectors } from './core'
 import { Face } from './face'
+import { World } from './world'
+import { WorldIndexes } from './world-metrics'
 
 const _face = new Face(new Vector3(), 0)
+
+export const defaultVoxelIsFullDelegate = (data: DataView) => data.getUint8(0) !== 0
+
+type WorldMountState = {
+  world: World
+  superChunkIndex: number
+  chunkIndex: number
+  position: Vector3
+  adjacentChunksIndexes: WorldIndexes[]
+}
 
 /**
  * Represents a chunk of voxels.
@@ -21,6 +33,8 @@ export class Chunk {
 
   get size() { return this.getSize() }
 
+  mountState: WorldMountState | null = null
+
   constructor(size: number | Vector3Like = 16, voxelStateByteSize = 4) {
     const [sizeX, sizeY, sizeZ] = typeof size === 'number' ? [size, size, size] : [size.x, size.y, size.z]
     this.sizeX = sizeX
@@ -30,6 +44,26 @@ export class Chunk {
     this.sizeXYZ = this.sizeX * this.sizeY * this.sizeZ
     this.voxelStateByteSize = voxelStateByteSize
     this.voxelState = new ArrayBuffer(this.sizeXYZ * voxelStateByteSize)
+  }
+
+  mount(world: World, superChunkIndex: number, chunkIndex: number) {
+    const position = world.metrics.fromIndexes(superChunkIndex, chunkIndex, 0)
+    const adjacentChunksIndexes = world.metrics.getAdjacentChunkIndexes(superChunkIndex, chunkIndex)
+    this.mountState = { world, superChunkIndex, chunkIndex, position, adjacentChunksIndexes }
+  }
+
+  unmount() {
+    this.mountState = null
+  }
+
+  getAdjacentChunk(direction: Direction): Chunk | null {
+    const { mountState } = this
+    if (!mountState) {
+      return null
+    }
+    const { world, adjacentChunksIndexes } = mountState
+    const chunkIndexes = adjacentChunksIndexes[direction]
+    return world.tryGetChunkByIndexes(chunkIndexes)
   }
 
   getSize(out = new Vector3()) {
@@ -100,7 +134,7 @@ export class Chunk {
   tryGetVoxelState(x: number, y: number, z: number): DataView | null
   tryGetVoxelState(...args: [Vector3Like] | [x: number, y: number, z: number]): DataView | null {
     const [x, y, z] = args.length === 1 ? [args[0].x, args[0].y, args[0].z] : args
-    const { sizeX, sizeY, sizeZ, sizeXY, voxelStateByteSize, voxelState } = this
+    const { sizeX, sizeY, sizeZ } = this
     if (x < 0 || x >= sizeX || y < 0 || y >= sizeY || z < 0 || z >= sizeZ) {
       // TODO: Implement a lookup into neighboring chunks if worldConnection is set
       return null
@@ -113,22 +147,45 @@ export class Chunk {
    */
   *voxelFaces({
     offset: { x: offx, y: offy, z: offz } = <Vector3Like>{ x: 0, y: 0, z: 0 },
-    voxelIsFullDelegate = <(data: DataView) => boolean>(data => data.getUint8(0) !== 0),
+    voxelIsFullDelegate = defaultVoxelIsFullDelegate,
+    /**
+     * If true, adjacent chunks will be ignored when checking if a face is visible.
+     * 
+     * Useful when you want to render a single chunk in isolation.
+     * 
+     * Defaults to false.
+     */
+    ignoreAdjacentChunks = false,
   } = {}) {
-    const { sizeX, sizeY, sizeZ } = this
+    const mod = (n: number, m: number) => n < 0 ? m + n : n >= m ? n - m : n
+    const { sizeX, sizeXY, sizeY, sizeZ, voxelState, voxelStateByteSize } = this
     for (let z = 0; z < sizeZ; z++) {
       for (let y = 0; y < sizeY; y++) {
         for (let x = 0; x < sizeX; x++) {
-          const data = this.getVoxelState(x, y, z)!
+          const index = x + y * sizeX + z * sizeXY
+          const data = new DataView(voxelState, index * voxelStateByteSize, voxelStateByteSize)
           const currentIsFull = voxelIsFullDelegate(data)
           if (currentIsFull) {
             for (let direction = 0; direction < 6; direction++) {
               const v = directionVectors[direction]
               const nx = x + v.x, ny = y + v.y, nz = z + v.z
-              const border = nx < 0 || nx >= sizeX || ny < 0 || ny >= sizeY || nz < 0 || nz >= sizeZ
-              const neighborData = this.tryGetVoxelState(x + v.x, y + v.y, z + v.z)
-              const neighborIsFull = neighborData ? voxelIsFullDelegate(neighborData) : false
-              if (!neighborIsFull) {
+              const adjacentDirection =
+                nx < 0 || nx >= sizeX || ny < 0 || ny >= sizeY || nz < 0 || nz >= sizeZ
+                  ? direction
+                  : null
+              let adjacentIsFull = false
+              if (adjacentDirection === null) {
+                const adjacentIndex = nx + ny * sizeX + nz * sizeXY
+                const adjacentData = new DataView(voxelState, adjacentIndex * voxelStateByteSize, voxelStateByteSize)
+                adjacentIsFull = voxelIsFullDelegate(adjacentData)
+              } else {
+                if (!ignoreAdjacentChunks) {
+                  const adjacentData = this.getAdjacentChunk(adjacentDirection)
+                    ?.getVoxelState(mod(nx, sizeX), mod(ny, sizeY), mod(nz, sizeZ)) ?? null
+                  adjacentIsFull = adjacentData ? voxelIsFullDelegate(adjacentData) : false
+                }
+              }
+              if (!adjacentIsFull) {
                 _face.position.set(offx + x, offy + y, offz + z)
                 _face.direction = direction
                 yield _face
