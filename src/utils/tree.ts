@@ -1,6 +1,6 @@
 import { Object3D } from 'three'
 
-import { isObject3D } from '../declaration'
+import { isObject3D } from '../is'
 import { applyTransform, TransformProps } from './transform'
 
 type SetupParentOrTransformProps = Object3D | TransformProps | null

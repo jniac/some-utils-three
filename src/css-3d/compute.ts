@@ -2,6 +2,8 @@ import { Camera, Matrix4, Object3D, Vector3 } from 'three'
 
 import { lerp } from 'some-utils-ts/math/basic'
 
+import { isMatrix4, isObject3D, isVector3 } from '../is'
+
 /**
  * NOTE:
  * - Camera "height" (`1 / Math.atan(fov / 2)`) can be retrieved from the projection matrix!
@@ -53,7 +55,8 @@ const
   ty = 13,
   tz = 14
 
-const _matrix = new Matrix4()
+const _matrix1 = new Matrix4()
+const _matrix2 = new Matrix4()
 const _vector1 = new Vector3()
 const _vector2 = new Vector3()
 
@@ -95,15 +98,39 @@ function matrixResetScale(matrix: Matrix4, scaleBase: number, resetScalar = 1) {
   me[fz] *= f
 }
 
-export function computeFrontFacing(camera: Camera, object: Object3D) {
+function toVector3(source: Object3D | Matrix4 | Vector3, out: Vector3): Vector3 {
+  if (isObject3D(source)) {
+    return out.setFromMatrixPosition(source.matrixWorld)
+  } else if (isMatrix4(source)) {
+    return out.setFromMatrixPosition(source)
+  } else if (isVector3(source)) {
+    return out.copy(source)
+  } else {
+    throw new Error('Invalid object type.')
+  }
+}
+
+function toMatrix4(source: Object3D | Matrix4 | Vector3, optionalTarget: Matrix4): Matrix4 {
+  if (isObject3D(source)) {
+    return source.matrixWorld
+  } else if (isMatrix4(source)) {
+    return source
+  } else if (isVector3(source)) {
+    return optionalTarget.makeTranslation(source.x, source.y, source.z)
+  } else {
+    throw new Error('Invalid object type.')
+  }
+}
+
+export function computeFrontFacing(camera: Camera, target: Object3D | Matrix4 | Vector3) {
   _vector1.set(camera.matrixWorld.elements[8], camera.matrixWorld.elements[9], camera.matrixWorld.elements[10])
-  _vector2.set(object.matrixWorld.elements[8], object.matrixWorld.elements[9], object.matrixWorld.elements[10])
+  toVector3(target, _vector2)
   return _vector1.dot(_vector2) > 0
 }
 
-export function computeZIndex(camera: Camera, object: Object3D) {
+export function computeZIndex(camera: Camera, target: Object3D | Matrix4 | Vector3) {
   _vector1.set(camera.matrixWorld.elements[12], camera.matrixWorld.elements[13], camera.matrixWorld.elements[14])
-  _vector2.set(object.matrixWorld.elements[12], object.matrixWorld.elements[13], object.matrixWorld.elements[14])
+  toVector3(target, _vector2)
   const z = _vector1.distanceTo(_vector2)
   return Math.round(1e4 / (1 + z)).toString()
 }
@@ -133,7 +160,7 @@ export function computeZIndex(camera: Camera, object: Object3D) {
  */
 export function computeMatrix3d(
   camera: Camera,
-  object: Object3D,
+  target: Object3D | Matrix4 | Vector3,
   container: HTMLElement,
   pixelPerUnit: number = 100,
   resetRotation: number = 0,
@@ -144,9 +171,10 @@ export function computeMatrix3d(
   const scalar = container.clientHeight * h / 2
   const coreScalar = scalar / pixelPerUnit
 
-  _matrix.multiplyMatrices(camera.matrixWorldInverse, object.matrixWorld)
+  const targetMatrix = toMatrix4(target, _matrix2)
+  _matrix1.multiplyMatrices(camera.matrixWorldInverse, targetMatrix)
 
-  const me = _matrix.elements
+  const me = _matrix1.elements
 
   // Flip (rotation 180°) the matrix over the X axis (before getting multplied by the camera matrix). 
   me[ux] *= -1
@@ -191,12 +219,27 @@ export function computeMatrix3d(
   }
 
   if (resetRotation > 0) {
-    matrixResetRotation(_matrix, resetRotation)
+    matrixResetRotation(_matrix1, resetRotation)
   }
 
   if (resetScale > 0) {
-    matrixResetScale(_matrix, leftHanded ? z : -z, resetScale)
+    matrixResetScale(_matrix1, leftHanded ? z : -z, resetScale)
   }
 
-  return `translate(-50%, -50%) matrix3d(${_matrix.elements.join(',')})`
+  return `translate(-50%, -50%) matrix3d(${_matrix1.elements.join(',')})`
+}
+
+export function setup3d(container: HTMLDivElement, div: HTMLDivElement, camera: Camera, target: Object3D | Matrix4 | Vector3, {
+  pixelPerUnit = 100,
+  resetRotation = 0,
+  resetScale = 0,
+  leftHanded = false,
+} = {}) {
+  container.style.perspective = computePerspective(camera, container)
+
+  div.style.position = 'absolute'
+  div.style.left = '50%'
+  div.style.top = '50%'
+  div.style.transform = computeMatrix3d(camera, target, container, pixelPerUnit, resetRotation, resetScale, leftHanded)
+  div.style.zIndex = computeZIndex(camera, target)
 }

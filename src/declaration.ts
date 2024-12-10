@@ -11,6 +11,10 @@ import {
   fromAngleDeclaration,
 } from 'some-utils-ts/declaration'
 
+import { isEuler, isMatrix4, isObject3D } from './is'
+
+export * from './is'
+
 export type {
   AngleDeclaration,
   AngleUnit,
@@ -29,18 +33,6 @@ export {
   toVector3Declaration,
   toVector4Declaration
 } from 'some-utils-ts/declaration'
-
-export function isEuler(value: any): value is Euler {
-  return !!value.isEuler
-}
-
-export function isMatrix4(value: any): value is Matrix4 {
-  return !!value.isMatrix4
-}
-
-export function isObject3D(value: any): value is Object3D {
-  return !!value.isObject3D
-}
 
 /**
  * Because readonly types are not compatible with their mutable counterparts, we can use this type to handle both cases.
