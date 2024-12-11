@@ -8,31 +8,22 @@ export class ThreeWebGPUContext {
   height = 150
   pixelRatio = 1
 
-  renderer = new WebGPURenderer({})
   ticker = Ticker.get('three').set({ minActiveDuration: 8 })
+
+  renderer = new WebGPURenderer({
+    antialias: true,
+  })
   perspectiveCamera = new PerspectiveCamera()
   orhtographicCamera = new OrthographicCamera()
   scene = new Scene()
 
   camera: Camera = this.perspectiveCamera
 
-  internal = (() => {
-    const observer = new ResizeObserver(entries => {
-      const { domElement } = this.renderer
-      this.setSize({
-        width: domElement.clientWidth,
-        height: domElement.clientHeight,
-        pixelRatio: window.devicePixelRatio,
-      })
-    })
-    observer.observe(this.renderer.domElement)
-
-    return {
-      observer,
-      cancelRequestActivation: null as (() => void) | null,
-      cancelTick: null as (() => void) | null,
-    }
-  })()
+  private internal = {
+    observer: null as ResizeObserver | null,
+    cancelRequestActivation: null as (() => void) | null,
+    cancelTick: null as (() => void) | null,
+  }
 
   get aspect() { return this.width / this.height }
 
@@ -84,6 +75,15 @@ export class ThreeWebGPUContext {
     }
     Object.defineProperty(this, 'initialized', { value: true, writable: false, configurable: false, enumerable: false })
 
+    const observer = new ResizeObserver(() => {
+      this.setSize({
+        width: domContainer.clientWidth,
+        height: domContainer.clientHeight,
+        pixelRatio: window.devicePixelRatio,
+      })
+    })
+    observer.observe(domContainer)
+
     const { domElement } = this.renderer
     domElement.style.display = 'block'
     domElement.style.width = '100%'
@@ -121,7 +121,7 @@ export class ThreeWebGPUContext {
     Object.defineProperty(this, 'destroyed', { value: true, writable: false, configurable: false, enumerable: false })
 
     this.renderer.dispose()
-    this.internal.observer.disconnect()
+    this.internal.observer?.disconnect()
     this.internal.cancelTick?.()
     this.internal.cancelRequestActivation?.()
   }
