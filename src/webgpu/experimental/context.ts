@@ -1,5 +1,6 @@
 import { Camera, OrthographicCamera, PerspectiveCamera, Scene, WebGPURenderer } from 'three/webgpu'
 
+import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
 import { Ticker } from 'some-utils-ts/ticker'
 
 export class ThreeWebGPUContext {
@@ -25,8 +26,10 @@ export class ThreeWebGPUContext {
       })
     })
     observer.observe(this.renderer.domElement)
+
     return {
       observer,
+      cancelRequestActivation: null as (() => void) | null,
       cancelTick: null as (() => void) | null,
     }
   })()
@@ -70,8 +73,6 @@ export class ThreeWebGPUContext {
     orhtographicCamera.bottom = -1
     orhtographicCamera.updateProjectionMatrix()
 
-    console.log('ThreeWebglContext.setSize', { newWidth, newHeight, newPixelRatio })
-
     return this
   }
 
@@ -97,14 +98,31 @@ export class ThreeWebGPUContext {
 
     this.internal.cancelTick = this.ticker.onTick(() => {
       const { renderer, scene, camera } = this
+      scene.traverse(child => {
+        if ('onTick' in child) {
+          // call onTick on every child that has it
+          (child as any).onTick(this.ticker, this)
+        }
+      })
       renderer.renderAsync(scene, camera)
     }).destroy
+
+    this.internal.cancelRequestActivation = handleAnyUserInteraction(document.body, this.ticker.requestActivation).destroy
+
     return this
   }
 
+  destroyed = false
   destroy = () => {
+    if (this.destroyed) {
+      console.warn('ThreeWebglContext is already destroyed.')
+      return
+    }
+    Object.defineProperty(this, 'destroyed', { value: true, writable: false, configurable: false, enumerable: false })
+
     this.renderer.dispose()
     this.internal.observer.disconnect()
     this.internal.cancelTick?.()
+    this.internal.cancelRequestActivation?.()
   }
 }
