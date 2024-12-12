@@ -14,7 +14,7 @@ type WorldMountState = {
   superChunkIndex: number
   chunkIndex: number
   position: Vector3
-  adjacentChunksIndexes: WorldIndexes[]
+  adjacentChunksIndexes: readonly WorldIndexes[]
 }
 
 /**
