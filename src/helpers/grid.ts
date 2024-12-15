@@ -5,6 +5,7 @@ import { fromVector2Declaration, Vector2Declaration } from '../declaration'
 const defaultSimpleGridProps = {
   color: <ColorRepresentation>'white',
   opacity: .5,
+  plane: 'XY' as 'XY' | 'XZ' | 'YZ',
 
   size: <Vector2Declaration>[8, 8],
   step: <Vector2Declaration | undefined>1,
@@ -29,6 +30,7 @@ export class SimpleGridHelper extends LineSegments<BufferGeometry, LineBasicMate
       size: sizeArg,
       step: stepArg,
       frame,
+      plane,
     } = { ...defaultSimpleGridProps, ...props }
 
     const size = fromVector2Declaration(sizeArg)
@@ -75,6 +77,17 @@ export class SimpleGridHelper extends LineSegments<BufferGeometry, LineBasicMate
     } while (y < size.y / 2)
 
     this.geometry.setFromPoints(points)
+
+    switch (plane) {
+      case 'XZ': {
+        this.geometry.rotateX(Math.PI / 2)
+        break
+      }
+      case 'YZ': {
+        this.geometry.rotateY(Math.PI / 2)
+        break
+      }
+    }
 
     this.material.color.set(color)
     this.material.opacity = opacity
