@@ -1,7 +1,9 @@
-import { Camera, OrthographicCamera, PerspectiveCamera, Scene, WebGPURenderer } from 'three/webgpu'
+import { Camera, OrthographicCamera, pass, PerspectiveCamera, PostProcessing, Scene, WebGPURenderer } from 'three/webgpu'
 
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
 import { Ticker } from 'some-utils-ts/ticker'
+
+// @ts-ignore
 
 export class ThreeWebGPUContext {
   width = 300
@@ -16,6 +18,9 @@ export class ThreeWebGPUContext {
   perspectiveCamera = new PerspectiveCamera()
   orhtographicCamera = new OrthographicCamera()
   scene = new Scene()
+
+  postProcessing = new PostProcessing(this.renderer)
+  scenePass = pass(this.scene, this.perspectiveCamera)
 
   camera: Camera = this.perspectiveCamera
 
@@ -75,6 +80,9 @@ export class ThreeWebGPUContext {
     }
     Object.defineProperty(this, 'initialized', { value: true, writable: false, configurable: false, enumerable: false })
 
+    const scenePassColor = this.scenePass.getTextureNode('output')
+    this.postProcessing.outputNode = scenePassColor
+
     const observer = new ResizeObserver(() => {
       this.setSize({
         width: domContainer.clientWidth,
@@ -97,14 +105,15 @@ export class ThreeWebGPUContext {
     })
 
     this.internal.cancelTick = this.ticker.onTick(() => {
-      const { renderer, scene, camera } = this
+      const { scene, postProcessing } = this
       scene.traverse(child => {
         if ('onTick' in child) {
           // call onTick on every child that has it
           (child as any).onTick(this.ticker, this)
         }
       })
-      renderer.renderAsync(scene, camera)
+      // renderer.renderAsync(scene, camera)
+      postProcessing.renderAsync()
     }).destroy
 
     this.internal.cancelRequestActivation = handleAnyUserInteraction(document.body, this.ticker.requestActivation).destroy
