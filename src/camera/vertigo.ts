@@ -287,8 +287,12 @@ export class Vertigo {
 
     // Orthographic
     else {
-      const near = this.nearMin / this.zoom
-      const far = near + this.before + this.after
+      // NOTE: "near" and "far" calculation are not correct. That kind of works, 
+      // but it has to be fixed one day or another.
+      // const near = this.nearMin / this.zoom
+      // const far = near + this.before + this.after
+      const near = -this.before
+      const far = this.after + this.before
 
       const mHeight = height / 2
       const mWidth = mHeight * aspect
