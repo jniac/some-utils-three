@@ -49,9 +49,10 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
    * Set the "opacity" property of the material and automatically set the material
    * as "transparent" if the value is less that one.
    */
-  setOpacity(value: number) {
+  setOpacity(value: number): this {
     this.material.opacity = value
     this.material.transparent = value < 1
+    return this
   }
 
   showOccludedLines({ opacity = .2 } = {}): this {
