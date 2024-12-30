@@ -42,6 +42,18 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
   points: Vector3[] = []
   colors = new Map<number, Color>()
 
+  get opacity() { return this.material.opacity }
+  set opacity(value) { this.setOpacity(value) }
+
+  /**
+   * Set the "opacity" property of the material and automatically set the material
+   * as "transparent" if the value is less that one.
+   */
+  setOpacity(value: number) {
+    this.material.opacity = value
+    this.material.transparent = value < 1
+  }
+
   showOccludedLines({ opacity = .2 } = {}): this {
     const material = new LineBasicMaterial({
       color: this.material.color,
