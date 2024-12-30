@@ -52,6 +52,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
   setOpacity(value: number): this {
     this.material.opacity = value
     this.material.transparent = value < 1
+    this.material.depthWrite = value >= 1
     return this
   }
 
@@ -167,6 +168,60 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     const c = new Vector3(x + w2, y + h2, 0)
     const d = new Vector3(x - w2, y + h2, 0)
     transformAndPush(this, [a, b, b, c, c, d, d, a], options)
+    return this
+  }
+
+  static grid2DefaultOptions = {
+    plane: 'XY' as 'XY' | 'XZ' | 'YZ',
+    centerX: 0,
+    centerY: 0,
+    size: 8,
+    width: undefined as number | undefined,
+    height: undefined as number | undefined,
+    widthSubdivisions: undefined as number | undefined,
+    heightSubdivisions: undefined as number | undefined,
+  }
+  grid2(gridOptions?: Partial<typeof LineHelper.grid2DefaultOptions> & BasicOptions): this {
+    const {
+      plane,
+      centerX,
+      centerY,
+      size,
+      width = size,
+      height = size,
+      widthSubdivisions = width,
+      heightSubdivisions = height,
+      ...rest
+    } = { ...LineHelper.grid2DefaultOptions, ...gridOptions }
+
+    const center = new Vector3(centerX, centerY, 0)
+    const w2 = width / 2
+    const h2 = height / 2
+    const wSubs = widthSubdivisions ?? Math.round(width)
+    const hSubs = heightSubdivisions ?? Math.round(height)
+    const points = [] as Vector3[]
+    for (let i = 0; i <= wSubs; i++) {
+      const x = i / wSubs * width - w2
+      points.push(new Vector3(x, -h2, 0), new Vector3(x, h2, 0))
+    }
+    for (let i = 0; i <= hSubs; i++) {
+      const y = i / hSubs * height - h2
+      points.push(new Vector3(-w2, y, 0), new Vector3(w2, y, 0))
+    }
+    for (const point of points) {
+      point.add(center)
+    }
+    if (plane === 'XZ') {
+      for (const point of points) {
+        point.set(point.x, 0, point.y)
+      }
+    }
+    if (plane === 'YZ') {
+      for (const point of points) {
+        point.set(0, point.x, point.y)
+      }
+    }
+    transformAndPush(this, points, rest)
     return this
   }
 
