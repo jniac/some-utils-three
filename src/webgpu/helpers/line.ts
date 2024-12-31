@@ -37,7 +37,6 @@ function ensureColorAttribute(geometry: BufferGeometry): BufferAttribute {
   }
 }
 
-
 export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
   points: Vector3[] = []
   colors = new Map<number, Color>()
@@ -124,8 +123,15 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     return this
   }
 
-  static circleDefaultOptions = { x: 0, y: 0, radius: .5, segments: 96 }
-  circle(options?: BasicOptions & Partial<typeof LineHelper.circleDefaultOptions & { x: number, y: number, radius: number }>): this
+  static circleDefaultOptions = {
+    plane: 'XY' as 'XY' | 'XZ' | 'YZ',
+    x: 0,
+    y: 0,
+    z: 0,
+    radius: .5,
+    segments: 96,
+  }
+  circle(options?: BasicOptions & Partial<typeof LineHelper.circleDefaultOptions>): this
   circle(center: Vector2Declaration, radius: number, options?: BasicOptions & Partial<typeof LineHelper.circleDefaultOptions>): this
   circle(...args: any[]): this {
     const solveArgs = () => {
@@ -136,7 +142,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
       }
       return args[0]
     }
-    const { x, y, radius, segments, ...optionsRest } = { ...LineHelper.circleDefaultOptions, ...solveArgs() }
+    const { x, y, z, radius, segments, plane, ...optionsRest } = { ...LineHelper.circleDefaultOptions, ...solveArgs() }
     const vx = new Vector3(1, 0, 0)
     const vy = new Vector3(0, 1, 0)
     const points = [] as Vector3[]
@@ -147,16 +153,40 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
       const y0 = Math.sin(a0) * radius
       const x1 = Math.cos(a1) * radius
       const y1 = Math.sin(a1) * radius
-      const v0 = new Vector3(x, y, 0)
+      const v0 = new Vector3(x, y, z)
         .addScaledVector(vx, x0)
         .addScaledVector(vy, y0)
-      const v1 = new Vector3(x, y, 0)
+      const v1 = new Vector3(x, y, z)
         .addScaledVector(vx, x1)
         .addScaledVector(vy, y1)
       points.push(v0, v1)
     }
+    if (plane === 'XZ') {
+      for (const point of points) {
+        point.set(point.x, 0, point.y)
+      }
+    }
+    if (plane === 'YZ') {
+      for (const point of points) {
+        point.set(0, point.x, point.y)
+      }
+    }
     transformAndPush(this, points, optionsRest)
     return this
+  }
+
+  /**
+   * Calls `circle` three times with the same options but for the XY, XZ and YZ 
+   * planes.
+   * 
+   * NOTE: This is not very optimized, as it creates three circles wihout reusing 
+   * the points. But you know, it's just a helper.
+   */
+  sphere(options: Omit<BasicOptions & Partial<typeof LineHelper.circleDefaultOptions>, 'plane'>) {
+    return this
+      .circle({ ...options, plane: 'XY' })
+      .circle({ ...options, plane: 'XZ' })
+      .circle({ ...options, plane: 'YZ' })
   }
 
   rectangle(rect?: RectangleDeclaration, options?: BasicOptions): this {
@@ -173,8 +203,9 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
 
   static grid2DefaultOptions = {
     plane: 'XY' as 'XY' | 'XZ' | 'YZ',
-    centerX: 0,
-    centerY: 0,
+    x: 0,
+    y: 0,
+    z: 0,
     size: 8,
     width: undefined as number | undefined,
     height: undefined as number | undefined,
@@ -184,8 +215,9 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
   grid2(gridOptions?: Partial<typeof LineHelper.grid2DefaultOptions> & BasicOptions): this {
     const {
       plane,
-      centerX,
-      centerY,
+      x,
+      y,
+      z,
       size,
       width = size,
       height = size,
@@ -194,7 +226,6 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
       ...rest
     } = { ...LineHelper.grid2DefaultOptions, ...gridOptions }
 
-    const center = new Vector3(centerX, centerY, 0)
     const w2 = width / 2
     const h2 = height / 2
     const wSubs = widthSubdivisions ?? Math.round(width)
@@ -208,6 +239,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
       const y = i / hSubs * height - h2
       points.push(new Vector3(-w2, y, 0), new Vector3(w2, y, 0))
     }
+    const center = new Vector3(x, y, z)
     for (const point of points) {
       point.add(center)
     }
