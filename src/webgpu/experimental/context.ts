@@ -2,6 +2,7 @@ import { Camera, OrthographicCamera, pass, PerspectiveCamera, PostProcessing, Sc
 
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
 import { Ticker } from 'some-utils-ts/ticker'
+import { Pointer, PointerButton } from './pointer'
 
 // @ts-ignore
 
@@ -11,6 +12,8 @@ export class ThreeWebGPUContext {
   pixelRatio = 1
 
   ticker = Ticker.get('three').set({ minActiveDuration: 8 })
+
+  pointer = new Pointer()
 
   renderer = new WebGPURenderer({
     antialias: true,
@@ -28,6 +31,7 @@ export class ThreeWebGPUContext {
     observer: null as ResizeObserver | null,
     cancelRequestActivation: null as (() => void) | null,
     cancelTick: null as (() => void) | null,
+    cancelPointer: null as (() => void) | null,
   }
 
   get aspect() { return this.width / this.height }
@@ -35,6 +39,7 @@ export class ThreeWebGPUContext {
   constructor() {
     this.camera.position.set(0, 1, 10)
     this.camera.lookAt(0, 0, 0)
+    this.pointer.update(this.camera, { x: 0, y: 0 }, this.renderer.domElement.getBoundingClientRect())
   }
 
   setSize(size: Partial<{
@@ -118,6 +123,26 @@ export class ThreeWebGPUContext {
 
     this.internal.cancelRequestActivation = handleAnyUserInteraction(document.body, this.ticker.requestActivation).destroy
 
+    // Pointer
+    const onPointerMove = (event: PointerEvent) => {
+      const rect = this.renderer.domElement.getBoundingClientRect()
+      this.pointer.update(this.camera, { x: event.clientX, y: event.clientY }, rect)
+    }
+    const onPointerDown = (_: PointerEvent) => {
+      this.pointer.status.button |= PointerButton.LeftDown
+    }
+    const onPointerUp = (_: PointerEvent) => {
+      this.pointer.status.button &= ~PointerButton.LeftDown
+    }
+    domContainer.addEventListener('pointermove', onPointerMove)
+    domContainer.addEventListener('pointerdown', onPointerDown)
+    domContainer.addEventListener('pointerup', onPointerUp)
+    this.internal.cancelPointer = () => {
+      domContainer.removeEventListener('pointermove', onPointerMove)
+      domContainer.removeEventListener('pointerdown', onPointerDown)
+      domContainer.removeEventListener('pointerup', onPointerUp)
+    }
+
     return this
   }
 
@@ -133,5 +158,6 @@ export class ThreeWebGPUContext {
     this.internal.observer?.disconnect()
     this.internal.cancelTick?.()
     this.internal.cancelRequestActivation?.()
+    this.internal.cancelPointer?.()
   }
 }
