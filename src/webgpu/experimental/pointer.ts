@@ -7,7 +7,9 @@ export enum PointerButton {
 }
 
 export class Pointer {
-  status = {
+  get button() { return this.state.button }
+
+  state = {
     button: PointerButton.None,
   }
 

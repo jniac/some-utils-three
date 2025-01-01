@@ -129,10 +129,10 @@ export class ThreeWebGPUContext {
       this.pointer.update(this.camera, { x: event.clientX, y: event.clientY }, rect)
     }
     const onPointerDown = (_: PointerEvent) => {
-      this.pointer.status.button |= PointerButton.LeftDown
+      this.pointer.state.button |= PointerButton.LeftDown
     }
     const onPointerUp = (_: PointerEvent) => {
-      this.pointer.status.button &= ~PointerButton.LeftDown
+      this.pointer.state.button &= ~PointerButton.LeftDown
     }
     domContainer.addEventListener('pointermove', onPointerMove)
     domContainer.addEventListener('pointerdown', onPointerDown)
