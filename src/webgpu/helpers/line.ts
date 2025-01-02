@@ -353,7 +353,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     return this
   }
 
-  plus(center: Vector2Declaration, size: number, options?: BasicOptions): this {
+  plus(center: Vector2Declaration = 0, size: number = 1, options?: BasicOptions): this {
     const half = size / 2
     const { x, y } = fromVector2Declaration(center, _vector2)
     const a = new Vector3(x - half, y, 0)
@@ -364,7 +364,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     return this
   }
 
-  cross(center: Vector2Declaration, size: number, options?: BasicOptions): this {
+  cross(center: Vector2Declaration = 0, size: number = 1, options?: BasicOptions): this {
     const half = size / 2
     const { x, y } = fromVector2Declaration(center, _vector2)
     const a = new Vector3(x - half, y - half, 0)
