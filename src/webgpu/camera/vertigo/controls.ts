@@ -19,6 +19,40 @@ function _updateVectorXY(rotation: Euler) {
   _vectorY.set(0, 1, 0).applyQuaternion(_quaternion)
 }
 
+const controlInputs = [
+  'shift',
+  'alt',
+  'control',
+  'meta',
+] as const
+
+type ControlInput = typeof controlInputs[number]
+
+type ControlInputString =
+  | ''
+  | `${ControlInput}`
+  | `${ControlInput}+${ControlInput}`
+  | `${ControlInput}+${ControlInput}+${ControlInput}`
+  | `${ControlInput}+${ControlInput}+${ControlInput}+${ControlInput}`
+
+function matchControlInput(
+  object: { altKey: boolean, ctrlKey: boolean, shiftKey: boolean, metaKey: boolean },
+  keys: ControlInput[],
+) {
+  return keys.every(key => (object as any)[`${key}Key`])
+}
+
+function parseInputs(inputs: string) {
+  const parts = inputs.split('+')
+  return parts.filter(part => {
+    const ok = controlInputs.includes(part as ControlInput)
+    if (!ok) {
+      console.warn(`Invalid input: ${part}`)
+    }
+    return ok
+  }) as ControlInput[]
+}
+
 export class VertigoControls extends DestroyableInstance {
   /**
    * The decay factor for the vertigo controls (expresses the missing part after 1 second).
@@ -99,6 +133,16 @@ export class VertigoControls extends DestroyableInstance {
     },
   }
 
+  panInputs: ControlInput[] = []
+  parsePanInputs(inputs: string) {
+    this.panInputs = parseInputs(inputs)
+  }
+
+  orbitInputs: ControlInput[] = []
+  parseOrbitInputs(inputs: string) {
+    this.orbitInputs = parseInputs(inputs)
+  }
+
   constructor(props: VertigoProps = {}) {
     super()
     this.vertigo.set(props)
@@ -113,9 +157,16 @@ export class VertigoControls extends DestroyableInstance {
       .addScaledVector(_vectorY, y * z)
   }
 
-  rotate(pitch: number, yaw: number) {
+  orbit(pitch: number, yaw: number) {
     this.vertigo.rotation.x += pitch
     this.vertigo.rotation.y += yaw
+  }
+
+  /**
+   * @deprecated Use `orbit()` instead.
+   */
+  rotate(...args: Parameters<VertigoControls['orbit']>) {
+    this.orbit(...args)
   }
 
   zoomAt(newZoom: number, vertigoRelativePointer: Vector2Like) {
@@ -162,11 +213,15 @@ export class VertigoControls extends DestroyableInstance {
       onDrag: info => {
         switch (info.button) {
           case PointerButton.Left: {
-            this.rotate(info.delta.y * -.01, info.delta.x * -.01)
+            if (matchControlInput(info, this.orbitInputs)) {
+              this.orbit(info.delta.y * -.01, info.delta.x * -.01)
+            }
             break
           }
           case PointerButton.Right: {
-            this.pan(info.delta.x * -.025, info.delta.y * .025)
+            if (matchControlInput(info, this.panInputs)) {
+              this.pan(info.delta.x * -.025, info.delta.y * .025)
+            }
             break
           }
         }
@@ -215,3 +270,9 @@ export class VertigoControls extends DestroyableInstance {
       .apply(camera, aspect)
   }
 }
+
+export type {
+  ControlInput as VertigoControlInput,
+  ControlInputString as VertigoControlInputString
+}
+
