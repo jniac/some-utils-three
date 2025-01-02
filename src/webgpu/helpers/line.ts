@@ -39,7 +39,20 @@ function _ensureColorAttribute(geometry: BufferGeometry): BufferAttribute {
 
 export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
   points: Vector3[] = []
-  colors = new Map<number, Color>()
+  colors = new Map<number, Color>();
+
+  /**
+   * Returns an iterator that yields all the unique points in the line (no duplicates).
+   */
+  *uniquePoints() {
+    const processed = new WeakSet<Vector3>()
+    for (const point of this.points) {
+      if (!processed.has(point)) {
+        processed.add(point)
+        yield point
+      }
+    }
+  }
 
   /**
    * Set the "opacity" property of the material and automatically set the material
@@ -63,19 +76,23 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
   translate(delta: Vector3Declaration): this
   translate(x: number, y: number, z: number): this
   translate(...args: any[]): this {
-    const processed = new WeakSet<Vector3>()
     const [x, y, z] = args.length === 1 ? fromVector3Declaration(args[0], _vector3) : args
-    for (const point of this.points) {
-      // Because a point can be shared by multiple lines, we need to make sure
-      // we don't process the same point more than once.
-      if (processed.has(point))
-        continue
-
-      processed.add(point)
-
+    for (const point of this.uniquePoints()) {
       point.x += x
       point.y += y
       point.z += z
+    }
+    return this
+  }
+
+  rescale(delta: Vector3Declaration): this
+  rescale(x: number, y: number, z: number): this
+  rescale(...args: any[]): this {
+    const [x, y, z] = args.length === 1 ? fromVector3Declaration(args[0], _vector3) : args
+    for (const point of this.uniquePoints()) {
+      point.x *= x
+      point.y *= y
+      point.z *= z
     }
     return this
   }
