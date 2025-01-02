@@ -13,20 +13,20 @@ type BasicOptions = Partial<{
   color: ColorRepresentation
 }>
 
-function transformAndPush(lineHelper: LineHelper, newPoints: Vector3[], options?: BasicOptions): void {
+function _transformAndPush(lineHelper: LineHelper, newPoints: Vector3[], options?: BasicOptions): void {
   if (options?.transform) {
     fromTransformDeclaration(options.transform, _m)
     for (const point of newPoints) {
       point.applyMatrix4(_m)
     }
   }
-  if (options?.color) {
-    lineHelper.colors.set(lineHelper.points.length, new Color(options.color))
+  if (options?.color !== undefined) {
+    lineHelper.color(options.color)
   }
   lineHelper.points.push(...newPoints)
 }
 
-function ensureColorAttribute(geometry: BufferGeometry): BufferAttribute {
+function _ensureColorAttribute(geometry: BufferGeometry): BufferAttribute {
   const colors = geometry.attributes.color
   if (colors) {
     return colors as BufferAttribute
@@ -41,17 +41,42 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
   points: Vector3[] = []
   colors = new Map<number, Color>()
 
-  get opacity() { return this.material.opacity }
-  set opacity(value) { this.setOpacity(value) }
-
   /**
    * Set the "opacity" property of the material and automatically set the material
    * as "transparent" if the value is less that one.
    */
-  setOpacity(value: number): this {
+  opacity(value: number): this {
     this.material.opacity = value
     this.material.transparent = value < 1
     this.material.depthWrite = value >= 1
+    return this
+  }
+
+  /**
+   * Set the current color, from now on, all points added will have this color.
+   */
+  color(value: ColorRepresentation): this {
+    this.colors.set(this.points.length, new Color(value))
+    return this
+  }
+
+  translate(delta: Vector3Declaration): this
+  translate(x: number, y: number, z: number): this
+  translate(...args: any[]): this {
+    const processed = new WeakSet<Vector3>()
+    const [x, y, z] = args.length === 1 ? fromVector3Declaration(args[0], _vector3) : args
+    for (const point of this.points) {
+      // Because a point can be shared by multiple lines, we need to make sure
+      // we don't process the same point more than once.
+      if (processed.has(point))
+        continue
+
+      processed.add(point)
+
+      point.x += x
+      point.y += y
+      point.z += z
+    }
     return this
   }
 
@@ -85,7 +110,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     if (this.colors.size > 0) {
       const currentColor = new Color(this.colors.get(0) ?? 'white')
       const max = this.points.length
-      const colorAttribute = ensureColorAttribute(this.geometry)
+      const colorAttribute = _ensureColorAttribute(this.geometry)
       for (let i = 0; i < max; i++) {
         const color = this.colors.get(i)
         if (color) {
@@ -101,7 +126,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
   line(a: Vector3Declaration, b: Vector3Declaration, options?: BasicOptions): this {
     const va = fromVector3Declaration(a)
     const vb = fromVector3Declaration(b)
-    transformAndPush(this, [va, vb], options)
+    _transformAndPush(this, [va, vb], options)
     return this
   }
 
@@ -110,7 +135,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     const pairs = [] as Vector3[]
     for (let i = 0; i < newPoints.length; i++)
       pairs.push(newPoints[i], newPoints[(i + 1) % newPoints.length])
-    transformAndPush(this, pairs, options)
+    _transformAndPush(this, pairs, options)
     return this
   }
 
@@ -119,7 +144,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     const pairs = [] as Vector3[]
     for (let i = 0; i < newPoints.length - 1; i++)
       pairs.push(newPoints[i], newPoints[i + 1])
-    transformAndPush(this, pairs, options)
+    _transformAndPush(this, pairs, options)
     return this
   }
 
@@ -171,7 +196,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
         point.set(0, point.x, point.y)
       }
     }
-    transformAndPush(this, points, optionsRest)
+    _transformAndPush(this, points, optionsRest)
     return this
   }
 
@@ -197,7 +222,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     const b = new Vector3(x + w2, y - h2, 0)
     const c = new Vector3(x + w2, y + h2, 0)
     const d = new Vector3(x - w2, y + h2, 0)
-    transformAndPush(this, [a, b, b, c, c, d, d, a], options)
+    _transformAndPush(this, [a, b, b, c, c, d, d, a], options)
     return this
   }
 
@@ -253,7 +278,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
         point.set(0, point.x, point.y)
       }
     }
-    transformAndPush(this, points, rest)
+    _transformAndPush(this, points, rest)
     return this
   }
 
@@ -318,7 +343,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     const b = new Vector3(x + half, y, 0)
     const c = new Vector3(x, y - half, 0)
     const d = new Vector3(x, y + half, 0)
-    transformAndPush(this, [a, b, c, d], options)
+    _transformAndPush(this, [a, b, c, d], options)
     return this
   }
 
@@ -329,7 +354,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     const b = new Vector3(x + half, y + half, 0)
     const c = new Vector3(x - half, y + half, 0)
     const d = new Vector3(x + half, y - half, 0)
-    transformAndPush(this, [a, b, c, d], options)
+    _transformAndPush(this, [a, b, c, d], options)
     return this
   }
 }
