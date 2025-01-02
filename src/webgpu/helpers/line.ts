@@ -1,4 +1,4 @@
-import { Box3, BufferAttribute, BufferGeometry, Color, ColorRepresentation, GreaterDepth, LineBasicMaterial, LineSegments, Matrix4, Vector2, Vector3 } from 'three/webgpu'
+import { Box3, BufferAttribute, BufferGeometry, Color, ColorRepresentation, GreaterDepth, LineBasicMaterial, LineBasicNodeMaterial, LineSegments, Matrix4, Vector2, Vector3 } from 'three/webgpu'
 
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 
@@ -37,9 +37,13 @@ function _ensureColorAttribute(geometry: BufferGeometry): BufferAttribute {
   }
 }
 
-export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
+export class LineHelper extends LineSegments<BufferGeometry, LineBasicNodeMaterial> {
   points: Vector3[] = []
-  colors = new Map<number, Color>();
+  colors = new Map<number, Color>()
+
+  constructor() {
+    super(new BufferGeometry(), new LineBasicNodeMaterial({ vertexColors: true }))
+  }
 
   /**
    * Returns an iterator that yields all the unique points in the line (no duplicates).
@@ -251,22 +255,27 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     size: 8,
     width: undefined as number | undefined,
     height: undefined as number | undefined,
+    subdivisions: undefined as number | undefined,
     widthSubdivisions: undefined as number | undefined,
     heightSubdivisions: undefined as number | undefined,
   }
   grid2(gridOptions?: Partial<typeof LineHelper.grid2DefaultOptions> & BasicOptions): this {
+    const options = { ...LineHelper.grid2DefaultOptions, ...gridOptions }
     const {
       plane,
       x,
       y,
       z,
       size,
+      subdivisions = size,
       width = size,
       height = size,
-      widthSubdivisions = width,
-      heightSubdivisions = height,
       ...rest
-    } = { ...LineHelper.grid2DefaultOptions, ...gridOptions }
+    } = options
+    const {
+      widthSubdivisions = options.width ?? subdivisions,
+      heightSubdivisions = options.height ?? subdivisions,
+    } = options
 
     const w2 = width / 2
     const h2 = height / 2
