@@ -27,17 +27,26 @@ export function isVector4(value: any): value is Vector4 {
 export function isEuler(value: any): value is Euler {
   return !!value.isEuler
 }
+
 /**
  * Safe type check for Matrix4 (safer than `instanceof` which may fail with different versions of Three.js).
  */
-
 export function isMatrix4(value: any): value is Matrix4 {
   return !!value.isMatrix4
 }
+
 /**
  * Safe type check for Object3D (safer than `instanceof` which may fail with different versions of Three.js).
  */
-
 export function isObject3D(value: any): value is Object3D {
   return !!value.isObject3D
 }
+
+/**
+ * Safe type check for Mesh (safer than `instanceof` which may fail with different versions of Three.js).
+ */
+export function isMesh(value: any): value is Object3D {
+  return !!value.isMesh
+}
+
+
