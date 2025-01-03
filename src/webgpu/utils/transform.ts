@@ -1,4 +1,4 @@
-import { Euler, Object3D, Vector3 } from 'three/webgpu'
+import { Euler, Matrix3, Object3D, Vector3 } from 'three/webgpu'
 
 import { AngleDeclaration, AngleUnit, EulerDeclaration, fromEulerDeclaration, fromVector3Declaration, Vector3Declaration } from '../declaration'
 
@@ -29,6 +29,14 @@ const defaultTransformProps = {
 
   // Extra:
   /**
+   * If defined, the object will be moved as if the pivot was at the origin.
+   * 
+   * NOTE: The pivot is expressed in the object's local space.
+   * 
+   * Defaults to `undefined`.
+   */
+  pivot: <Vector3Declaration | undefined>undefined,
+  /**
    * Applies only if defined.
    * 
    * Defaults to `undefined`.
@@ -54,6 +62,9 @@ export type TransformProps = Partial<typeof defaultTransformProps & {
   scale: Vector3 | Vector3Declaration
 }>
 
+const _matrix3 = new Matrix3()
+const _vector3 = new Vector3()
+
 export function applyTransform<T extends Object3D = Object3D>(target: T, props?: TransformProps): T {
   const {
     x,
@@ -74,6 +85,8 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
     scaleScalar,
     scale = new Vector3(scaleX, scaleY, scaleZ).multiplyScalar(scaleScalar),
 
+    pivot,
+
     visible,
     name,
     parent,
@@ -82,6 +95,13 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
   fromVector3Declaration(position, target.position)
   fromEulerDeclaration(rotation ?? [rotationX, rotationY, rotationZ, rotationOrder, rotationUnit], target.rotation)
   fromVector3Declaration(scale, target.scale)
+
+  if (pivot !== undefined) {
+    target.updateMatrix()
+    _matrix3.setFromMatrix4(target.matrix)
+    fromVector3Declaration(pivot, _vector3).applyMatrix3(_matrix3)
+    target.position.sub(_vector3)
+  }
 
   if (visible !== undefined) {
     target.visible = visible
