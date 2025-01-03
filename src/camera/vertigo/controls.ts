@@ -3,20 +3,56 @@ import { Camera, Euler, Quaternion, Vector2, Vector2Like, Vector3 } from 'three'
 import { handleHtmlElementEvent } from 'some-utils-dom/handle/element-event'
 import { handlePointer, PointerButton } from 'some-utils-dom/handle/pointer'
 import { Animation } from 'some-utils-ts/animation'
+import { calculateExponentialDecayLerpRatio } from 'some-utils-ts/math/misc/exponential-decay'
 import { DestroyableInstance } from 'some-utils-ts/misc/destroy'
 
-import { calculateExponentialDecayLerpRatio } from 'some-utils-ts/math/misc/exponential-decay'
 import { fromVector3Declaration, Vector3Declaration } from '../../declaration'
 import { Vertigo, VertigoProps } from '../vertigo'
 
 const _quaternion = new Quaternion()
 const _vectorX = new Vector3()
 const _vectorY = new Vector3()
+const _vectorZ = new Vector3()
 
-function _updateVectorXY(rotation: Euler) {
+function _updateVectorXYZ(rotation: Euler) {
   _quaternion.setFromEuler(rotation)
   _vectorX.set(1, 0, 0).applyQuaternion(_quaternion)
   _vectorY.set(0, 1, 0).applyQuaternion(_quaternion)
+  _vectorZ.crossVectors(_vectorX, _vectorY)
+}
+
+const controlInputs = [
+  'shift',
+  'alt',
+  'control',
+  'meta',
+] as const
+
+type ControlInput = typeof controlInputs[number]
+
+type ControlInputString =
+  | ''
+  | `${ControlInput}`
+  | `${ControlInput}+${ControlInput}`
+  | `${ControlInput}+${ControlInput}+${ControlInput}`
+  | `${ControlInput}+${ControlInput}+${ControlInput}+${ControlInput}`
+
+function matchControlInput(
+  object: { altKey: boolean, ctrlKey: boolean, shiftKey: boolean, metaKey: boolean },
+  keys: ControlInput[],
+) {
+  return keys.every(key => (object as any)[`${key}Key`])
+}
+
+function parseInputs(inputs: string) {
+  const parts = inputs.split('+')
+  return parts.filter(part => {
+    const ok = controlInputs.includes(part as ControlInput)
+    if (!ok) {
+      console.warn(`Invalid input: ${part}`)
+    }
+    return ok
+  }) as ControlInput[]
 }
 
 export class VertigoControls extends DestroyableInstance {
@@ -44,6 +80,10 @@ export class VertigoControls extends DestroyableInstance {
    * The element to attach the pointer events to. Must be set through `initialize()`.
    */
   element!: HTMLElement
+
+  inputConfig = {
+    wheel: 'zoom' as 'zoom' | 'dolly',
+  }
 
   actions = {
     togglePerspective: () => {
@@ -99,6 +139,16 @@ export class VertigoControls extends DestroyableInstance {
     },
   }
 
+  panInputs: ControlInput[] = []
+  parsePanInputs(inputs: string) {
+    this.panInputs = parseInputs(inputs)
+  }
+
+  orbitInputs: ControlInput[] = []
+  parseOrbitInputs(inputs: string) {
+    this.orbitInputs = parseInputs(inputs)
+  }
+
   constructor(props: VertigoProps = {}) {
     super()
     this.vertigo.set(props)
@@ -106,16 +156,29 @@ export class VertigoControls extends DestroyableInstance {
   }
 
   pan(x: number, y: number) {
-    _updateVectorXY(this.vertigo.rotation)
+    _updateVectorXYZ(this.vertigo.rotation)
     const z = 1 / this.vertigo.zoom
     this.vertigo.focus
       .addScaledVector(_vectorX, x * z)
       .addScaledVector(_vectorY, y * z)
   }
 
-  rotate(pitch: number, yaw: number) {
+  dolly(delta: number) {
+    _updateVectorXYZ(this.vertigo.rotation)
+    const zoomFactor = 1 / this.vertigo.zoom
+    this.vertigo.focus.addScaledVector(_vectorZ, delta * zoomFactor)
+  }
+
+  orbit(pitch: number, yaw: number) {
     this.vertigo.rotation.x += pitch
     this.vertigo.rotation.y += yaw
+  }
+
+  /**
+   * @deprecated Use `orbit()` instead.
+   */
+  rotate(...args: Parameters<VertigoControls['orbit']>) {
+    this.orbit(...args)
   }
 
   zoomAt(newZoom: number, vertigoRelativePointer: Vector2Like) {
@@ -126,7 +189,7 @@ export class VertigoControls extends DestroyableInstance {
     const diffWidth = newWidth - currentWidth
     const diffHeight = newHeight - currentHeight
 
-    _updateVectorXY(this.vertigo.rotation)
+    _updateVectorXYZ(this.vertigo.rotation)
     const { x, y } = vertigoRelativePointer
     this.vertigo.focus
       .addScaledVector(_vectorX, diffWidth * -x)
@@ -156,28 +219,41 @@ export class VertigoControls extends DestroyableInstance {
         const rect = element.getBoundingClientRect()
         const x = (info.localPosition.x - rect.x) / rect.width * 2 - 1
         const y = -((info.localPosition.y - rect.y) / rect.height * 2 - 1)
-        pointer.set(x / 2, y / 2).multiply(this.vertigo.computedNdcScalar)
+        pointer.set(x / 2, y / 2).multiply(this.dampedVertigo.computedNdcScalar)
       },
       dragButton: ~0,
       onDrag: info => {
         switch (info.button) {
           case PointerButton.Left: {
-            this.rotate(info.delta.y * -.01, info.delta.x * -.01)
+            if (matchControlInput(info, this.orbitInputs)) {
+              this.orbit(info.delta.y * -.01, info.delta.x * -.01)
+            }
             break
           }
           case PointerButton.Right: {
-            this.pan(info.delta.x * -.025, info.delta.y * .025)
+            if (matchControlInput(info, this.panInputs)) {
+              this.pan(info.delta.x * -.025, info.delta.y * .025)
+            }
             break
           }
         }
       },
       wheelPreventDefault: true,
       onWheel: info => {
-        const newZoom = this.vertigo.zoom * (1 - info.delta.y * .001)
-        if (info.event.altKey) {
-          this.zoomAt(newZoom, pointer)
-        } else {
-          this.zoomAt(newZoom, { x: 0, y: 0 })
+        switch (this.inputConfig.wheel) {
+          case 'zoom': {
+            const newZoom = this.vertigo.zoom * (1 - info.delta.y * .001)
+            if (info.event.altKey) {
+              this.zoomAt(newZoom, pointer)
+            } else {
+              this.zoomAt(newZoom, { x: 0, y: 0 })
+            }
+            break
+          }
+          case 'dolly': {
+            this.dolly(info.delta.y * .01)
+            break
+          }
         }
       },
     })
@@ -214,4 +290,9 @@ export class VertigoControls extends DestroyableInstance {
       .lerp(this.vertigo, t)
       .apply(camera, aspect)
   }
+}
+
+export type {
+  ControlInput as VertigoControlInput,
+  ControlInputString as VertigoControlInputString
 }

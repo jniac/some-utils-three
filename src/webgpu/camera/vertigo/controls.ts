@@ -12,11 +12,13 @@ import { fromVector3Declaration, Vector3Declaration } from '../../declaration'
 const _quaternion = new Quaternion()
 const _vectorX = new Vector3()
 const _vectorY = new Vector3()
+const _vectorZ = new Vector3()
 
-function _updateVectorXY(rotation: Euler) {
+function _updateVectorXYZ(rotation: Euler) {
   _quaternion.setFromEuler(rotation)
   _vectorX.set(1, 0, 0).applyQuaternion(_quaternion)
   _vectorY.set(0, 1, 0).applyQuaternion(_quaternion)
+  _vectorZ.crossVectors(_vectorX, _vectorY)
 }
 
 const controlInputs = [
@@ -78,6 +80,10 @@ export class VertigoControls extends DestroyableInstance {
    * The element to attach the pointer events to. Must be set through `initialize()`.
    */
   element!: HTMLElement
+
+  inputConfig = {
+    wheel: 'zoom' as 'zoom' | 'dolly',
+  }
 
   actions = {
     togglePerspective: () => {
@@ -150,11 +156,17 @@ export class VertigoControls extends DestroyableInstance {
   }
 
   pan(x: number, y: number) {
-    _updateVectorXY(this.vertigo.rotation)
+    _updateVectorXYZ(this.vertigo.rotation)
     const z = 1 / this.vertigo.zoom
     this.vertigo.focus
       .addScaledVector(_vectorX, x * z)
       .addScaledVector(_vectorY, y * z)
+  }
+
+  dolly(delta: number) {
+    _updateVectorXYZ(this.vertigo.rotation)
+    const zoomFactor = 1 / this.vertigo.zoom
+    this.vertigo.focus.addScaledVector(_vectorZ, delta * zoomFactor)
   }
 
   orbit(pitch: number, yaw: number) {
@@ -177,7 +189,7 @@ export class VertigoControls extends DestroyableInstance {
     const diffWidth = newWidth - currentWidth
     const diffHeight = newHeight - currentHeight
 
-    _updateVectorXY(this.vertigo.rotation)
+    _updateVectorXYZ(this.vertigo.rotation)
     const { x, y } = vertigoRelativePointer
     this.vertigo.focus
       .addScaledVector(_vectorX, diffWidth * -x)
@@ -207,7 +219,7 @@ export class VertigoControls extends DestroyableInstance {
         const rect = element.getBoundingClientRect()
         const x = (info.localPosition.x - rect.x) / rect.width * 2 - 1
         const y = -((info.localPosition.y - rect.y) / rect.height * 2 - 1)
-        pointer.set(x / 2, y / 2).multiply(this.vertigo.computedNdcScalar)
+        pointer.set(x / 2, y / 2).multiply(this.dampedVertigo.computedNdcScalar)
       },
       dragButton: ~0,
       onDrag: info => {
@@ -228,11 +240,20 @@ export class VertigoControls extends DestroyableInstance {
       },
       wheelPreventDefault: true,
       onWheel: info => {
-        const newZoom = this.vertigo.zoom * (1 - info.delta.y * .001)
-        if (info.event.altKey) {
-          this.zoomAt(newZoom, pointer)
-        } else {
-          this.zoomAt(newZoom, { x: 0, y: 0 })
+        switch (this.inputConfig.wheel) {
+          case 'zoom': {
+            const newZoom = this.vertigo.zoom * (1 - info.delta.y * .001)
+            if (info.event.altKey) {
+              this.zoomAt(newZoom, pointer)
+            } else {
+              this.zoomAt(newZoom, { x: 0, y: 0 })
+            }
+            break
+          }
+          case 'dolly': {
+            this.dolly(info.delta.y * .01)
+            break
+          }
         }
       },
     })
@@ -275,4 +296,3 @@ export type {
   ControlInput as VertigoControlInput,
   ControlInputString as VertigoControlInputString
 }
-
