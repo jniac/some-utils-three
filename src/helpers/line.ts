@@ -26,17 +26,6 @@ function _transformAndPush(lineHelper: LineHelper, newPoints: Vector3[], options
   lineHelper.points.push(...newPoints)
 }
 
-function _ensureColorAttribute(geometry: BufferGeometry): BufferAttribute {
-  const colors = geometry.attributes.color
-  if (colors) {
-    return colors as BufferAttribute
-  } else {
-    const newColors = new BufferAttribute(new Float32Array(geometry.attributes.position.count * 3), 3)
-    geometry.setAttribute('color', newColors)
-    return newColors
-  }
-}
-
 export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
   points: Vector3[] = []
   colors = new Map<number, Color>()
@@ -135,6 +124,10 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
   }
 
   draw(): this {
+    // Geometry has to be renewed every time:
+    this.geometry.dispose()
+    this.geometry = new BufferGeometry()
+
     // Geometry, the easy part:
     this.geometry.setFromPoints(this.points)
     this.geometry.computeBoundingSphere()
@@ -143,10 +136,12 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     this.material.vertexColors = this.colors.size > 0
     this.material.needsUpdate = true
     if (this.colors.size > 0) {
+      const colorAttribute = new BufferAttribute(new Float32Array(this.geometry.attributes.position.count * 3), 3)
+      this.geometry.setAttribute('color', colorAttribute)
+
       const currentColor = new Color(this.colors.get(0) ?? 'white')
-      const max = this.points.length
-      const colorAttribute = _ensureColorAttribute(this.geometry)
-      for (let i = 0; i < max; i++) {
+      const count = this.points.length
+      for (let i = 0; i < count; i++) {
         const color = this.colors.get(i)
         if (color) {
           currentColor.copy(color)
@@ -259,6 +254,14 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     const d = new Vector3(x - w2, y + h2, 0)
     _transformAndPush(this, [a, b, b, c, c, d, d, a], options)
     return this
+  }
+
+  placeholder(rect?: RectangleDeclaration, options?: BasicOptions): this {
+    const r = Rectangle.from(rect)
+    return this
+      .rectangle(r, options)
+      .line(r.fromRelativePoint(0, 0), r.fromRelativePoint(1, 1), options)
+      .line(r.fromRelativePoint(1, 0), r.fromRelativePoint(0, 1), options)
   }
 
   static grid2DefaultOptions = {
