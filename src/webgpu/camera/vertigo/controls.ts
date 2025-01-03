@@ -47,9 +47,12 @@ function matchControlInput(
 function parseInputs(inputs: string) {
   const parts = inputs.split('+')
   return parts.filter(part => {
+    if (part === '') {
+      return false
+    }
     const ok = controlInputs.includes(part as ControlInput)
     if (!ok) {
-      console.warn(`Invalid input: ${part}`)
+      console.warn(`Invalid input: "${part}"`)
     }
     return ok
   }) as ControlInput[]
