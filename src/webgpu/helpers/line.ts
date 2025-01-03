@@ -41,6 +41,10 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicNodeMateri
   points: Vector3[] = []
   colors = new Map<number, Color>()
 
+  state = {
+    forceTransparent: false,
+  }
+
   constructor() {
     super(new BufferGeometry(), new LineBasicNodeMaterial({ vertexColors: true }))
   }
@@ -64,8 +68,9 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicNodeMateri
    */
   opacity(value: number): this {
     this.material.opacity = value
-    this.material.transparent = value < 1
+    this.material.transparent = this.state.forceTransparent || value < 1
     this.material.depthWrite = value >= 1
+    this.material.needsUpdate = true
     return this
   }
 
@@ -74,6 +79,15 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicNodeMateri
    */
   color(value: ColorRepresentation): this {
     this.colors.set(this.points.length, new Color(value))
+    return this
+  }
+
+  /**
+   * Force the material to be transparent, even if the opacity is set to 1.
+   */
+  forceTransparent() {
+    this.state.forceTransparent = true
+    this.material.transparent = true
     return this
   }
 

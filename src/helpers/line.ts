@@ -39,7 +39,15 @@ function _ensureColorAttribute(geometry: BufferGeometry): BufferAttribute {
 
 export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
   points: Vector3[] = []
-  colors = new Map<number, Color>();
+  colors = new Map<number, Color>()
+
+  state = {
+    forceTransparent: false,
+  }
+
+  constructor() {
+    super(new BufferGeometry(), new LineBasicMaterial({ vertexColors: true }))
+  }
 
   /**
    * Returns an iterator that yields all the unique points in the line (no duplicates).
@@ -60,8 +68,9 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
    */
   opacity(value: number): this {
     this.material.opacity = value
-    this.material.transparent = value < 1
+    this.material.transparent = this.state.forceTransparent || value < 1
     this.material.depthWrite = value >= 1
+    this.material.needsUpdate = true
     return this
   }
 
@@ -70,6 +79,15 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
    */
   color(value: ColorRepresentation): this {
     this.colors.set(this.points.length, new Color(value))
+    return this
+  }
+
+  /**
+   * Force the material to be transparent, even if the opacity is set to 1.
+   */
+  forceTransparent() {
+    this.state.forceTransparent = true
+    this.material.transparent = true
     return this
   }
 
@@ -251,22 +269,27 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     size: 8,
     width: undefined as number | undefined,
     height: undefined as number | undefined,
+    subdivisions: undefined as number | undefined,
     widthSubdivisions: undefined as number | undefined,
     heightSubdivisions: undefined as number | undefined,
   }
   grid2(gridOptions?: Partial<typeof LineHelper.grid2DefaultOptions> & BasicOptions): this {
+    const options = { ...LineHelper.grid2DefaultOptions, ...gridOptions }
     const {
       plane,
       x,
       y,
       z,
       size,
+      subdivisions = size,
       width = size,
       height = size,
-      widthSubdivisions = width,
-      heightSubdivisions = height,
       ...rest
-    } = { ...LineHelper.grid2DefaultOptions, ...gridOptions }
+    } = options
+    const {
+      widthSubdivisions = options.width ?? subdivisions,
+      heightSubdivisions = options.height ?? subdivisions,
+    } = options
 
     const w2 = width / 2
     const h2 = height / 2
@@ -353,7 +376,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     return this
   }
 
-  plus(center: Vector2Declaration, size: number, options?: BasicOptions): this {
+  plus(center: Vector2Declaration = 0, size: number = 1, options?: BasicOptions): this {
     const half = size / 2
     const { x, y } = fromVector2Declaration(center, _vector2)
     const a = new Vector3(x - half, y, 0)
@@ -364,7 +387,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     return this
   }
 
-  cross(center: Vector2Declaration, size: number, options?: BasicOptions): this {
+  cross(center: Vector2Declaration = 0, size: number = 1, options?: BasicOptions): this {
     const half = size / 2
     const { x, y } = fromVector2Declaration(center, _vector2)
     const a = new Vector3(x - half, y - half, 0)
