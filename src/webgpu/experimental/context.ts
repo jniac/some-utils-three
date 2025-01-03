@@ -2,7 +2,7 @@ import { Camera, OrthographicCamera, pass, PerspectiveCamera, PostProcessing, Sc
 
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
 import { Ticker } from 'some-utils-ts/ticker'
-import { Pointer, PointerButton } from './pointer'
+import { Pointer } from './pointer'
 
 // @ts-ignore
 
@@ -128,11 +128,11 @@ export class ThreeWebGPUContext {
       const rect = this.renderer.domElement.getBoundingClientRect()
       this.pointer.update(this.camera, { x: event.clientX, y: event.clientY }, rect)
     }
-    const onPointerDown = (_: PointerEvent) => {
-      this.pointer.state.button |= PointerButton.LeftDown
+    const onPointerDown = (event: PointerEvent) => {
+      this.pointer.state.button |= (1 << event.button)
     }
-    const onPointerUp = (_: PointerEvent) => {
-      this.pointer.state.button &= ~PointerButton.LeftDown
+    const onPointerUp = (event: PointerEvent) => {
+      this.pointer.state.button &= ~(1 << event.button)
     }
     domContainer.addEventListener('pointermove', onPointerMove)
     domContainer.addEventListener('pointerdown', onPointerDown)
