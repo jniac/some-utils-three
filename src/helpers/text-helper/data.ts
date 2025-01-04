@@ -1,7 +1,7 @@
 import { ColorRepresentation, Vector2 } from 'three'
 
-import { makeColor } from 'some-utils-three/utils/make'
 import { ceilPowerOfTwo, toff } from 'some-utils-ts/math/basic'
+import { makeColor } from '../../utils/make'
 
 /**
  * Byte size of the info:
