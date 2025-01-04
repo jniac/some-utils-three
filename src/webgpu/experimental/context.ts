@@ -121,6 +121,10 @@ export class ThreeWebGPUContext {
       this.pointer.update(this.camera, { x: event.clientX, y: event.clientY }, rect)
     }
     const onPointerDown = (event: PointerEvent) => {
+      // NOTE: Update the pointer position on "down" too (because of touch events)
+      const rect = this.renderer.domElement.getBoundingClientRect()
+      this.pointer.update(this.camera, { x: event.clientX, y: event.clientY }, rect)
+
       this.pointer.state.button |= (1 << event.button)
     }
     const onPointerUp = (event: PointerEvent) => {
