@@ -1,8 +1,8 @@
 import { BufferGeometry, Color, DataTexture, DoubleSide, InstancedMesh, MeshBasicMaterial, PlaneGeometry, RGBAFormat, UnsignedByteType, Vector2 } from 'three'
 
-import { TransformDeclaration } from 'some-utils-three/declaration'
-import { ShaderForge } from 'some-utils-three/shader-forge'
-import { makeMatrix4 } from 'some-utils-three/utils/make'
+import { TransformDeclaration } from '../../declaration'
+import { ShaderForge } from '../../shader-forge'
+import { makeMatrix4 } from '../../utils/make'
 
 import { TextHelperAtlas } from './atlas'
 import { SetColorOptions, SetTextOption, TextHelperData } from './data'
