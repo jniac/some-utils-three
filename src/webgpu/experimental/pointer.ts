@@ -6,12 +6,48 @@ export enum PointerButton {
   LeftDrag = 1 << 1,
 }
 
+class PointerState {
+  /**
+   * The current button state of the pointer.
+   */
+  button = PointerButton.None
+  /**
+   * The position of the pointer in client space (pixels)
+   * - min: (0, 0) top-left
+   * - max: (width, height) bottom-right
+   */
+  clientPosition = new Vector2()
+  /**
+   * The position of the pointer in screen space (NDC)
+   * - min: (-1, -1) bottom-left
+   * - max: (1, 1) top-right
+   */
+  screenPosition = new Vector2()
+
+  copy(state: PointerState): this {
+    this.button = state.button
+    this.clientPosition.copy(state.clientPosition)
+    this.screenPosition.copy(state.screenPosition)
+    return this
+  }
+
+  /**
+   * Set the difference between two pointer states.
+   */
+  diff(a: PointerState, b: PointerState): this {
+    this.button = a.button ^ b.button
+    this.clientPosition.subVectors(a.clientPosition, b.clientPosition)
+    this.screenPosition.subVectors(a.screenPosition, b.screenPosition)
+    return this
+  }
+}
+
 export class Pointer {
   get button() { return this.state.button }
 
-  state = {
-    button: PointerButton.None,
-  }
+  state = new PointerState()
+  previousState = new PointerState()
+  diffState = new PointerState()
 
   event = new class PointerEvent {
     consumed = false
@@ -25,22 +61,33 @@ export class Pointer {
 
   camera: Camera | null = null
 
+  buttonEnter(button: PointerButton) {
+    return (this.state.button & button) === button && (this.previousState.button & button) === 0
+  }
+
+  buttonLeave(button: PointerButton) {
+    return (this.state.button & button) === 0 && (this.previousState.button & button) === button
+  }
+
   /**
    * The position of the pointer in client space (pixels)
    * - min: (0, 0) top-left
    * - max: (width, height) bottom-right
    */
-  clientPosition = new Vector2()
+  get clientPosition() { return this.state.clientPosition }
+
   /**
    * The position of the pointer in screen space (NDC)
    * - min: (-1, -1) bottom-left
    * - max: (1, 1) top-right
    */
-  screenPosition = new Vector2()
+  get screenPosition() { return this.state.screenPosition }
+
   /**
    * The raycaster used to cast rays from the camera. Automatically updated.
    */
   raycaster = new Raycaster()
+
   /**
    * Returns the ray from the camera to the pointer.
    */
