@@ -110,15 +110,7 @@ export class ThreeWebGPUContext {
     })
 
     this.internal.cancelTick = this.ticker.onTick(() => {
-      const { scene, postProcessing } = this
-      scene.traverse(child => {
-        if ('onTick' in child) {
-          // call onTick on every child that has it
-          (child as any).onTick(this.ticker, this)
-        }
-      })
-      // renderer.renderAsync(scene, camera)
-      postProcessing.renderAsync()
+      this.renderFrame()
     }).destroy
 
     this.internal.cancelRequestActivation = handleAnyUserInteraction(document.body, this.ticker.requestActivation).destroy
@@ -144,6 +136,25 @@ export class ThreeWebGPUContext {
     }
 
     return this
+  }
+
+  renderFrame() {
+    const { scene, postProcessing, pointer } = this
+
+    // calculate the difference in pointer state
+    pointer.diffState.diff(pointer.state, pointer.previousState)
+
+    scene.traverse(child => {
+      if ('onTick' in child) {
+        // call onTick on every child that has it
+        (child as any).onTick(this.ticker, this)
+      }
+    })
+    // renderer.renderAsync(scene, camera)
+    postProcessing.renderAsync()
+
+    // save the previous state
+    pointer.previousState.copy(pointer.state)
   }
 
   destroyed = false
