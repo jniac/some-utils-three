@@ -58,7 +58,7 @@ export function isAncestorOf(parent: Object3D, child: Object3D): boolean {
 
 export function* allDescendantsOf(parent: Object3D, {
   includeSelf = false,
-}): Generator<Object3D> {
+} = {}): Generator<Object3D> {
   if (includeSelf) {
     yield parent
   }
@@ -69,7 +69,7 @@ export function* allDescendantsOf(parent: Object3D, {
 
 export function* allAncestorsOf(child: Object3D, {
   includeSelf = false,
-}): Generator<Object3D> {
+} = {}): Generator<Object3D> {
   let current = child
   if (includeSelf) {
     yield current
