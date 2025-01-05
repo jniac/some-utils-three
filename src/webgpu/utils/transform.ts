@@ -54,6 +54,12 @@ const defaultTransformProps = {
    * Defaults to `undefined`.
    */
   parent: <Object3D | undefined>undefined,
+  /**
+   * If defined, all the properties will be copied to the object's `userData`.
+   * 
+   * Defaults to `undefined`.
+   */
+  userData: <Record<string, any> | undefined>undefined,
 }
 
 export type TransformProps = Partial<typeof defaultTransformProps & {
@@ -90,6 +96,7 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
     visible,
     name,
     parent,
+    userData,
   } = { ...defaultTransformProps, ...props }
 
   fromVector3Declaration(position, target.position)
@@ -119,6 +126,10 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
         parent.add(target)
       }
     }
+  }
+
+  if (userData !== undefined) {
+    Object.assign(target.userData, userData)
   }
 
   return target
