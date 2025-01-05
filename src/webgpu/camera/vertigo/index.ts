@@ -243,7 +243,8 @@ export class Vertigo {
     // Critical part of the algorithm (how to fit the focus area into the screen):
     const lerpT = aspectAspect > 1 ? this.frame : 1 - this.frame
     const heightScalar = 1 + lerpT * (aspectAspect - 1) // lerp(1, aspectAspect, lerpT)
-    const height = this.size.y * heightScalar / this.zoom
+    const desiredHeight = this.size.y / this.zoom // The desired height of the focus area (without taking the aspect into account)
+    const realHeight = desiredHeight * heightScalar // The real height of the focus area (taking the aspect (and the frame choice) into account)
 
     const fovEpsilon = this.fovEpsilon
     let fov = this.perspective * this.fov
@@ -251,7 +252,7 @@ export class Vertigo {
       fov = fovEpsilon
     }
 
-    const distance = height / 2 / Math.tan(fov / 2)
+    const distance = desiredHeight / 2 / Math.tan(fov / 2) // Important! Distance should be computed from the desired height, not the real height
     const isPerspective = fov >= fovEpsilon
 
     const backward = isPerspective ? distance : this.before + this.nearMin
@@ -277,7 +278,7 @@ export class Vertigo {
       const near = Math.max(this.nearMin / this.zoom, distance - this.before)
       const far = distance + this.after
 
-      const mHeight = height * near / distance / 2
+      const mHeight = realHeight * near / distance / 2
       const mWidth = mHeight * aspect
 
       // @ts-ignore
@@ -294,7 +295,7 @@ export class Vertigo {
       const near = -this.before
       const far = this.after + this.before
 
-      const mHeight = height / 2
+      const mHeight = realHeight / 2
       const mWidth = mHeight * aspect
 
       // @ts-ignore
@@ -308,7 +309,7 @@ export class Vertigo {
       .invert()
 
     this.computedNdcScalar.set(heightScalar * aspect, heightScalar)
-    this.computedSize.set(height * aspect, height)
+    this.computedSize.set(realHeight * aspect, realHeight)
 
     return this
   }
