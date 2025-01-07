@@ -78,7 +78,13 @@ export class ThreeWebGPUContext {
   }
 
   initialized = false
-  initialize(domContainer: HTMLElement): this {
+  /**
+   * Initialize the ThreeWebglContext.
+   * @param domContainer The container element for the renderer
+   * @param pointerScope The element to listen for pointer events on, defaults to the domContainer but sometimes you might want to listen for pointer events on a different element (eg: document.body).
+   * @returns 
+   */
+  initialize(domContainer: HTMLElement, pointerScope: HTMLElement = domContainer): this {
     if (this.initialized) {
       console.warn('ThreeWebglContext is already initialized.')
       return this
@@ -130,13 +136,13 @@ export class ThreeWebGPUContext {
     const onPointerUp = (event: PointerEvent) => {
       this.pointer.state.button &= ~(1 << event.button)
     }
-    domContainer.addEventListener('pointermove', onPointerMove)
-    domContainer.addEventListener('pointerdown', onPointerDown)
-    domContainer.addEventListener('pointerup', onPointerUp)
+    pointerScope.addEventListener('pointermove', onPointerMove)
+    pointerScope.addEventListener('pointerdown', onPointerDown)
+    pointerScope.addEventListener('pointerup', onPointerUp)
     this.internal.cancelPointer = () => {
-      domContainer.removeEventListener('pointermove', onPointerMove)
-      domContainer.removeEventListener('pointerdown', onPointerDown)
-      domContainer.removeEventListener('pointerup', onPointerUp)
+      pointerScope.removeEventListener('pointermove', onPointerMove)
+      pointerScope.removeEventListener('pointerdown', onPointerDown)
+      pointerScope.removeEventListener('pointerup', onPointerUp)
     }
 
     return this
