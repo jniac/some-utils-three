@@ -65,7 +65,7 @@ export class Pointer {
     return (this.state.button & button) === button && (this.previousState.button & button) === 0
   }
 
-  buttonLeave(button: PointerButton) {
+  buttonExit(button: PointerButton) {
     return (this.state.button & button) === 0 && (this.previousState.button & button) === button
   }
 
