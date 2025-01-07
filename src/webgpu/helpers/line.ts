@@ -269,12 +269,12 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicNodeMateri
     x: 0,
     y: 0,
     z: 0,
-    size: 8,
-    width: undefined as number | undefined,
-    height: undefined as number | undefined,
-    subdivisions: undefined as number | undefined,
-    widthSubdivisions: undefined as number | undefined,
-    heightSubdivisions: undefined as number | undefined,
+    size: <Vector2Declaration>8,
+    width: <number | undefined>undefined,
+    height: <number | undefined>undefined,
+    subdivisions: <Vector2Declaration | undefined>undefined,
+    widthSubdivisions: <number | undefined>undefined,
+    heightSubdivisions: <number | undefined>undefined,
   }
   grid2(gridOptions?: Partial<typeof LineHelper.grid2DefaultOptions> & BasicOptions): this {
     const options = { ...LineHelper.grid2DefaultOptions, ...gridOptions }
@@ -284,27 +284,38 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicNodeMateri
       y,
       z,
       size,
-      subdivisions = size,
-      width = size,
-      height = size,
+      subdivisions,
+      width,
+      height,
+      widthSubdivisions,
+      heightSubdivisions,
       ...rest
     } = options
-    const {
-      widthSubdivisions = options.width ?? subdivisions,
-      heightSubdivisions = options.height ?? subdivisions,
-    } = options
+    let { x: sz_x, y: sz_y } = fromVector2Declaration(size, _vector2)
+    let { x: sd_x, y: sd_y } = fromVector2Declaration(subdivisions ?? size)
 
-    const w2 = width / 2
-    const h2 = height / 2
-    const wSubs = widthSubdivisions ?? Math.round(width)
-    const hSubs = heightSubdivisions ?? Math.round(height)
+    if (width) {
+      sz_x = width
+    }
+    if (height) {
+      sz_y = height
+    }
+    if (widthSubdivisions) {
+      sd_x = widthSubdivisions
+    }
+    if (heightSubdivisions) {
+      sd_y = heightSubdivisions
+    }
+
+    const w2 = sz_x / 2
+    const h2 = sz_y / 2
     const points = [] as Vector3[]
-    for (let i = 0; i <= wSubs; i++) {
-      const x = i / wSubs * width - w2
+    for (let i = 0; i <= sd_x; i++) {
+      const x = i / sd_x * sz_x - w2
       points.push(new Vector3(x, -h2, 0), new Vector3(x, h2, 0))
     }
-    for (let i = 0; i <= hSubs; i++) {
-      const y = i / hSubs * height - h2
+    for (let i = 0; i <= sd_y; i++) {
+      const y = i / sd_y * sz_y - h2
       points.push(new Vector3(-w2, y, 0), new Vector3(w2, y, 0))
     }
     const center = new Vector3(x, y, z)
