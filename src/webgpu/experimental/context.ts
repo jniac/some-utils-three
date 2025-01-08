@@ -121,29 +121,7 @@ export class ThreeWebGPUContext {
 
     this.internal.cancelRequestActivation = handleAnyUserInteraction(document.body, this.ticker.requestActivation).destroy
 
-    // Pointer
-    const onPointerMove = (event: PointerEvent) => {
-      const rect = this.renderer.domElement.getBoundingClientRect()
-      this.pointer.update(this.camera, { x: event.clientX, y: event.clientY }, rect)
-    }
-    const onPointerDown = (event: PointerEvent) => {
-      // NOTE: Update the pointer position on "down" too (because of touch events)
-      const rect = this.renderer.domElement.getBoundingClientRect()
-      this.pointer.update(this.camera, { x: event.clientX, y: event.clientY }, rect)
-
-      this.pointer.state.button |= (1 << event.button)
-    }
-    const onPointerUp = (event: PointerEvent) => {
-      this.pointer.state.button &= ~(1 << event.button)
-    }
-    pointerScope.addEventListener('pointermove', onPointerMove)
-    pointerScope.addEventListener('pointerdown', onPointerDown)
-    pointerScope.addEventListener('pointerup', onPointerUp)
-    this.internal.cancelPointer = () => {
-      pointerScope.removeEventListener('pointermove', onPointerMove)
-      pointerScope.removeEventListener('pointerdown', onPointerDown)
-      pointerScope.removeEventListener('pointerup', onPointerUp)
-    }
+    this.internal.cancelPointer = this.pointer.initialize(this.renderer.domElement, pointerScope, this.camera, this.ticker)
 
     return this
   }
@@ -152,7 +130,7 @@ export class ThreeWebGPUContext {
     const { scene, postProcessing, pointer } = this
 
     // calculate the difference in pointer state
-    pointer.diffState.diff(pointer.state, pointer.previousState)
+    pointer.diffState.diff(pointer.state, pointer.stateOld)
 
     scene.traverse(child => {
       if ('onTick' in child) {
@@ -164,7 +142,7 @@ export class ThreeWebGPUContext {
     postProcessing.renderAsync()
 
     // save the previous state
-    pointer.previousState.copy(pointer.state)
+    pointer.stateOld.copy(pointer.state)
   }
 
   destroyed = false
