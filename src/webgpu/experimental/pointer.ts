@@ -129,15 +129,19 @@ export class Pointer {
   }
 
   initialize(domElement: HTMLElement, scope: HTMLElement, camera: Camera, ticker: Ticker) {
-    const onPointerMove = (event: PointerEvent) => {
+    const updatePointerPosition = (event: PointerEvent) => {
       const rect = domElement.getBoundingClientRect()
-      this.update(camera, { x: event.clientX, y: event.clientY }, rect)
+      const { clientX: x, clientY: y } = event
+      this.update(camera, { x, y }, rect)
+    }
+
+    const onPointerMove = (event: PointerEvent) => {
+      updatePointerPosition(event)
     }
 
     const onPointerDown = (event: PointerEvent) => {
       // NOTE: Update the pointer position on "down" too (because of touch events)
-      const rect = domElement.getBoundingClientRect()
-      this.update(camera, { x: event.clientX, y: event.clientY }, rect)
+      updatePointerPosition(event)
 
       this.state.buttons |= (1 << event.button)
       this.downTimes.set(event.button, ticker.time)
