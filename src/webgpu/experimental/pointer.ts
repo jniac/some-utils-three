@@ -1,5 +1,8 @@
+import { Camera, Intersection, Object3D, Raycaster, Vector2 } from 'three/webgpu'
+
 import { Ticker } from 'some-utils-ts/ticker'
-import { Camera, Raycaster, Vector2 } from 'three/webgpu'
+
+import { isMesh } from '../is'
 
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
@@ -81,16 +84,26 @@ export class Pointer {
     return (this.stateOld.buttons & (1 << button)) !== 0
   }
 
+  /**
+   * Return true if the pointer button was pressed in the current frame but not in the previous frame (enter).
+   */
   buttonEnter(button = PointerButton.Left) {
     return this.button(button) && !this.buttonOld(button)
   }
 
+  /**
+   * Return true if the pointer button was pressed in the previous frame but not in the current frame (exit).
+   */
   buttonExit(button = PointerButton.Left) {
     return !this.button(button) && this.buttonOld(button)
   }
 
   buttonTap(button = PointerButton.Left, maxDuration = .25) {
-    return this.buttonExit(button) && this.upTimes.get(button)! - this.downTimes.get(button)! < maxDuration
+    if (this.buttonExit(button) === false) {
+      return false
+    }
+    const delta = this.upTimes.get(button)! - this.downTimes.get(button)!
+    return delta < maxDuration
   }
 
   /**
@@ -117,7 +130,7 @@ export class Pointer {
    */
   get ray() { return this.raycaster.ray }
 
-  update(camera: Camera, clientPosition: { x: number, y: number }, canvasRect: { x: number, y: number, width: number, height: number }) {
+  updatePosition(camera: Camera, clientPosition: { x: number, y: number }, canvasRect: { x: number, y: number, width: number, height: number }) {
     const { x: clientX, y: clientY } = clientPosition
     const screenX = (clientX - canvasRect.x) / canvasRect.width * 2 - 1
     const screenY = (clientY - canvasRect.y) / canvasRect.height * -2 + 1
@@ -128,11 +141,47 @@ export class Pointer {
     this.raycaster.setFromCamera(this.screenPosition, camera)
   }
 
+  /**
+   * Traverse the scene and cast rays from the camera to the pointer, if the object 
+   * has geometry and matches the conditions (visibility, metadata, etc), any
+   * associated "pointer" callback (userData) will be called.
+   */
+  raycastScene(scene: Object3D) {
+    const intersections: Intersection[] = []
+
+    scene.traverse(child => {
+      if (child.userData.ignorePointer === true) {
+        return
+      }
+
+      if ((child.visible === false || child.userData.helper === true) && child.userData.pointerArea !== true) {
+        return
+      }
+
+      if (isMesh(child)) {
+        this.raycaster.intersectObject(child, false, intersections)
+      }
+    })
+
+    intersections.sort((a, b) => a.distance - b.distance)
+
+    const [first] = intersections
+    if (first) {
+      type OnPointerTap = () => void
+      const onPointerTap: OnPointerTap | undefined =
+        first.object.userData.onPointerTap
+        ?? (first.object.userData.pointerArea && first.object.parent?.userData.onPointerTap)
+      if (onPointerTap && this.buttonTap()) {
+        onPointerTap()
+      }
+    }
+  }
+
   initialize(domElement: HTMLElement, scope: HTMLElement, camera: Camera, ticker: Ticker) {
     const updatePointerPosition = (event: PointerEvent) => {
       const rect = domElement.getBoundingClientRect()
       const { clientX: x, clientY: y } = event
-      this.update(camera, { x, y }, rect)
+      this.updatePosition(camera, { x, y }, rect)
     }
 
     const onPointerMove = (event: PointerEvent) => {

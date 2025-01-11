@@ -1,4 +1,4 @@
-import { Euler, Matrix4, Object3D, Vector2, Vector3, Vector4 } from 'three/webgpu'
+import { Euler, Matrix4, Mesh, Object3D, Sprite, Vector2, Vector3, Vector4 } from 'three/webgpu'
 
 /**
  * Safe type check for Vector3 (safer than `instanceof` which may fail with different versions of Three.js).
@@ -45,8 +45,15 @@ export function isObject3D(value: any): value is Object3D {
 /**
  * Safe type check for Mesh (safer than `instanceof` which may fail with different versions of Three.js).
  */
-export function isMesh(value: any): value is Object3D {
+export function isMesh(value: any): value is Mesh {
   return !!value.isMesh
+}
+
+/**
+ * Safe type check for Mesh (safer than `instanceof` which may fail with different versions of Three.js).
+ */
+export function isSprite(value: any): value is Sprite {
+  return !!value.isSprite
 }
 
 
