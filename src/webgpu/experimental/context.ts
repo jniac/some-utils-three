@@ -2,6 +2,7 @@ import { Camera, OrthographicCamera, pass, PerspectiveCamera, PostProcessing, Sc
 
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
 import { Ticker } from 'some-utils-ts/ticker'
+
 import { Pointer } from './pointer'
 
 // @ts-ignore
@@ -39,7 +40,7 @@ export class ThreeWebGPUContext {
   constructor() {
     this.camera.position.set(0, 1, 10)
     this.camera.lookAt(0, 0, 0)
-    this.pointer.update(this.camera, { x: 0, y: 0 }, this.renderer.domElement.getBoundingClientRect())
+    this.pointer.updatePosition(this.camera, { x: 0, y: 0 }, this.renderer.domElement.getBoundingClientRect())
   }
 
   setSize(size: Partial<{
@@ -131,6 +132,7 @@ export class ThreeWebGPUContext {
 
     // calculate the difference in pointer state
     pointer.diffState.diff(pointer.state, pointer.stateOld)
+    pointer.raycastScene(scene)
 
     scene.traverse(child => {
       if ('onTick' in child) {
