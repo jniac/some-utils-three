@@ -73,33 +73,33 @@ export class Pointer {
   /**
    * Return true if the pointer button is currently pressed.
    */
-  button(button = PointerButton.Left) {
+  buttonDown(button = PointerButton.Left) {
     return (this.state.buttons & (1 << button)) !== 0
   }
 
   /**
    * Return true if the pointer button was pressed in the previous frame.
    */
-  buttonOld(button = PointerButton.Left) {
+  buttonDownOld(button = PointerButton.Left) {
     return (this.stateOld.buttons & (1 << button)) !== 0
   }
 
   /**
    * Return true if the pointer button was pressed in the current frame but not in the previous frame (enter).
    */
-  buttonEnter(button = PointerButton.Left) {
-    return this.button(button) && !this.buttonOld(button)
+  buttonDownEnter(button = PointerButton.Left) {
+    return this.buttonDown(button) && !this.buttonDownOld(button)
   }
 
   /**
    * Return true if the pointer button was pressed in the previous frame but not in the current frame (exit).
    */
-  buttonExit(button = PointerButton.Left) {
-    return !this.button(button) && this.buttonOld(button)
+  buttonDownExit(button = PointerButton.Left) {
+    return !this.buttonDown(button) && this.buttonDownOld(button)
   }
 
   buttonTap(button = PointerButton.Left, maxDuration = .25) {
-    if (this.buttonExit(button) === false) {
+    if (this.buttonDownExit(button) === false) {
       return false
     }
     const delta = this.upTimes.get(button)! - this.downTimes.get(button)!
