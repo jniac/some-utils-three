@@ -1,4 +1,4 @@
-import { Box3, BufferAttribute, BufferGeometry, Color, ColorRepresentation, GreaterDepth, LineBasicMaterial, LineSegments, Matrix4, Vector2, Vector3 } from 'three/webgpu'
+import { Box3, BufferAttribute, BufferGeometry, Color, ColorRepresentation, GreaterDepth, LineBasicMaterial, LineSegments, Matrix4, Vector2, Vector3 } from 'three'
 
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 
@@ -32,10 +32,18 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
 
   state = {
     forceTransparent: false,
+    hasAlreadyBeenRendered: false,
+    reservePoints: -1,
   }
 
-  constructor() {
+  constructor(reservePoints = -1) {
     super(new BufferGeometry(), new LineBasicMaterial({ vertexColors: true }))
+
+    this.state.reservePoints = reservePoints
+
+    this.onBeforeRender = () => {
+      this.state.hasAlreadyBeenRendered = true
+    }
   }
 
   /**
@@ -119,25 +127,52 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
   clear(): this {
     this.points.length = 0
     this.colors.clear()
-    this.geometry.setFromPoints([new Vector3(), new Vector3()]) // Geometry needs at least 2 points
+    this.geometry.setDrawRange(0, 0)
     return this
   }
 
+  /**
+   * @param reservePoints If you know the number of points that will be added, you can set this value to avoid to overallocate memory later.
+   */
   draw(): this {
-    // Geometry has to be renewed every time:
-    this.geometry.dispose()
-    this.geometry = new BufferGeometry()
-
-    // Geometry, the easy part:
-    this.geometry.setFromPoints(this.points)
+    // Geometry, not so easy now:
+    // If the geometry has not been rendered yet (and supposedly the attributes
+    // are not bound), we can set the points directly.
+    // Otherwise, we need to update the existing points and check that the new
+    // points are not more than the reserved points.
+    if (this.state.hasAlreadyBeenRendered === false && this.state.reservePoints === -1) {
+      this.geometry.setFromPoints(this.points)
+      this.geometry.setDrawRange(0, this.points.length)
+      this.state.reservePoints = this.points.length
+    } else {
+      let { position: positionAttribute } = this.geometry.attributes
+      if (!positionAttribute) {
+        positionAttribute = new BufferAttribute(new Float32Array(this.state.reservePoints * 3), 3)
+        this.geometry.setAttribute('position', positionAttribute)
+      }
+      let count = this.points.length
+      if (count > positionAttribute.count) {
+        console.warn(`LineHelper: The number of points (${count}) is greater than the reserved points (${positionAttribute.count}).`)
+        count = positionAttribute.count
+      }
+      this.geometry.setDrawRange(0, count)
+      for (let i = 0; i < count; i++) {
+        const { x, y, z } = this.points[i]
+        positionAttribute.setXYZ(i, x, y, z)
+      }
+      positionAttribute.needsUpdate = true
+    }
     this.geometry.computeBoundingSphere()
 
     // Colors, the less easy part:
     this.material.vertexColors = this.colors.size > 0
     this.material.needsUpdate = true
     if (this.colors.size > 0) {
-      const colorAttribute = new BufferAttribute(new Float32Array(this.geometry.attributes.position.count * 3), 3)
-      this.geometry.setAttribute('color', colorAttribute)
+      let { color: colorAttribute } = this.geometry.attributes
+      if (!colorAttribute) {
+        colorAttribute = new BufferAttribute(new Float32Array(this.geometry.attributes.position.count * 3), 3)
+        this.geometry.setAttribute('color', colorAttribute)
+      }
 
       const currentColor = new Color(this.colors.get(0) ?? 'white')
       const count = this.points.length
@@ -148,6 +183,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
         }
         colorAttribute.setXYZ(i, currentColor.r, currentColor.g, currentColor.b)
       }
+      colorAttribute.needsUpdate = true
     }
 
     return this
@@ -335,7 +371,6 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     _transformAndPush(this, points, rest)
     return this
   }
-
 
   /**
    * NOTE: "Transform option" is not implemented here.
