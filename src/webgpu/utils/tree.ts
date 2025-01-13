@@ -79,3 +79,19 @@ export function* allAncestorsOf(child: Object3D, {
     current = current.parent
   }
 }
+
+export function* queryDescendantsOf(parent: Object3D, query: (child: Object3D) => boolean, options?: Parameters<typeof allAncestorsOf>[1]): Generator<Object3D> {
+  for (const child of allDescendantsOf(parent, options)) {
+    if (query(child)) {
+      yield child
+    }
+  }
+}
+
+export function* queryAncestorsOf(child: Object3D, query: (parent: Object3D) => boolean, options?: Parameters<typeof allAncestorsOf>[1]): Generator<Object3D> {
+  for (const parent of allAncestorsOf(child, options)) {
+    if (query(parent)) {
+      yield parent
+    }
+  }
+}
