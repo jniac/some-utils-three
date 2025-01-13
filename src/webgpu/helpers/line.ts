@@ -13,10 +13,20 @@ type BasicOptions = Partial<{
   color: ColorRepresentation
 }>
 
+function* _uniquePoints(points: Iterable<Vector3>): Generator<Vector3> {
+  const processed = new WeakSet<Vector3>()
+  for (const point of points) {
+    if (!processed.has(point)) {
+      processed.add(point)
+      yield point
+    }
+  }
+}
+
 function _transformAndPush(lineHelper: LineHelper, newPoints: Vector3[], options?: BasicOptions): void {
   if (options?.transform) {
     fromTransformDeclaration(options.transform, _m)
-    for (const point of newPoints) {
+    for (const point of _uniquePoints(newPoints)) {
       point.applyMatrix4(_m)
     }
   }
@@ -53,13 +63,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicNodeMateri
    * Returns an iterator that yields all the unique points in the line (no duplicates).
    */
   *uniquePoints() {
-    const processed = new WeakSet<Vector3>()
-    for (const point of this.points) {
-      if (!processed.has(point)) {
-        processed.add(point)
-        yield point
-      }
-    }
+    yield* _uniquePoints(this.points)
   }
 
   /**
