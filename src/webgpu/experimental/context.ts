@@ -1,4 +1,5 @@
-import { Camera, OrthographicCamera, pass, PerspectiveCamera, PostProcessing, Scene, WebGPURenderer } from 'three/webgpu'
+import { pass } from 'three/tsl'
+import { Camera, OrthographicCamera, PerspectiveCamera, PostProcessing, Scene, WebGPURenderer } from 'three/webgpu'
 
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
 import { Ticker } from 'some-utils-ts/ticker'
