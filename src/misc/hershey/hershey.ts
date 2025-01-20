@@ -158,7 +158,19 @@ function getHelperPoints({ width, height, size }: typeof defaultHersheyLineProps
 type HersheyLineProps = Partial<typeof defaultHersheyLineProps & typeof defaultPointsProps>
 
 const _pivot = new Vector2()
-export class HersheyLine<TMaterial extends Material = LineBasicMaterial> extends LineSegments<BufferGeometry, TMaterial> {
+/**
+ * Usage: 
+ * ```
+ * const text = new HersheyLine('Hello,\nworld!\n123#!?', {
+ *   width: 5.5,
+ *   height: 6,
+ *   align: [0, 1], // top-left
+ *   pivot: [0, 1], // top-left
+ *   helper: 'cyan'
+ * })
+ * ```
+ */
+export class HersheyText<TMaterial extends Material = LineBasicMaterial> extends LineSegments<BufferGeometry, TMaterial> {
 
   width: number
   height: number
