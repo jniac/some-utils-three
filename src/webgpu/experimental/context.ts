@@ -29,6 +29,8 @@ export class ThreeWebGPUContext {
 
   camera: Camera = this.perspectiveCamera
 
+  skipRender = false
+
   private internal = {
     observer: null as ResizeObserver | null,
     cancelRequestActivation: null as (() => void) | null,
@@ -141,8 +143,11 @@ export class ThreeWebGPUContext {
         (child as any).onTick(this.ticker, this)
       }
     })
-    // renderer.renderAsync(scene, camera)
-    postProcessing.renderAsync()
+
+    if (this.skipRender === false) {
+      // renderer.renderAsync(scene, camera)
+      postProcessing.renderAsync()
+    }
 
     // save the previous state
     pointer.stateOld.copy(pointer.state)
