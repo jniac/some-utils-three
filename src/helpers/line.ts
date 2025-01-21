@@ -1,4 +1,4 @@
-import { Box3, BufferAttribute, BufferGeometry, Color, ColorRepresentation, GreaterDepth, LineBasicMaterial, LineSegments, Matrix4, Vector2, Vector3 } from 'three/webgpu'
+import { Box3, BufferAttribute, BufferGeometry, Color, ColorRepresentation, GreaterDepth, LineBasicMaterial, LineSegments, Material, Matrix4, Vector2, Vector3 } from 'three'
 
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 
@@ -23,7 +23,7 @@ function* _uniquePoints(points: Iterable<Vector3>): Generator<Vector3> {
   }
 }
 
-function _transformAndPush(lineHelper: LineHelper, newPoints: Vector3[], options?: BasicOptions): void {
+function _transformAndPush(lineHelper: LineHelper<any>, newPoints: Vector3[], options?: BasicOptions): void {
   if (options?.transform) {
     fromTransformDeclaration(options.transform, _m)
     for (const point of _uniquePoints(newPoints)) {
@@ -36,7 +36,7 @@ function _transformAndPush(lineHelper: LineHelper, newPoints: Vector3[], options
   lineHelper.points.push(...newPoints)
 }
 
-export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
+export class LineHelper<T extends Material & { color: ColorRepresentation } = LineBasicMaterial> extends LineSegments<BufferGeometry, T> {
   points: Vector3[] = []
   colors = new Map<number, Color>()
 
@@ -49,7 +49,7 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
   /**
    * @param reservePoints If you know the number of points that will be added, you can set this value to avoid to overallocate memory later.
    */
-  constructor(reservePoints = -1, material = new LineBasicMaterial({ vertexColors: true })) {
+  constructor(reservePoints = -1, material = new LineBasicMaterial({ vertexColors: true }) as unknown as T) {
     super(new BufferGeometry(), material)
 
     this.state.reservePoints = reservePoints
