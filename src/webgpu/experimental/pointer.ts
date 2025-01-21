@@ -1,4 +1,4 @@
 /**
  * @deprecated Use `experimental/pointer` instead.
  */
-export * from '../../experimental/pointer'
+export * from '../../experimental/contexts/pointer'

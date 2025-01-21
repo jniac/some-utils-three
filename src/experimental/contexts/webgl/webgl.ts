@@ -6,16 +6,16 @@ import { destroy } from 'some-utils-ts/misc/destroy'
 import { Tick, Ticker } from 'some-utils-ts/ticker'
 import { Destroyable } from 'some-utils-ts/types'
 
-import { fromVector3Declaration, Vector3Declaration } from '../../declaration'
-import { UnifiedLoader } from '../../loaders/unified-loader'
-import { ThreeContextBase } from '../types'
-import { Pointer, PointerButton } from '../utils/pointer'
+import { fromVector3Declaration, Vector3Declaration } from '../../../declaration'
+import { UnifiedLoader } from '../../../loaders/unified-loader'
+import { Pointer } from '../pointer'
+import { ThreeBaseContext } from '../types'
 import { BasicPipeline } from './pipelines/BasicPipeline'
 
 /**
  * A context that provides a WebGLRenderer, a Scene, a Camera, and a Ticker.
  */
-export class ThreeWebglContext implements ThreeContextBase {
+export class ThreeWebglContext implements ThreeBaseContext {
   private static instances: ThreeWebglContext[] = []
   static current() {
     return this.instances[this.instances.length - 1]
@@ -104,7 +104,7 @@ export class ThreeWebglContext implements ThreeContextBase {
   }
 
   initialized = false
-  initialize(domContainer: HTMLElement): this {
+  initialize(domContainer: HTMLElement, pointerScope: HTMLElement = domContainer): this {
     if (this.initialized) {
       console.warn('ThreeWebglContext is already initialized.')
       return this
@@ -130,24 +130,7 @@ export class ThreeWebglContext implements ThreeContextBase {
     resize()
 
     // Pointer
-    const onPointerMove = (event: PointerEvent) => {
-      const rect = this.renderer.domElement.getBoundingClientRect()
-      this.pointer.update(this.camera, { x: event.clientX, y: event.clientY }, rect)
-    }
-    const onPointerDown = (event: PointerEvent) => {
-      this.pointer.status.button |= PointerButton.LeftDown
-    }
-    const onPointerUp = (event: PointerEvent) => {
-      this.pointer.status.button &= ~PointerButton.LeftDown
-    }
-    domContainer.addEventListener('pointermove', onPointerMove)
-    domContainer.addEventListener('pointerdown', onPointerDown)
-    domContainer.addEventListener('pointerup', onPointerUp)
-    onDestroy(() => {
-      domContainer.removeEventListener('pointermove', onPointerMove)
-      domContainer.removeEventListener('pointerdown', onPointerDown)
-      domContainer.removeEventListener('pointerup', onPointerUp)
-    })
+    onDestroy(this.pointer.initialize(this.renderer.domElement, pointerScope, this.camera, this.ticker))
 
     // Tick
     onDestroy(

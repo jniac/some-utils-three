@@ -18,11 +18,11 @@
   "peerDependencies": {
     "some-utils-ts": "workspace:*",
     "some-utils-dom": "workspace:*",
-    "three": ">=0.168.0"
+    "three": ">=0.172.0"
   },
   "devDependencies": {
-    "@types/three": ">=0.168.0",
-    "three": ">=0.168.0",
+    "@types/three": ">=0.172.0",
+    "three": ">=0.172.0",
     "typescript": "^5.5.4"
   },
   "exports": {
