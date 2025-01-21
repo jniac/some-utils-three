@@ -1,4 +1,4 @@
-import { Box3, BufferAttribute, BufferGeometry, Color, ColorRepresentation, GreaterDepth, LineBasicMaterial, LineSegments, Matrix4, Vector2, Vector3 } from 'three'
+import { Box3, BufferAttribute, BufferGeometry, Color, ColorRepresentation, GreaterDepth, LineBasicMaterial, LineSegments, Matrix4, Vector2, Vector3 } from 'three/webgpu'
 
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 
@@ -46,8 +46,11 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     reservePoints: -1,
   }
 
-  constructor(reservePoints = -1) {
-    super(new BufferGeometry(), new LineBasicMaterial({ vertexColors: true }))
+  /**
+   * @param reservePoints If you know the number of points that will be added, you can set this value to avoid to overallocate memory later.
+   */
+  constructor(reservePoints = -1, material = new LineBasicMaterial({ vertexColors: true })) {
+    super(new BufferGeometry(), material)
 
     this.state.reservePoints = reservePoints
 
@@ -135,9 +138,6 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     return this
   }
 
-  /**
-   * @param reservePoints If you know the number of points that will be added, you can set this value to avoid to overallocate memory later.
-   */
   draw(): this {
     // Geometry, not so easy now:
     // If the geometry has not been rendered yet (and supposedly the attributes
