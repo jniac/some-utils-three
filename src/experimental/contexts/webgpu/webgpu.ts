@@ -132,9 +132,7 @@ export class ThreeWebGPUContext implements ThreeBaseContext {
   renderFrame() {
     const { scene, postProcessing, pointer } = this
 
-    // calculate the difference in pointer state
-    pointer.diffState.diff(pointer.state, pointer.stateOld)
-    pointer.raycastScene(scene)
+    pointer.update(scene)
 
     scene.traverse(child => {
       if ('onTick' in child) {
@@ -148,8 +146,7 @@ export class ThreeWebGPUContext implements ThreeBaseContext {
       postProcessing.renderAsync()
     }
 
-    // save the previous state
-    pointer.stateOld.copy(pointer.state)
+    pointer.updateEnd()
   }
 
   destroyed = false

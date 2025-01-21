@@ -32,6 +32,8 @@ export class ThreeWebglContext implements ThreeBaseContext {
   gizmoScene = new Scene()
   pointer = new Pointer()
 
+  skipRender = false
+
   // NOTE: The ticker is not explicitly created, but rather is require through a
   // name ("three"). This is to allow the user to use the same ticker, even before
   // it is eventually created here.
@@ -135,7 +137,7 @@ export class ThreeWebglContext implements ThreeBaseContext {
     // Tick
     onDestroy(
       handleAnyUserInteraction(this.ticker.requestActivation),
-      this.ticker.onTick(this.update),
+      this.ticker.onTick(this.renderFrame),
     )
 
     // Orbit controls
@@ -187,9 +189,25 @@ export class ThreeWebglContext implements ThreeBaseContext {
     return this
   }
 
-  update = (tick: Tick) => {
+  renderFrame = (tick: Tick) => {
+    const { scene, pipeline, pointer } = this
+
     this.internal.orbitControls?.update(tick.deltaTime)
-    this.pipeline.render(tick)
+
+    pointer.update(scene)
+
+    scene.traverse(child => {
+      if ('onTick' in child) {
+        // call onTick on every child that has it
+        (child as any).onTick(this.ticker, this)
+      }
+    })
+
+    if (this.skipRender === false) {
+      pipeline.render(tick)
+    }
+
+    pointer.updateEnd()
   };
 
   *findAll(query: string | RegExp | ((object: any) => boolean)) {

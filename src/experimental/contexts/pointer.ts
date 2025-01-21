@@ -177,6 +177,18 @@ export class Pointer {
     }
   }
 
+  update(scene: Object3D) {
+    // calculate the difference in pointer state
+    this.diffState.diff(this.state, this.stateOld)
+    this.raycastScene(scene)
+  }
+
+  updateEnd() {
+    // save the previous state
+    this.stateOld.copy(this.state)
+    this.event.reset()
+  }
+
   initialize(domElement: HTMLElement, scope: HTMLElement, camera: Camera, ticker: Ticker) {
     const updatePointerPosition = (event: PointerEvent) => {
       const rect = domElement.getBoundingClientRect()

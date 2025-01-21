@@ -15,6 +15,7 @@ export type ThreeBaseContext = {
   scene: Scene
   camera: Camera
 
+  skipRender: boolean
   initialized: boolean
   initialize: (domContainer: HTMLElement, pointerScope: HTMLElement) => Destroyable
 }
