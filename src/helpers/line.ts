@@ -2,6 +2,7 @@ import { Box3, BufferAttribute, BufferGeometry, Color, ColorRepresentation, Grea
 
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 
+import { loopArray } from 'some-utils-ts/iteration/loop'
 import { fromTransformDeclaration, fromVector2Declaration, fromVector3Declaration, TransformDeclaration, Vector2Declaration, Vector3Declaration } from '../declaration'
 
 const _vector2 = new Vector2()
@@ -23,7 +24,13 @@ function* _uniquePoints(points: Iterable<Vector3>): Generator<Vector3> {
   }
 }
 
-function _transformAndPush(lineHelper: LineHelper<any>, newPoints: Vector3[], options?: BasicOptions): void {
+function _transformAndPush(
+  lineHelper: LineHelper<any>,
+  newPoints: Vector3[],
+  options?: BasicOptions,
+  pairify?: boolean,
+  close?: boolean,
+): void {
   if (options?.transform) {
     fromTransformDeclaration(options.transform, _m)
     for (const point of _uniquePoints(newPoints)) {
@@ -33,7 +40,16 @@ function _transformAndPush(lineHelper: LineHelper<any>, newPoints: Vector3[], op
   if (options?.color !== undefined) {
     lineHelper.color(options.color)
   }
-  lineHelper.points.push(...newPoints)
+  if (pairify) {
+    for (let i = 0; i < newPoints.length - 1; i++) {
+      lineHelper.points.push(newPoints[i], newPoints[i + 1])
+    }
+    if (close) {
+      lineHelper.points.push(newPoints[newPoints.length - 1], newPoints[0])
+    }
+  } else {
+    lineHelper.points.push(...newPoints)
+  }
 }
 
 export class LineHelper<T extends Material & { color: ColorRepresentation } = LineBasicMaterial> extends LineSegments<BufferGeometry, T> {
@@ -197,6 +213,30 @@ export class LineHelper<T extends Material & { color: ColorRepresentation } = Li
     const va = fromVector3Declaration(a)
     const vb = fromVector3Declaration(b)
     _transformAndPush(this, [va, vb], options)
+    return this
+  }
+
+  capsule2(a: Vector2Declaration, b: Vector2Declaration, radius: number, options?: BasicOptions): this {
+    const va = fromVector3Declaration(a)
+    const vb = fromVector3Declaration(b)
+    const d = new Vector3().subVectors(vb, va)
+    const l = d.length()
+    const u = d.clone().divideScalar(l)
+    const v = new Vector3(-u.y, u.x)
+    _transformAndPush(this, [
+      ...loopArray(24, i => {
+        const a = i.p * Math.PI
+        return va.clone()
+          .addScaledVector(v, radius * Math.cos(a)).
+          addScaledVector(u, -radius * Math.sin(a))
+      }),
+      ...loopArray(24, i => {
+        const a = i.p * Math.PI
+        return vb.clone()
+          .addScaledVector(v, -radius * Math.cos(a)).
+          addScaledVector(u, radius * Math.sin(a))
+      }),
+    ], options, true, true)
     return this
   }
 

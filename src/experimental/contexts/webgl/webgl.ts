@@ -15,8 +15,8 @@ import { BasicPipeline } from './pipelines/BasicPipeline'
 /**
  * A context that provides a WebGLRenderer, a Scene, a Camera, and a Ticker.
  */
-export class ThreeWebglContext implements ThreeBaseContext {
-  private static instances: ThreeWebglContext[] = []
+export class ThreeWebGLContext implements ThreeBaseContext {
+  private static instances: ThreeWebGLContext[] = []
   static current() {
     return this.instances[this.instances.length - 1]
   }
@@ -74,7 +74,7 @@ export class ThreeWebglContext implements ThreeBaseContext {
   constructor() {
     this.camera.position.set(0, 1, 10)
     this.camera.lookAt(0, 0, 0)
-    ThreeWebglContext.instances.push(this)
+    ThreeWebGLContext.instances.push(this)
   }
 
   setScene(scene: Scene): void {
@@ -244,3 +244,8 @@ export class ThreeWebglContext implements ThreeBaseContext {
     return false
   }
 }
+
+/**
+ * @deprecated Use `ThreeWebGLContext` instead.
+ */
+export const ThreeWebglContext = ThreeWebGLContext
