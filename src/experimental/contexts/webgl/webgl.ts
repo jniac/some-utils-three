@@ -9,7 +9,7 @@ import { Destroyable } from 'some-utils-ts/types'
 import { fromVector3Declaration, Vector3Declaration } from '../../../declaration'
 import { UnifiedLoader } from '../../../loaders/unified-loader'
 import { Pointer } from '../pointer'
-import { ThreeBaseContext } from '../types'
+import { ThreeBaseContext, ThreeContextType } from '../types'
 import { BasicPipeline } from './pipelines/BasicPipeline'
 
 /**
@@ -20,6 +20,8 @@ export class ThreeWebGLContext implements ThreeBaseContext {
   static current() {
     return this.instances[this.instances.length - 1]
   }
+
+  type = ThreeContextType.WebGPU
 
   width = 300
   height = 150

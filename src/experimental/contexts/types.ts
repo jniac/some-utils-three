@@ -5,7 +5,14 @@ import { Destroyable } from 'some-utils-ts/types'
 
 import { Pointer } from './pointer'
 
+export enum ThreeContextType {
+  WebGL = 'webgl',
+  WebGPU = 'webgpu',
+}
+
 export type ThreeBaseContext = {
+  type: ThreeContextType
+
   width: number
   height: number
   aspect: number
