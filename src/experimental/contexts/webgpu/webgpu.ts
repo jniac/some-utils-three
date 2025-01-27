@@ -5,9 +5,11 @@ import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interac
 import { Ticker } from 'some-utils-ts/ticker'
 
 import { Pointer } from '../pointer'
-import { ThreeBaseContext } from '../types'
+import { ThreeBaseContext, ThreeContextType } from '../types'
 
 export class ThreeWebGPUContext implements ThreeBaseContext {
+  type = ThreeContextType.WebGPU
+
   width = 300
   height = 150
   pixelRatio = 1
