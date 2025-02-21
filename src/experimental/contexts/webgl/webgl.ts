@@ -246,8 +246,3 @@ export class ThreeWebGLContext implements ThreeBaseContext {
     return false
   }
 }
-
-/**
- * @deprecated Use `ThreeWebGLContext` instead.
- */
-export const ThreeWebglContext = ThreeWebGLContext
