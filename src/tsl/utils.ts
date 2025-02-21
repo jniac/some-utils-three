@@ -1,7 +1,7 @@
 import { cameraPosition, cameraWorldMatrix, color, EPSILON, float, Fn, hash, If, mat3, mix, NodeAccess, NodeRepresentation, normalWorld, objectPosition, positionLocal, positionWorld, ShaderNodeObject, storage, uniform, vec2, vec3, vec4 } from 'three/tsl'
 import { ColorRepresentation, Matrix4, Object3D, StorageBufferNode, StorageInstancedBufferAttribute } from 'three/webgpu'
 
-export const autoLit = (mainColor: ColorRepresentation | NodeRepresentation = 'white', {
+export const autoLit = (mainColor: ColorRepresentation = 'white', {
   emissive = .2,
   shadowColor = 'black',
   power = 2,
