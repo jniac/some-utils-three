@@ -6,20 +6,22 @@ import { destroy } from 'some-utils-ts/misc/destroy'
 import { Tick, Ticker } from 'some-utils-ts/ticker'
 import { Destroyable } from 'some-utils-ts/types'
 
-import { fromVector3Declaration, Vector3Declaration } from '../../declaration'
-import { UnifiedLoader } from '../../loaders/unified-loader'
-import { ThreeContextBase } from '../types'
-import { Pointer, PointerButton } from '../utils/pointer'
+import { fromVector3Declaration, Vector3Declaration } from '../../../declaration'
+import { UnifiedLoader } from '../../../loaders/unified-loader'
+import { Pointer } from '../pointer'
+import { ThreeBaseContext, ThreeContextType } from '../types'
 import { BasicPipeline } from './pipelines/BasicPipeline'
 
 /**
  * A context that provides a WebGLRenderer, a Scene, a Camera, and a Ticker.
  */
-export class ThreeWebglContext implements ThreeContextBase {
-  private static instances: ThreeWebglContext[] = []
+export class ThreeWebGLContext implements ThreeBaseContext {
+  private static instances: ThreeWebGLContext[] = []
   static current() {
     return this.instances[this.instances.length - 1]
   }
+
+  type = ThreeContextType.WebGPU
 
   width = 300
   height = 150
@@ -31,6 +33,8 @@ export class ThreeWebglContext implements ThreeContextBase {
   scene = new Scene()
   gizmoScene = new Scene()
   pointer = new Pointer()
+
+  skipRender = false
 
   // NOTE: The ticker is not explicitly created, but rather is require through a
   // name ("three"). This is to allow the user to use the same ticker, even before
@@ -72,7 +76,7 @@ export class ThreeWebglContext implements ThreeContextBase {
   constructor() {
     this.camera.position.set(0, 1, 10)
     this.camera.lookAt(0, 0, 0)
-    ThreeWebglContext.instances.push(this)
+    ThreeWebGLContext.instances.push(this)
   }
 
   setScene(scene: Scene): void {
@@ -104,7 +108,7 @@ export class ThreeWebglContext implements ThreeContextBase {
   }
 
   initialized = false
-  initialize(domContainer: HTMLElement): this {
+  initialize(domContainer: HTMLElement, pointerScope: HTMLElement = domContainer): this {
     if (this.initialized) {
       console.warn('ThreeWebglContext is already initialized.')
       return this
@@ -130,29 +134,12 @@ export class ThreeWebglContext implements ThreeContextBase {
     resize()
 
     // Pointer
-    const onPointerMove = (event: PointerEvent) => {
-      const rect = this.renderer.domElement.getBoundingClientRect()
-      this.pointer.update(this.camera, { x: event.clientX, y: event.clientY }, rect)
-    }
-    const onPointerDown = (event: PointerEvent) => {
-      this.pointer.status.button |= PointerButton.LeftDown
-    }
-    const onPointerUp = (event: PointerEvent) => {
-      this.pointer.status.button &= ~PointerButton.LeftDown
-    }
-    domContainer.addEventListener('pointermove', onPointerMove)
-    domContainer.addEventListener('pointerdown', onPointerDown)
-    domContainer.addEventListener('pointerup', onPointerUp)
-    onDestroy(() => {
-      domContainer.removeEventListener('pointermove', onPointerMove)
-      domContainer.removeEventListener('pointerdown', onPointerDown)
-      domContainer.removeEventListener('pointerup', onPointerUp)
-    })
+    onDestroy(this.pointer.initialize(this.renderer.domElement, pointerScope, this.camera, this.ticker))
 
     // Tick
     onDestroy(
       handleAnyUserInteraction(this.ticker.requestActivation),
-      this.ticker.onTick(this.update),
+      this.ticker.onTick(this.renderFrame),
     )
 
     // Orbit controls
@@ -204,9 +191,25 @@ export class ThreeWebglContext implements ThreeContextBase {
     return this
   }
 
-  update = (tick: Tick) => {
+  renderFrame = (tick: Tick) => {
+    const { scene, pipeline, pointer } = this
+
     this.internal.orbitControls?.update(tick.deltaTime)
-    this.pipeline.render(tick)
+
+    pointer.update(scene)
+
+    scene.traverse(child => {
+      if ('onTick' in child) {
+        // call onTick on every child that has it
+        (child as any).onTick(this.ticker, this)
+      }
+    })
+
+    if (this.skipRender === false) {
+      pipeline.render(tick)
+    }
+
+    pointer.updateEnd()
   };
 
   *findAll(query: string | RegExp | ((object: any) => boolean)) {
@@ -243,3 +246,8 @@ export class ThreeWebglContext implements ThreeContextBase {
     return false
   }
 }
+
+/**
+ * @deprecated Use `ThreeWebGLContext` instead.
+ */
+export const ThreeWebglContext = ThreeWebGLContext

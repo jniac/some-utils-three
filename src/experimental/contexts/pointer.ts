@@ -2,7 +2,7 @@ import { Camera, Intersection, Object3D, Raycaster, Vector2 } from 'three/webgpu
 
 import { Ticker } from 'some-utils-ts/ticker'
 
-import { isMesh } from '../is'
+import { isMesh } from '../../is'
 
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
@@ -175,6 +175,18 @@ export class Pointer {
         onPointerTap()
       }
     }
+  }
+
+  update(scene: Object3D) {
+    // calculate the difference in pointer state
+    this.diffState.diff(this.state, this.stateOld)
+    this.raycastScene(scene)
+  }
+
+  updateEnd() {
+    // save the previous state
+    this.stateOld.copy(this.state)
+    this.event.reset()
   }
 
   initialize(domElement: HTMLElement, scope: HTMLElement, camera: Camera, ticker: Ticker) {
