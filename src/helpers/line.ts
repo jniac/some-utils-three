@@ -1,7 +1,8 @@
-import { Box3, BufferAttribute, BufferGeometry, Color, ColorRepresentation, GreaterDepth, LineBasicMaterial, LineSegments, Matrix4, Vector2, Vector3 } from 'three'
+import { Box3, BufferAttribute, BufferGeometry, Color, ColorRepresentation, GreaterDepth, LineBasicMaterial, LineSegments, Material, Matrix4, Vector2, Vector3 } from 'three'
 
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 
+import { loopArray } from 'some-utils-ts/iteration/loop'
 import { fromTransformDeclaration, fromVector2Declaration, fromVector3Declaration, TransformDeclaration, Vector2Declaration, Vector3Declaration } from '../declaration'
 
 const _vector2 = new Vector2()
@@ -23,7 +24,13 @@ function* _uniquePoints(points: Iterable<Vector3>): Generator<Vector3> {
   }
 }
 
-function _transformAndPush(lineHelper: LineHelper, newPoints: Vector3[], options?: BasicOptions): void {
+function _transformAndPush(
+  lineHelper: LineHelper<any>,
+  newPoints: Vector3[],
+  options?: BasicOptions,
+  pairify?: boolean,
+  close?: boolean,
+): void {
   if (options?.transform) {
     fromTransformDeclaration(options.transform, _m)
     for (const point of _uniquePoints(newPoints)) {
@@ -33,10 +40,19 @@ function _transformAndPush(lineHelper: LineHelper, newPoints: Vector3[], options
   if (options?.color !== undefined) {
     lineHelper.color(options.color)
   }
-  lineHelper.points.push(...newPoints)
+  if (pairify) {
+    for (let i = 0; i < newPoints.length - 1; i++) {
+      lineHelper.points.push(newPoints[i], newPoints[i + 1])
+    }
+    if (close) {
+      lineHelper.points.push(newPoints[newPoints.length - 1], newPoints[0])
+    }
+  } else {
+    lineHelper.points.push(...newPoints)
+  }
 }
 
-export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
+export class LineHelper<T extends Material & { color: ColorRepresentation } = LineBasicMaterial> extends LineSegments<BufferGeometry, T> {
   points: Vector3[] = []
   colors = new Map<number, Color>()
 
@@ -46,8 +62,11 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     reservePoints: -1,
   }
 
-  constructor(reservePoints = -1) {
-    super(new BufferGeometry(), new LineBasicMaterial({ vertexColors: true }))
+  /**
+   * @param reservePoints If you know the number of points that will be added, you can set this value to avoid to overallocate memory later.
+   */
+  constructor(reservePoints = -1, material = new LineBasicMaterial({ vertexColors: true }) as unknown as T) {
+    super(new BufferGeometry(), material)
 
     this.state.reservePoints = reservePoints
 
@@ -135,9 +154,6 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     return this
   }
 
-  /**
-   * @param reservePoints If you know the number of points that will be added, you can set this value to avoid to overallocate memory later.
-   */
   draw(): this {
     // Geometry, not so easy now:
     // If the geometry has not been rendered yet (and supposedly the attributes
@@ -197,6 +213,30 @@ export class LineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> 
     const va = fromVector3Declaration(a)
     const vb = fromVector3Declaration(b)
     _transformAndPush(this, [va, vb], options)
+    return this
+  }
+
+  capsule2(a: Vector2Declaration, b: Vector2Declaration, radius: number, options?: BasicOptions): this {
+    const va = fromVector3Declaration(a)
+    const vb = fromVector3Declaration(b)
+    const d = new Vector3().subVectors(vb, va)
+    const l = d.length()
+    const u = d.clone().divideScalar(l)
+    const v = new Vector3(-u.y, u.x)
+    _transformAndPush(this, [
+      ...loopArray(24, i => {
+        const a = i.p * Math.PI
+        return va.clone()
+          .addScaledVector(v, radius * Math.cos(a)).
+          addScaledVector(u, -radius * Math.sin(a))
+      }),
+      ...loopArray(24, i => {
+        const a = i.p * Math.PI
+        return vb.clone()
+          .addScaledVector(v, -radius * Math.cos(a)).
+          addScaledVector(u, radius * Math.sin(a))
+      }),
+    ], options, true, true)
     return this
   }
 
