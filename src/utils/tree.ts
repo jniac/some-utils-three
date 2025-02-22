@@ -56,9 +56,16 @@ export function isAncestorOf(parent: Object3D, child: Object3D): boolean {
   return isDescendantOf(child, parent)
 }
 
-export function* allDescendantsOf(parent: Object3D, {
-  includeSelf = false,
-} = {}): Generator<Object3D> {
+const defaultAllDescendantsOptions = {
+  /**
+   * Whether to include the child object in the iteration.
+   * 
+   * Defaults to `false`.
+   */
+  includeSelf: false,
+}
+export function* allDescendantsOf(parent: Object3D, options?: Partial<typeof defaultAllDescendantsOptions>): Generator<Object3D> {
+  const { includeSelf } = { ...defaultAllDescendantsOptions, ...options }
   if (includeSelf) {
     yield parent
   }
@@ -67,9 +74,29 @@ export function* allDescendantsOf(parent: Object3D, {
   }
 }
 
-export function* allAncestorsOf(child: Object3D, {
-  includeSelf = false,
-} = {}): Generator<Object3D> {
+const defaultAllAncestorsOptions = {
+  /**
+   * Whether to include the child object in the iteration.
+   * 
+   * Defaults to `false`.
+   */
+  includeSelf: false,
+  /**
+   * The root object to stop the iteration. If provided, the iteration will stop
+   * when the root object is reached.
+   * 
+   * Defaults to `null` which means no root object.
+   */
+  root: null as Object3D | null,
+  /**
+   * Whether to include the root object in the iteration.
+   * 
+   * Defaults to `false`.
+   */
+  includeRoot: false,
+}
+export function* allAncestorsOf(child: Object3D, options?: Partial<typeof defaultAllAncestorsOptions>): Generator<Object3D> {
+  const { includeSelf, root, includeRoot } = { ...defaultAllAncestorsOptions, ...options }
   let current = child
   if (includeSelf) {
     yield current
@@ -77,6 +104,13 @@ export function* allAncestorsOf(child: Object3D, {
   while (current.parent) {
     yield current.parent
     current = current.parent
+
+    if (root && current === root) {
+      if (includeRoot) {
+        yield current
+      }
+      break
+    }
   }
 }
 

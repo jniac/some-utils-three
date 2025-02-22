@@ -43,7 +43,16 @@ export function isDescendantOf(child, parent) {
 export function isAncestorOf(parent, child) {
     return isDescendantOf(child, parent);
 }
-export function* allDescendantsOf(parent, { includeSelf = false, } = {}) {
+const defaultAllDescendantsOptions = {
+    /**
+     * Whether to include the child object in the iteration.
+     *
+     * Defaults to `false`.
+     */
+    includeSelf: false,
+};
+export function* allDescendantsOf(parent, options) {
+    const { includeSelf } = { ...defaultAllDescendantsOptions, ...options };
     if (includeSelf) {
         yield parent;
     }
@@ -51,7 +60,29 @@ export function* allDescendantsOf(parent, { includeSelf = false, } = {}) {
         yield* allDescendantsOf(child, { includeSelf: true });
     }
 }
-export function* allAncestorsOf(child, { includeSelf = false, } = {}) {
+const defaultAllAncestorsOptions = {
+    /**
+     * Whether to include the child object in the iteration.
+     *
+     * Defaults to `false`.
+     */
+    includeSelf: false,
+    /**
+     * The root object to stop the iteration. If provided, the iteration will stop
+     * when the root object is reached.
+     *
+     * Defaults to `null` which means no root object.
+     */
+    root: null,
+    /**
+     * Whether to include the root object in the iteration.
+     *
+     * Defaults to `false`.
+     */
+    includeRoot: false,
+};
+export function* allAncestorsOf(child, options) {
+    const { includeSelf, root, includeRoot } = { ...defaultAllAncestorsOptions, ...options };
     let current = child;
     if (includeSelf) {
         yield current;
@@ -59,6 +90,12 @@ export function* allAncestorsOf(child, { includeSelf = false, } = {}) {
     while (current.parent) {
         yield current.parent;
         current = current.parent;
+        if (root && current === root) {
+            if (includeRoot) {
+                yield current;
+            }
+            break;
+        }
     }
 }
 export function* queryDescendantsOf(parent, query, options) {
