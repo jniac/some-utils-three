@@ -28,16 +28,12 @@
   },
   "exports": {
     "./ts/*": {
-      "default": [
-        "./src/*.ts",
-        "./src/*/index.ts"
-      ]
+      "default": "./src/*.ts"
     },
     "./*": {
-      "default": [
-        "./dist/*.js",
-        "./dist/*/index.js"
-      ]
+      "default": "./dist/*.js",
+      "import": "./dist/*.js",
+      "types": "./dist/*.d.ts"
     }
   },
   "files": [
