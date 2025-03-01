@@ -16,7 +16,7 @@ export class ThreeWebGLContext {
     static current() {
         return this.instances[this.instances.length - 1];
     }
-    type = ThreeContextType.WebGPU;
+    type = ThreeContextType.WebGL;
     width = 300;
     height = 150;
     pixelRatio = 1;
