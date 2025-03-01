@@ -21,7 +21,7 @@ export class ThreeWebGLContext implements ThreeBaseContext {
     return this.instances[this.instances.length - 1]
   }
 
-  type = ThreeContextType.WebGPU
+  type = ThreeContextType.WebGL
 
   width = 300
   height = 150
