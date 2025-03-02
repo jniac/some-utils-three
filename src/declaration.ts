@@ -42,7 +42,7 @@ type ReadonlyOrNot<T> = T | Readonly<T>
 function formatNumber(x: number, fractionDigits: number): string {
   return x
     .toFixed(fractionDigits)
-    .replace(/\.([0-9]+[1-9])?0+$/, (m, m0) => m0?.length > 0 ? `.${m0}` : '')
+    .replace(/\.([0-9]+[1-9])?0+$/, (_, m0) => m0?.length > 0 ? `.${m0}` : '')
 }
 
 type EulerDeclarationArray =
