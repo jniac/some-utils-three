@@ -4,6 +4,7 @@ import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import { PassType } from './types.js';
 function isRenderPass(pass) {
@@ -57,6 +58,10 @@ export class BasicPipeline {
         const fxaa = new ShaderPass(FXAAShader);
         passMap.set(fxaa, { type: PassType.Antialiasing, insertOrder: 0 });
         composer.addPass(fxaa);
+        const smaa = new SMAAPass(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio);
+        smaa.enabled = false;
+        passMap.set(smaa, { type: PassType.Antialiasing, insertOrder: 0 });
+        composer.addPass(smaa);
         this.composer = composer;
         this.basicPasses = {
             mainRender,
@@ -64,6 +69,7 @@ export class BasicPipeline {
             outline,
             output,
             fxaa,
+            smaa,
         };
         this.passMap = passMap;
     }
@@ -125,6 +131,7 @@ export class BasicPipeline {
         this.composer.setSize(width, height);
         this.composer.setPixelRatio(pixelRatio);
         this.basicPasses.fxaa.uniforms['resolution'].value.set(1 / pixelRatio / width, 1 / pixelRatio / height);
+        this.basicPasses.smaa.setSize(width * pixelRatio, height * pixelRatio); // Required? not sure since it implements "setSize"
     }
     setScene(scene) {
         const previousScene = this.basicPasses.mainRender.scene;

@@ -5,6 +5,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { Pass } from 'three/examples/jsm/postprocessing/Pass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js';
 import { Tick } from 'some-utils-ts/ticker';
 import { DestroyableObject } from 'some-utils-ts/types';
 import { PassMetadata, PassType, PipelineBase } from './types';
@@ -35,6 +36,7 @@ export declare class BasicPipeline implements PipelineBase {
         outline: OutlinePass;
         output: OutputPass;
         fxaa: ShaderPass;
+        smaa: SMAAPass;
     };
     passMap: Map<Pass, PassMetadata>;
     get passes(): Pass[];
