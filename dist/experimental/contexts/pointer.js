@@ -1,4 +1,4 @@
-import { Raycaster, Vector2 } from 'three/webgpu';
+import { Line3, Raycaster, Vector2, Vector3 } from 'three';
 import { isMesh } from '../../is.js';
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
@@ -110,6 +110,21 @@ export class Pointer {
      * Returns the ray from the camera to the pointer.
      */
     get ray() { return this.raycaster.ray; }
+    #intersectPlane = {
+        point: new Vector3(),
+        line: new Line3(),
+        result: {
+            intersected: false,
+            point: new Vector3(),
+        },
+    };
+    intersectPlane(plane, { distance = 1000, out = this.#intersectPlane.result.point, } = {}) {
+        const { ray } = this.raycaster;
+        const { point, line, result } = this.#intersectPlane;
+        line.set(ray.origin, point.copy(ray.origin).addScaledVector(ray.direction, distance));
+        result.intersected = !!plane.intersectLine(line, out);
+        return result;
+    }
     updatePosition(camera, clientPosition, canvasRect) {
         const { x: clientX, y: clientY } = clientPosition;
         const screenX = (clientX - canvasRect.x) / canvasRect.width * 2 - 1;

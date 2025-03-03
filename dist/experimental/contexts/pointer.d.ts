@@ -1,4 +1,4 @@
-import { Camera, Object3D, Raycaster, Vector2 } from 'three/webgpu';
+import { Camera, Object3D, Plane, Raycaster, Vector2, Vector3 } from 'three';
 import { Ticker } from 'some-utils-ts/ticker';
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
@@ -32,6 +32,7 @@ declare class PointerState {
     diff(a: PointerState, b: PointerState): this;
 }
 export declare class Pointer {
+    #private;
     get buttons(): number;
     state: PointerState;
     stateOld: PointerState;
@@ -81,6 +82,13 @@ export declare class Pointer {
      * Returns the ray from the camera to the pointer.
      */
     get ray(): import("three").Ray;
+    intersectPlane(plane: Plane, { distance, out, }?: {
+        distance?: number | undefined;
+        out?: Vector3 | undefined;
+    }): {
+        intersected: boolean;
+        point: Vector3;
+    };
     updatePosition(camera: Camera, clientPosition: {
         x: number;
         y: number;

@@ -7,7 +7,7 @@ export { fromAngleDeclaration, isVector2Declaration, isVector3Declaration, isVec
 function formatNumber(x, fractionDigits) {
     return x
         .toFixed(fractionDigits)
-        .replace(/\.([0-9]+[1-9])?0+$/, (m, m0) => m0?.length > 0 ? `.${m0}` : '');
+        .replace(/\.([0-9]+[1-9])?0+$/, (_, m0) => m0?.length > 0 ? `.${m0}` : '');
 }
 function isAngleUnit(arg) {
     return typeof arg === 'string' && /^(rad|deg|turn)$/.test(arg);

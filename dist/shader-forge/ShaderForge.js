@@ -43,7 +43,6 @@ class ShaderTool {
     replace(token, code) {
         if (token instanceof RegExp) {
             const { type } = this;
-            const m = current[type].match(token);
             current[type] = current[type].replace(token, wrapCode(code));
         }
         else {
