@@ -5,6 +5,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { Pass } from 'three/examples/jsm/postprocessing/Pass.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
+import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js'
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js'
 
 import { Tick } from 'some-utils-ts/ticker'
@@ -43,6 +44,7 @@ export class BasicPipeline implements PipelineBase {
     outline: OutlinePass
     output: OutputPass
     fxaa: ShaderPass
+    smaa: SMAAPass
   }
   passMap: Map<Pass, PassMetadata>
 
@@ -78,6 +80,11 @@ export class BasicPipeline implements PipelineBase {
     passMap.set(fxaa, { type: PassType.Antialiasing, insertOrder: 0 })
     composer.addPass(fxaa)
 
+    const smaa = new SMAAPass(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio)
+    smaa.enabled = false
+    passMap.set(smaa, { type: PassType.Antialiasing, insertOrder: 0 })
+    composer.addPass(smaa)
+
     this.composer = composer
     this.basicPasses = {
       mainRender,
@@ -85,6 +92,7 @@ export class BasicPipeline implements PipelineBase {
       outline,
       output,
       fxaa,
+      smaa,
     }
     this.passMap = passMap
   }
@@ -155,6 +163,7 @@ export class BasicPipeline implements PipelineBase {
     this.composer.setSize(width, height)
     this.composer.setPixelRatio(pixelRatio)
     this.basicPasses.fxaa.uniforms['resolution'].value.set(1 / pixelRatio / width, 1 / pixelRatio / height)
+    this.basicPasses.smaa.setSize(width * pixelRatio, height * pixelRatio) // Required? not sure since it implements "setSize"
   }
 
   setScene(scene: Scene): void {
