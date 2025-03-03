@@ -1,4 +1,4 @@
-import { Camera, Intersection, Object3D, Raycaster, Vector2 } from 'three/webgpu'
+import { Camera, Intersection, Line3, Object3D, Plane, Raycaster, Vector2, Vector3 } from 'three'
 
 import { Ticker } from 'some-utils-ts/ticker'
 
@@ -129,6 +129,25 @@ export class Pointer {
    * Returns the ray from the camera to the pointer.
    */
   get ray() { return this.raycaster.ray }
+
+  #intersectPlane = {
+    point: new Vector3(),
+    line: new Line3(),
+    result: {
+      intersected: false,
+      point: new Vector3(),
+    },
+  }
+  intersectPlane(plane: Plane, {
+    distance = 1000,
+    out = this.#intersectPlane.result.point,
+  } = {}) {
+    const { ray } = this.raycaster
+    const { point, line, result } = this.#intersectPlane
+    line.set(ray.origin, point.copy(ray.origin).addScaledVector(ray.direction, distance))
+    result.intersected = !!plane.intersectLine(line, out)
+    return result
+  }
 
   updatePosition(camera: Camera, clientPosition: { x: number, y: number }, canvasRect: { x: number, y: number, width: number, height: number }) {
     const { x: clientX, y: clientY } = clientPosition
