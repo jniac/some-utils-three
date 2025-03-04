@@ -82,6 +82,11 @@ export declare class Pointer {
      * Returns the ray from the camera to the pointer.
      */
     get ray(): import("three").Ray;
+    /**
+     * Returns the intersection point of the ray from the camera to the pointer with the plane.
+     *
+     * NOTE: The result point reference is reused, so it should be copied if needed for later use.
+     */
     intersectPlane(plane: Plane, { distance, out, }?: {
         distance?: number | undefined;
         out?: Vector3 | undefined;
