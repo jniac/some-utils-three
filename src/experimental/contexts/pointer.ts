@@ -138,6 +138,11 @@ export class Pointer {
       point: new Vector3(),
     },
   }
+  /**
+   * Returns the intersection point of the ray from the camera to the pointer with the plane.
+   * 
+   * NOTE: The result point reference is reused, so it should be copied if needed for later use.
+   */
   intersectPlane(plane: Plane, {
     distance = 1000,
     out = this.#intersectPlane.result.point,
