@@ -4,7 +4,7 @@
   "description": "A library for Three.js utilities and components",
   "main": "",
   "scripts": {
-    "dev": "tsc -w",
+    "dev": "tsc-watch --onSuccess \"node scripts/post-build.mjs\"",
     "build": "tsc && node scripts/post-build.mjs"
   },
   "keywords": [
@@ -17,13 +17,14 @@
   "author": "jniac",
   "license": "ISC",
   "peerDependencies": {
-    "some-utils-ts": "workspace:*",
     "some-utils-dom": "workspace:*",
+    "some-utils-ts": "workspace:*",
     "three": ">=0.172.0"
   },
   "devDependencies": {
     "@types/three": ">=0.172.0",
     "three": ">=0.172.0",
+    "tsc-watch": "^6.2.1",
     "typescript": "^5.5.4"
   },
   "exports": {
