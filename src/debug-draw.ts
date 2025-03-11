@@ -1,4 +1,5 @@
-import { BufferAttribute, BufferGeometry, Color, ColorRepresentation, Group, Points, PointsMaterial, Vector3 } from 'three'
+import { BufferAttribute, BufferGeometry, Color, ColorRepresentation, Group, Object3D, Points, PointsMaterial, Vector3 } from 'three'
+
 import { fromVector3Declaration, Vector3Declaration } from './declaration'
 import { ShaderForge } from './shader-forge'
 
@@ -187,6 +188,11 @@ class DebugDraw {
       this.parts.pointsManager.parts.points.material.depthWrite = true
       this.parts.pointsManager.parts.points.material.transparent = false
     }
+    return this
+  }
+
+  addTo(parent: Object3D) {
+    parent.add(this.group)
     return this
   }
 }
