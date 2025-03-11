@@ -1,4 +1,4 @@
-import { BufferAttribute, BufferGeometry, ColorRepresentation, Group, Points, PointsMaterial } from 'three';
+import { BufferAttribute, BufferGeometry, ColorRepresentation, Group, Object3D, Points, PointsMaterial } from 'three';
 import { Vector3Declaration } from './declaration';
 declare class PointsManager {
     static createParts(count: number): {
@@ -35,6 +35,7 @@ declare class DebugDraw {
     point(...args: Parameters<PointsManager['point']>): this;
     clear(): this;
     onTop(value?: boolean): this;
+    addTo(parent: Object3D): this;
 }
 declare const instance: DebugDraw;
 export { instance as DebugDraw };

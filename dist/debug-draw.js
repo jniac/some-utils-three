@@ -166,6 +166,10 @@ class DebugDraw {
         }
         return this;
     }
+    addTo(parent) {
+        parent.add(this.group);
+        return this;
+    }
 }
 const instance = new DebugDraw();
 export { instance as DebugDraw };
