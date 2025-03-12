@@ -16,6 +16,8 @@ export type ThreeBaseContext = {
     pointer: Pointer;
     scene: Scene;
     camera: Camera;
+    domElement: HTMLElement;
+    domContainer: HTMLElement;
     skipRender: boolean;
     initialized: boolean;
     initialize: (domContainer: HTMLElement, pointerScope: HTMLElement) => Destroyable;

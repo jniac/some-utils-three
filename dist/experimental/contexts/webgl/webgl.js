@@ -3,11 +3,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction';
 import { destroy } from 'some-utils-ts/misc/destroy';
 import { Ticker } from 'some-utils-ts/ticker';
-import { fromVector3Declaration } from '../../../declaration.js';
-import { UnifiedLoader } from '../../../loaders/unified-loader.js';
-import { Pointer } from '../pointer.js';
-import { ThreeContextType } from '../types.js';
-import { BasicPipeline } from './pipelines/BasicPipeline.js';
+import { fromVector3Declaration } from '../../../declaration';
+import { UnifiedLoader } from '../../../loaders/unified-loader';
+import { Pointer } from '../pointer';
+import { ThreeContextType } from '../types';
+import { BasicPipeline } from './pipelines/BasicPipeline';
 /**
  * A context that provides a WebGLRenderer, a Scene, a Camera, and a Ticker.
  */
@@ -34,6 +34,8 @@ export class ThreeWebGLContext {
     pipeline = new BasicPipeline(this.renderer, this.scene, this.gizmoScene, this.perspectiveCamera);
     /** The current camera (perspective or ortho). */
     camera = this.perspectiveCamera;
+    domContainer;
+    domElement;
     internal = {
         size: new Vector2(),
         fullSize: new Vector2(),
@@ -66,7 +68,7 @@ export class ThreeWebGLContext {
         // this.pipeline.setScene(scene)
     }
     useOrbitControls({ position = null, target = null, element = null, } = {}) {
-        this.internal.orbitControls ??= new OrbitControls(this.camera, this.renderer.domElement);
+        this.internal.orbitControls ??= new OrbitControls(this.camera, domElement);
         if (typeof element === 'string') {
             element = document.querySelector(element);
         }
@@ -91,7 +93,8 @@ export class ThreeWebGLContext {
         }
         Object.defineProperty(this, 'initialized', { value: true, writable: false, configurable: false, enumerable: false });
         const { onDestroy } = this;
-        domContainer.appendChild(this.renderer.domElement);
+        const { domElement } = this.renderer;
+        domContainer.appendChild(domElement);
         // Resize
         const resize = () => {
             this.setSize({
@@ -107,13 +110,15 @@ export class ThreeWebGLContext {
         });
         resize();
         // Pointer
-        onDestroy(this.pointer.initialize(this.renderer.domElement, pointerScope, this.camera, this.ticker));
+        onDestroy(this.pointer.initialize(domElement, pointerScope, this.camera, this.ticker));
         // Tick
         onDestroy(handleAnyUserInteraction(this.ticker.requestActivation), this.ticker.onTick(this.renderFrame));
         // Orbit controls
         onDestroy(() => {
             this.internal.orbitControls?.dispose();
         });
+        this.domContainer = domContainer;
+        this.domElement = domElement;
         return this;
     }
     destroyed = false;

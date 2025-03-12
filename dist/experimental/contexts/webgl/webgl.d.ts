@@ -28,6 +28,8 @@ export declare class ThreeWebGLContext implements ThreeBaseContext {
     pipeline: BasicPipeline;
     /** The current camera (perspective or ortho). */
     camera: PerspectiveCamera;
+    domContainer: HTMLElement;
+    domElement: HTMLElement;
     private internal;
     get aspect(): number;
     get size(): Vector2;

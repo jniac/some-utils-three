@@ -46,6 +46,9 @@ export class ThreeWebGLContext implements ThreeBaseContext {
   /** The current camera (perspective or ortho). */
   camera = this.perspectiveCamera
 
+  domContainer!: HTMLElement
+  domElement!: HTMLElement
+
   private internal = {
     size: new Vector2(),
     fullSize: new Vector2(),
@@ -89,7 +92,7 @@ export class ThreeWebGLContext implements ThreeBaseContext {
     target = null as null | Vector3Declaration,
     element = null as null | HTMLElement | string,
   } = {}): OrbitControls {
-    this.internal.orbitControls ??= new OrbitControls(this.camera, this.renderer.domElement)
+    this.internal.orbitControls ??= new OrbitControls(this.camera, domElement)
     if (typeof element === 'string') {
       element = document.querySelector(element) as HTMLElement | null
     }
@@ -116,7 +119,8 @@ export class ThreeWebGLContext implements ThreeBaseContext {
     Object.defineProperty(this, 'initialized', { value: true, writable: false, configurable: false, enumerable: false })
 
     const { onDestroy } = this
-    domContainer.appendChild(this.renderer.domElement)
+    const { domElement } = this.renderer
+    domContainer.appendChild(domElement)
 
     // Resize
     const resize = () => {
@@ -134,7 +138,7 @@ export class ThreeWebGLContext implements ThreeBaseContext {
     resize()
 
     // Pointer
-    onDestroy(this.pointer.initialize(this.renderer.domElement, pointerScope, this.camera, this.ticker))
+    onDestroy(this.pointer.initialize(domElement, pointerScope, this.camera, this.ticker))
 
     // Tick
     onDestroy(
@@ -146,6 +150,9 @@ export class ThreeWebGLContext implements ThreeBaseContext {
     onDestroy(() => {
       this.internal.orbitControls?.dispose()
     })
+
+    this.domContainer = domContainer
+    this.domElement = domElement
 
     return this
   }

@@ -30,6 +30,9 @@ export class ThreeWebGPUContext implements ThreeBaseContext {
 
   camera: Camera = this.perspectiveCamera
 
+  domContainer!: HTMLElement
+  domElement!: HTMLElement
+
   skipRender = false
 
   private internal = {
@@ -127,6 +130,9 @@ export class ThreeWebGPUContext implements ThreeBaseContext {
     this.internal.cancelRequestActivation = handleAnyUserInteraction(document.body, this.ticker.requestActivation).destroy
 
     this.internal.cancelPointer = this.pointer.initialize(this.renderer.domElement, pointerScope, this.camera, this.ticker)
+
+    this.domContainer = domContainer
+    this.domElement = domElement
 
     return this
   }

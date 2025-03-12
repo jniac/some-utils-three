@@ -2,8 +2,8 @@ import { pass } from 'three/tsl';
 import { OrthographicCamera, PerspectiveCamera, PostProcessing, Scene, WebGPURenderer } from 'three/webgpu';
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction';
 import { Ticker } from 'some-utils-ts/ticker';
-import { Pointer } from '../pointer.js';
-import { ThreeContextType } from '../types.js';
+import { Pointer } from '../pointer';
+import { ThreeContextType } from '../types';
 export class ThreeWebGPUContext {
     type = ThreeContextType.WebGPU;
     width = 300;
@@ -20,6 +20,8 @@ export class ThreeWebGPUContext {
     postProcessing = new PostProcessing(this.renderer);
     scenePass = pass(this.scene, this.perspectiveCamera);
     camera = this.perspectiveCamera;
+    domContainer;
+    domElement;
     skipRender = false;
     internal = {
         observer: null,
@@ -93,6 +95,8 @@ export class ThreeWebGPUContext {
         }).destroy;
         this.internal.cancelRequestActivation = handleAnyUserInteraction(document.body, this.ticker.requestActivation).destroy;
         this.internal.cancelPointer = this.pointer.initialize(this.renderer.domElement, pointerScope, this.camera, this.ticker);
+        this.domContainer = domContainer;
+        this.domElement = domElement;
         return this;
     }
     renderFrame() {

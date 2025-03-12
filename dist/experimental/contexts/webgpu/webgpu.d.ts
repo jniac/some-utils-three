@@ -16,6 +16,8 @@ export declare class ThreeWebGPUContext implements ThreeBaseContext {
     postProcessing: PostProcessing;
     scenePass: import("three/tsl").ShaderNodeObject<import("three/webgpu").PassNode>;
     camera: Camera;
+    domContainer: HTMLElement;
+    domElement: HTMLElement;
     skipRender: boolean;
     private internal;
     get aspect(): number;
