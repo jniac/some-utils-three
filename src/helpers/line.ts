@@ -1,4 +1,4 @@
-import { Box3, BufferAttribute, BufferGeometry, Color, ColorRepresentation, GreaterDepth, LineBasicMaterial, LineSegments, Material, Matrix4, Vector2, Vector3 } from 'three'
+import { Box3, BufferAttribute, BufferGeometry, Color, ColorRepresentation, GreaterDepth, LineBasicMaterial, LineSegments, Material, Matrix4, Object3D, Vector2, Vector3 } from 'three'
 
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 
@@ -73,6 +73,15 @@ export class LineHelper<T extends Material & { color: ColorRepresentation } = Li
     this.onBeforeRender = () => {
       this.state.hasAlreadyBeenRendered = true
     }
+  }
+
+  addTo(parent: Object3D | null): this {
+    if (parent) {
+      parent.add(this)
+    } else {
+      this.removeFromParent()
+    }
+    return this
   }
 
   /**
