@@ -258,23 +258,9 @@ class LinesManager {
     return this.segments(p2, options)
   }
 
-  polylines(p: Vector3Declaration[][], options?: Parameters<DebugHelper['segments']>[1]) {
-    for (const p1 of p) {
-      this.polyline(p1, options)
-    }
-    return this
-  }
-
   polygon(p: Vector3Declaration[], options?: Parameters<DebugHelper['segments']>[1]) {
     this.polyline(p, options)
     this.line(p[p.length - 1], p[0], options)
-    return this
-  }
-
-  polygons(p: Vector3Declaration[][], options?: Parameters<DebugHelper['segments']>[1]) {
-    for (const p1 of p) {
-      this.polygon(p1, options)
-    }
     return this
   }
 
@@ -356,6 +342,15 @@ class LinesManager {
   }
 }
 
+const defaultLinePointsOptions = {
+  color: undefined as ColorRepresentation | undefined,
+  size: .1,
+  shape: 'square' as keyof typeof PointsManager.shapes,
+}
+type LinePointsOptions = {
+  points?: boolean | Partial<typeof defaultLinePointsOptions>
+}
+
 class DebugHelper extends Group {
   parts = (() => {
     const pointsManager = new PointsManager()
@@ -390,25 +385,48 @@ class DebugHelper extends Group {
     return this
   }
 
-  polyline(...args: Parameters<LinesManager['polyline']>): this {
-    this.parts.linesManager.polyline(...args)
+  polyline(
+    data: Parameters<LinesManager['polyline']>[0],
+    options?: Parameters<LinesManager['polyline']>[1] & LinePointsOptions,
+  ): this {
+    this.parts.linesManager.polyline(data, options)
+    if (options?.points) {
+      this.points(data, { ...defaultLinePointsOptions, color: options.color, ...(options.points === true ? {} : options.points) })
+    }
     return this
   }
 
-  polylines(...args: Parameters<LinesManager['polylines']>): this {
-    this.parts.linesManager.polylines(...args)
+  polylines(
+    data: Parameters<DebugHelper['polyline']>[0][],
+    options?: Parameters<DebugHelper['polyline']>[1],
+  ): this {
+    for (const d of data) {
+      this.polyline(d, options)
+    }
     return this
   }
 
-  polygon(...args: Parameters<LinesManager['polygon']>): this {
-    this.parts.linesManager.polygon(...args)
+  polygon(
+    data: Parameters<LinesManager['polygon']>[0],
+    options?: Parameters<LinesManager['polygon']>[1] & LinePointsOptions,
+  ): this {
+    this.parts.linesManager.polygon(data, options)
+    if (options?.points) {
+      this.points(data, { ...defaultLinePointsOptions, color: options.color, ...(options.points === true ? {} : options.points) })
+    }
     return this
   }
 
-  polygons(...args: Parameters<LinesManager['polygons']>): this {
-    this.parts.linesManager.polygons(...args)
+  polygons(
+    data: Parameters<DebugHelper['polygon']>[0][],
+    options?: Parameters<DebugHelper['polygon']>[1],
+  ): this {
+    for (const d of data) {
+      this.polygon(d, options)
+    }
     return this
   }
+
 
   box(...args: Parameters<LinesManager['box']>): this {
     this.parts.linesManager.box(...args)

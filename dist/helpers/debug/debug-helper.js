@@ -223,21 +223,9 @@ class LinesManager {
         }
         return this.segments(p2, options);
     }
-    polylines(p, options) {
-        for (const p1 of p) {
-            this.polyline(p1, options);
-        }
-        return this;
-    }
     polygon(p, options) {
         this.polyline(p, options);
         this.line(p[p.length - 1], p[0], options);
-        return this;
-    }
-    polygons(p, options) {
-        for (const p1 of p) {
-            this.polygon(p1, options);
-        }
         return this;
     }
     static boxDefaultOptions = {
@@ -316,6 +304,11 @@ class LinesManager {
         ], options);
     }
 }
+const defaultLinePointsOptions = {
+    color: undefined,
+    size: .1,
+    shape: 'square',
+};
 class DebugHelper extends Group {
     parts = (() => {
         const pointsManager = new PointsManager();
@@ -343,20 +336,30 @@ class DebugHelper extends Group {
         this.parts.linesManager.line(...args);
         return this;
     }
-    polyline(...args) {
-        this.parts.linesManager.polyline(...args);
+    polyline(data, options) {
+        this.parts.linesManager.polyline(data, options);
+        if (options?.points) {
+            this.points(data, { ...defaultLinePointsOptions, color: options.color, ...(options.points === true ? {} : options.points) });
+        }
         return this;
     }
-    polylines(...args) {
-        this.parts.linesManager.polylines(...args);
+    polylines(data, options) {
+        for (const d of data) {
+            this.polyline(d, options);
+        }
         return this;
     }
-    polygon(...args) {
-        this.parts.linesManager.polygon(...args);
+    polygon(data, options) {
+        this.parts.linesManager.polygon(data, options);
+        if (options?.points) {
+            this.points(data, { ...defaultLinePointsOptions, color: options.color, ...(options.points === true ? {} : options.points) });
+        }
         return this;
     }
-    polygons(...args) {
-        this.parts.linesManager.polygons(...args);
+    polygons(data, options) {
+        for (const d of data) {
+            this.polygon(d, options);
+        }
         return this;
     }
     box(...args) {
