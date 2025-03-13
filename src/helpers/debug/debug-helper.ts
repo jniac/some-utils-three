@@ -1,8 +1,9 @@
 import { BufferAttribute, BufferGeometry, Color, ColorRepresentation, Group, LineSegments, Object3D, Points, PointsMaterial, Vector3 } from 'three'
 
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
-import { fromVector3Declaration, Vector3Declaration } from './declaration'
-import { ShaderForge } from './shader-forge'
+
+import { fromVector3Declaration, Vector3Declaration } from '../../declaration'
+import { ShaderForge } from '../../shader-forge'
 
 const _v0 = new Vector3()
 const _c0 = new Color()
@@ -161,7 +162,7 @@ class PointsManager {
     return this
   }
 
-  point(p: Vector3Declaration, options?: Parameters<DebugDraw['points']>[1]) {
+  point(p: Vector3Declaration, options?: Parameters<DebugHelper['points']>[1]) {
     return this.points([p], options)
   }
 }
@@ -243,11 +244,11 @@ class LinesManager {
     return this
   }
 
-  line(p0: Vector3Declaration, p1: Vector3Declaration, options?: Parameters<DebugDraw['segments']>[1]) {
+  line(p0: Vector3Declaration, p1: Vector3Declaration, options?: Parameters<DebugHelper['segments']>[1]) {
     return this.segments([p0, p1], options)
   }
 
-  polyline(p: Vector3Declaration[], options?: Parameters<DebugDraw['segments']>[1]) {
+  polyline(p: Vector3Declaration[], options?: Parameters<DebugHelper['segments']>[1]) {
     const count = (p.length - 1) * 2
     const p2 = new Array(count)
     for (let i = 1; i < p.length; i++) {
@@ -257,11 +258,31 @@ class LinesManager {
     return this.segments(p2, options)
   }
 
+  polylines(p: Vector3Declaration[][], options?: Parameters<DebugHelper['segments']>[1]) {
+    for (const p1 of p) {
+      this.polyline(p1, options)
+    }
+    return this
+  }
+
+  polygon(p: Vector3Declaration[], options?: Parameters<DebugHelper['segments']>[1]) {
+    this.polyline(p, options)
+    this.line(p[p.length - 1], p[0], options)
+    return this
+  }
+
+  polygons(p: Vector3Declaration[][], options?: Parameters<DebugHelper['segments']>[1]) {
+    for (const p1 of p) {
+      this.polygon(p1, options)
+    }
+    return this
+  }
+
   static boxDefaultOptions = {
     inset: 0,
   }
   static #box = { x0: 0, y0: 0, z0: 0, x1: 0, y1: 0, z1: 0 }
-  static #solveBox(value: Parameters<DebugDraw['box']>[0]) {
+  static #solveBox(value: Parameters<DebugHelper['box']>[0]) {
     fromVector3Declaration(value.min, _v0)
     LinesManager.#box.x0 = _v0.x
     LinesManager.#box.y0 = _v0.y
@@ -271,7 +292,7 @@ class LinesManager {
     LinesManager.#box.y1 = _v0.y
     LinesManager.#box.z1 = _v0.z
   }
-  box(value: { min: Vector3Declaration, max: Vector3Declaration }, options?: Partial<typeof LinesManager.boxDefaultOptions> & Parameters<DebugDraw['segments']>[1]) {
+  box(value: { min: Vector3Declaration, max: Vector3Declaration }, options?: Partial<typeof LinesManager.boxDefaultOptions> & Parameters<DebugHelper['segments']>[1]) {
     LinesManager.#solveBox(value)
     const { inset } = { ...LinesManager.boxDefaultOptions, ...options }
     let { x0, y0, z0, x1, y1, z1 } = LinesManager.#box
@@ -315,7 +336,7 @@ class LinesManager {
   static rectDefaultOptions = {
     inset: 0,
   }
-  rect(value: RectangleDeclaration, options?: Partial<typeof LinesManager.rectDefaultOptions> & Parameters<DebugDraw['segments']>[1]) {
+  rect(value: RectangleDeclaration, options?: Partial<typeof LinesManager.rectDefaultOptions> & Parameters<DebugHelper['segments']>[1]) {
     let { minX, minY, maxX, maxY } = Rectangle.from(value)
     const { inset } = { ...LinesManager.rectDefaultOptions, ...options }
     minX += inset
@@ -335,15 +356,13 @@ class LinesManager {
   }
 }
 
-class DebugDraw {
-  group = new Group()
-
+class DebugHelper extends Group {
   parts = (() => {
     const pointsManager = new PointsManager()
-    this.group.add(pointsManager.parts.points)
+    this.add(pointsManager.parts.points)
 
     const linesManager = new LinesManager()
-    this.group.add(linesManager.parts.lines)
+    this.add(linesManager.parts.lines)
 
     return {
       pointsManager,
@@ -376,6 +395,21 @@ class DebugDraw {
     return this
   }
 
+  polylines(...args: Parameters<LinesManager['polylines']>): this {
+    this.parts.linesManager.polylines(...args)
+    return this
+  }
+
+  polygon(...args: Parameters<LinesManager['polygon']>): this {
+    this.parts.linesManager.polygon(...args)
+    return this
+  }
+
+  polygons(...args: Parameters<LinesManager['polygons']>): this {
+    this.parts.linesManager.polygons(...args)
+    return this
+  }
+
   box(...args: Parameters<LinesManager['box']>): this {
     this.parts.linesManager.box(...args)
     return this
@@ -399,12 +433,23 @@ class DebugDraw {
     return this
   }
 
-  addTo(parent: Object3D) {
-    parent.add(this.group)
+  addTo(parent: Object3D | null): this {
+    if (parent) {
+      parent.add(this)
+    } else {
+      this.removeFromParent()
+    }
     return this
   }
 }
 
-const debugDraw = new DebugDraw()
+/**
+ * Static instance of DebugHelper for convenience. Can be used as a global debug draw.
+ */
+const debugHelper = new DebugHelper()
 
-export { debugDraw }
+export {
+  debugHelper,
+  DebugHelper
+}
+
