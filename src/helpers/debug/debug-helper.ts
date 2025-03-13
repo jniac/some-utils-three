@@ -89,6 +89,7 @@ class PointsManager {
         // diffuseColor.rgb *= vec3(gl_PointCoord, 1.0);
       `)
     const points = new Points(geometry, material)
+    points.frustumCulled = false
     // points.geometry.setDrawRange(0, 0)
     return {
       count,
@@ -179,6 +180,7 @@ class LinesManager {
     }
     const material = new PointsMaterial({ vertexColors: true })
     const lines = new LineSegments(geometry, material)
+    lines.frustumCulled = false
     return {
       count,
       geometry,
