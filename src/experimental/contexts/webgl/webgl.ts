@@ -92,10 +92,10 @@ export class ThreeWebGLContext implements ThreeBaseContext {
     target = null as null | Vector3Declaration,
     element = null as null | HTMLElement | string,
   } = {}): OrbitControls {
-    this.internal.orbitControls ??= new OrbitControls(this.camera, domElement)
     if (typeof element === 'string') {
       element = document.querySelector(element) as HTMLElement | null
     }
+    this.internal.orbitControls ??= new OrbitControls(this.camera, element)
     if (element && element !== this.internal.orbitControls.domElement) {
       this.internal.orbitControls.dispose()
       this.internal.orbitControls = new OrbitControls(this.camera, element)

@@ -1,2 +1,2 @@
-export * from './pipelines';
-export * from './webgl';
+export * from './pipelines/index.js';
+export * from './webgl.js';

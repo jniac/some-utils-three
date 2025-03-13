@@ -1,4 +1,4 @@
-import { Box3, BufferGeometry, Color, ColorRepresentation, LineBasicMaterial, LineSegments, Material, Vector3 } from 'three';
+import { Box3, BufferGeometry, Color, ColorRepresentation, LineBasicMaterial, LineSegments, Material, Object3D, Vector3 } from 'three';
 import { RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle';
 import { TransformDeclaration, Vector2Declaration, Vector3Declaration } from '../declaration';
 type BasicOptions = Partial<{
@@ -19,6 +19,7 @@ export declare class LineHelper<T extends Material & {
      * @param reservePoints If you know the number of points that will be added, you can set this value to avoid to overallocate memory later.
      */
     constructor(reservePoints?: number, material?: T);
+    addTo(parent: Object3D | null): this;
     /**
      * Returns an iterator that yields all the unique points in the line (no duplicates).
      */

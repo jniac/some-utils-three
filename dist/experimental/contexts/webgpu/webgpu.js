@@ -2,8 +2,8 @@ import { pass } from 'three/tsl';
 import { OrthographicCamera, PerspectiveCamera, PostProcessing, Scene, WebGPURenderer } from 'three/webgpu';
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction';
 import { Ticker } from 'some-utils-ts/ticker';
-import { Pointer } from '../pointer';
-import { ThreeContextType } from '../types';
+import { Pointer } from '../pointer.js';
+import { ThreeContextType } from '../types.js';
 export class ThreeWebGPUContext {
     type = ThreeContextType.WebGPU;
     width = 300;

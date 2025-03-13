@@ -54,6 +54,15 @@ export class LineHelper extends LineSegments {
             this.state.hasAlreadyBeenRendered = true;
         };
     }
+    addTo(parent) {
+        if (parent) {
+            parent.add(this);
+        }
+        else {
+            this.removeFromParent();
+        }
+        return this;
+    }
     /**
      * Returns an iterator that yields all the unique points in the line (no duplicates).
      */

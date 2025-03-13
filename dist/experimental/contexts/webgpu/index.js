@@ -1,1 +1,1 @@
-export * from './webgpu';
+export * from './webgpu.js';

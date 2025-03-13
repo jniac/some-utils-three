@@ -3,11 +3,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction';
 import { destroy } from 'some-utils-ts/misc/destroy';
 import { Ticker } from 'some-utils-ts/ticker';
-import { fromVector3Declaration } from '../../../declaration';
-import { UnifiedLoader } from '../../../loaders/unified-loader';
-import { Pointer } from '../pointer';
-import { ThreeContextType } from '../types';
-import { BasicPipeline } from './pipelines/BasicPipeline';
+import { fromVector3Declaration } from '../../../declaration.js';
+import { UnifiedLoader } from '../../../loaders/unified-loader.js';
+import { Pointer } from '../pointer.js';
+import { ThreeContextType } from '../types.js';
+import { BasicPipeline } from './pipelines/BasicPipeline.js';
 /**
  * A context that provides a WebGLRenderer, a Scene, a Camera, and a Ticker.
  */
@@ -68,10 +68,10 @@ export class ThreeWebGLContext {
         // this.pipeline.setScene(scene)
     }
     useOrbitControls({ position = null, target = null, element = null, } = {}) {
-        this.internal.orbitControls ??= new OrbitControls(this.camera, domElement);
         if (typeof element === 'string') {
             element = document.querySelector(element);
         }
+        this.internal.orbitControls ??= new OrbitControls(this.camera, element);
         if (element && element !== this.internal.orbitControls.domElement) {
             this.internal.orbitControls.dispose();
             this.internal.orbitControls = new OrbitControls(this.camera, element);
