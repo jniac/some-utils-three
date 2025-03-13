@@ -405,6 +405,6 @@ class DebugDraw {
   }
 }
 
-const instance = new DebugDraw()
+const debugDraw = new DebugDraw()
 
-export { instance as DebugDraw }
+export { debugDraw }
