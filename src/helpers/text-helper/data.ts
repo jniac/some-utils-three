@@ -84,7 +84,7 @@ export class TextHelperData {
   get textureSize() { return new Vector2(this.metadata.textureWidth, this.metadata.textureHeight) }
 
   constructor(symbols: string, textCount: number, lineCount: number, lineLength: number, {
-    defaultColor = '#ff00ff',
+    defaultColor = '#ffffff',
     defaultTextOpacity = 1,
     defaultBackgroundOpacity = 0,
   } = {}) {
