@@ -15,7 +15,7 @@ type EulerDeclarationObject = {
     unit?: AngleUnit;
     order?: Euler['order'];
 };
-type EulerDeclarationBase = EulerDeclarationArray | EulerDeclarationObject;
+type EulerDeclarationBase = EulerDeclarationArray | EulerDeclarationObject | string;
 export type EulerDeclaration = ReadonlyOrNot<EulerDeclarationBase>;
 export type TransformDeclaration = Partial<{
     x: number;

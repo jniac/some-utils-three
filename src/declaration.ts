@@ -50,7 +50,8 @@ type EulerDeclarationArray =
   | [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration, order: Euler['order'], unit: AngleUnit]
   | [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration, unit: AngleUnit]
 type EulerDeclarationObject = { x: AngleDeclaration; y: AngleDeclaration; z: AngleDeclaration; unit?: AngleUnit; order?: Euler['order'] }
-type EulerDeclarationBase = EulerDeclarationArray | EulerDeclarationObject
+// type EulerDeclarationString = `${AngleDeclaration}, ${AngleDeclaration}, ${AngleDeclaration}${'' | `, ${Euler['order']}`}` // Too heavy for TS
+type EulerDeclarationBase = EulerDeclarationArray | EulerDeclarationObject | string
 
 export type EulerDeclaration = ReadonlyOrNot<EulerDeclarationBase>
 
@@ -95,6 +96,16 @@ export function fromVector4Declaration(arg: Vector4Declaration, out: Vector4 = n
 
 const defaultFromEulerDeclarationOptions = { defaultOrder: <EulerOrder>'XYZ' }
 type FromEulerDeclarationOptions = typeof defaultFromEulerDeclarationOptions
+
+function fromEulerDeclarationString(str: string, options: FromEulerDeclarationOptions, out: Euler = new Euler()): Euler {
+  const [xAngle, yAngle = '', zAngle = '', orderOption] = str.split(',').map(x => x.trim()) as [string, string, string, string]
+  const x = fromAngleDeclaration(xAngle as AngleDeclaration) || 0
+  const y = fromAngleDeclaration(yAngle as AngleDeclaration) || 0
+  const z = fromAngleDeclaration(zAngle as AngleDeclaration) || 0
+  const order = isEulerOrder(orderOption) ? orderOption : options.defaultOrder
+  return out.set(x, y, z, order)
+}
+
 export function fromEulerDeclaration(arg: EulerDeclaration, out?: Euler): Euler
 export function fromEulerDeclaration(arg: EulerDeclaration, options: FromEulerDeclarationOptions, out?: Euler): Euler
 export function fromEulerDeclaration(...args: any[]): Euler {
@@ -113,12 +124,17 @@ export function fromEulerDeclaration(...args: any[]): Euler {
 
     throw new Error('Invalid number of arguments')
   }
-  const [arg, { defaultOrder }, out] = parseArgs()
+  const [arg, options, out] = parseArgs()
+
+  if (typeof arg === 'string') {
+    return fromEulerDeclarationString(arg, options, out)
+  }
 
   if (isEuler(arg)) {
     return out.copy(arg)
   }
 
+  const { defaultOrder } = options
   if (Array.isArray(arg)) {
     const [x, y, z, arg0, arg1] = arg
     const unit = isAngleUnit(arg0) ? arg0 : isAngleUnit(arg1) ? arg1 : 'rad'

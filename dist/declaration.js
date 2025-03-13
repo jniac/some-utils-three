@@ -25,6 +25,14 @@ export function fromVector4Declaration(arg, out = new Vector4()) {
     return agnostic.fromVector4Declaration(arg, out);
 }
 const defaultFromEulerDeclarationOptions = { defaultOrder: 'XYZ' };
+function fromEulerDeclarationString(str, options, out = new Euler()) {
+    const [xAngle, yAngle = '', zAngle = '', orderOption] = str.split(',').map(x => x.trim());
+    const x = fromAngleDeclaration(xAngle) || 0;
+    const y = fromAngleDeclaration(yAngle) || 0;
+    const z = fromAngleDeclaration(zAngle) || 0;
+    const order = isEulerOrder(orderOption) ? orderOption : options.defaultOrder;
+    return out.set(x, y, z, order);
+}
 export function fromEulerDeclaration(...args) {
     const parseArgs = () => {
         if (args.length === 1)
@@ -38,10 +46,14 @@ export function fromEulerDeclaration(...args) {
             return args;
         throw new Error('Invalid number of arguments');
     };
-    const [arg, { defaultOrder }, out] = parseArgs();
+    const [arg, options, out] = parseArgs();
+    if (typeof arg === 'string') {
+        return fromEulerDeclarationString(arg, options, out);
+    }
     if (isEuler(arg)) {
         return out.copy(arg);
     }
+    const { defaultOrder } = options;
     if (Array.isArray(arg)) {
         const [x, y, z, arg0, arg1] = arg;
         const unit = isAngleUnit(arg0) ? arg0 : isAngleUnit(arg1) ? arg1 : 'rad';
