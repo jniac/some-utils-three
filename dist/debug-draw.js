@@ -355,5 +355,5 @@ class DebugDraw {
         return this;
     }
 }
-const instance = new DebugDraw();
-export { instance as DebugDraw };
+const debugDraw = new DebugDraw();
+export { debugDraw };

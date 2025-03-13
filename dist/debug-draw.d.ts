@@ -90,5 +90,5 @@ declare class DebugDraw {
     onTop(value?: boolean): this;
     addTo(parent: Object3D): this;
 }
-declare const instance: DebugDraw;
-export { instance as DebugDraw };
+declare const debugDraw: DebugDraw;
+export { debugDraw };
