@@ -1,21 +1,35 @@
-import { DataTexture, DoubleSide, InstancedMesh, MeshBasicMaterial, PlaneGeometry, RGBAFormat, UnsignedByteType, Vector2 } from 'three';
+import { DataTexture, DoubleSide, InstancedMesh, Matrix4, MeshBasicMaterial, PlaneGeometry, RGBAFormat, UnsignedByteType, Vector2 } from 'three';
 import { ShaderForge } from '../../shader-forge.js';
 import { makeMatrix4 } from '../../utils/make.js';
 import { TextHelperAtlas } from './atlas.js';
 import { TextHelperData } from './data.js';
 import { getDataStringView } from './utils.js';
-export var Orientation;
-(function (Orientation) {
-    Orientation[Orientation["Normal"] = 0] = "Normal";
-    Orientation[Orientation["Billboard"] = 1] = "Billboard";
-})(Orientation || (Orientation = {}));
+const orientations = {
+    'oriented': 0,
+    'billboard': 1,
+};
+const Orientation = {
+    Normal: 0,
+    Billboard: 1,
+};
+function solveOrientation(orientation) {
+    if (typeof orientation === 'string') {
+        if (orientation in orientations) {
+            return orientations[orientation];
+        }
+        throw new Error(`Invalid orientation: ${orientation}`);
+    }
+    return orientation;
+}
 const defaultOptions = {
     textCount: 1000,
     lineLength: 24,
     lineCount: 2,
     charSize: new Vector2(.2, .3),
     textSize: 1,
-    orientation: Orientation.Billboard,
+    orientation: 'billboard',
+    defaultColor: '#ff00ff',
+    defaultSize: 1,
 };
 let nextId = 0;
 export class TextHelper extends InstancedMesh {
@@ -39,16 +53,9 @@ export class TextHelper extends InstancedMesh {
         const data = new TextHelperData(atlas.symbols, options.textCount, options.lineCount, options.lineLength);
         const dataTexture = new DataTexture(data.array, data.textureSize.width, data.textureSize.height, RGBAFormat, UnsignedByteType);
         dataTexture.needsUpdate = true;
-        const material = new MeshBasicMaterial({
-            map: atlas.texture,
-            transparent: true,
-            alphaTest: .5,
-            side: DoubleSide,
-        });
-        material.name = 'TextHelperMaterial';
-        material.onBeforeCompile = shader => ShaderForge.with(shader)
-            .uniforms({
-            uOrientation: { value: options.orientation },
+        const uniforms = {
+            uCameraMatrix: { value: new Matrix4() },
+            uOrientation: { value: solveOrientation(options.orientation) },
             uPlaneSize: { value: planeSize },
             uCharSize: { value: options.charSize },
             uLineLength: { value: options.lineLength },
@@ -59,7 +66,16 @@ export class TextHelper extends InstancedMesh {
             uDataTexture: { value: dataTexture },
             uDataTextureSize: { value: data.textureSize },
             uBoxBorderWidth: { value: 0 }, // debug border
-        })
+        };
+        const material = new MeshBasicMaterial({
+            map: atlas.texture,
+            transparent: true,
+            alphaTest: .5,
+            side: DoubleSide,
+        });
+        material.name = 'TextHelperMaterial';
+        material.onBeforeCompile = shader => ShaderForge.with(shader)
+            .uniforms(uniforms)
             .varying({
             vInstanceId: 'float',
             vTextColor: 'vec4',
@@ -110,16 +126,15 @@ export class TextHelper extends InstancedMesh {
 
         vec4 mvPosition = vec4(transformed * size, 1.0);
 
-        mat4 localMatrix = instanceMatrix;
+        mat4 textMatrix = uOrientation < 0.5
+          ? modelMatrix * instanceMatrix
+          : mat4(
+            uCameraMatrix[0],
+            uCameraMatrix[1],
+            uCameraMatrix[2],
+            modelMatrix * vec4(instanceMatrix[3].xyz, 1.0));
 
-        if (uOrientation == 1.0) {
-          mat3 v = mat3(viewMatrix);
-          v = inverse(v);
-          localMatrix = mat4(v);
-          localMatrix[3] = vec4(instanceMatrix[3].xyz, 1.0);
-        }
-
-        mvPosition = viewMatrix * modelMatrix * localMatrix * mvPosition;
+        mvPosition = viewMatrix * textMatrix * mvPosition;
 
         gl_Position = projectionMatrix * mvPosition;
 
@@ -180,6 +195,9 @@ export class TextHelper extends InstancedMesh {
         diffuseColor = getCharColorWithBorder();
       `);
         super(geometry, material, options.textCount);
+        this.onBeforeRender = (renderer, scene, camera, geometry, material, group) => {
+            uniforms.uCameraMatrix.value.copy(camera.matrixWorld);
+        };
         // Frustum culling cannot be applied since each text position is defined into the data texture.
         this.frustumCulled = false;
         this.layers;
@@ -189,6 +207,15 @@ export class TextHelper extends InstancedMesh {
         this.dataTexture = dataTexture;
         this.derived = { planeSize };
     }
+    addTo(parent) {
+        if (parent) {
+            parent.add(this);
+        }
+        else {
+            this.removeFromParent();
+        }
+        return this;
+    }
     setData(data) {
         this.data = data;
         this.dataTexture.image.data = data.array;
@@ -196,6 +223,8 @@ export class TextHelper extends InstancedMesh {
         return this;
     }
     setTextAt(index, text, options = {}) {
+        options.color ??= this.options.defaultColor;
+        options.size ??= this.options.defaultSize;
         this.data.setTextAt(index, text, options);
         this.dataTexture.needsUpdate = true;
         this.setMatrixAt(index, makeMatrix4(options));

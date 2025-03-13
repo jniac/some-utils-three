@@ -27,7 +27,7 @@ export class TextHelperData {
     get strideHeaderByteSize() { return this.metadata.strideHeaderByteSize; }
     get strideByteSize() { return this.metadata.strideByteSize; }
     get textureSize() { return new Vector2(this.metadata.textureWidth, this.metadata.textureHeight); }
-    constructor(symbols, textCount, lineCount, lineLength, { defaultColor = '#ff00ff', defaultTextOpacity = 1, defaultBackgroundOpacity = 0, } = {}) {
+    constructor(symbols, textCount, lineCount, lineLength, { defaultColor = '#ffffff', defaultTextOpacity = 1, defaultBackgroundOpacity = 0, } = {}) {
         const strideHeader = DATA_STRIDE_HEADER_BYTE_SIZE + lineCount * 4;
         const stride = strideHeader + Math.ceil((lineCount * lineLength) / 4) * 4;
         const bytes = strideHeader + textCount * stride;

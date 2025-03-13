@@ -1,18 +1,20 @@
-import { BufferGeometry, Color, DataTexture, InstancedMesh, MeshBasicMaterial, Vector2 } from 'three';
+import { BufferGeometry, Color, ColorRepresentation, DataTexture, InstancedMesh, MeshBasicMaterial, Object3D, Vector2 } from 'three';
 import { TransformDeclaration } from '../../declaration';
 import { TextHelperAtlas } from './atlas';
 import { SetColorOptions, SetTextOption, TextHelperData } from './data';
-export declare enum Orientation {
-    Normal = 0,
-    Billboard = 1
-}
+declare const orientations: {
+    oriented: number;
+    billboard: number;
+};
 declare const defaultOptions: {
     textCount: number;
     lineLength: number;
     lineCount: number;
     charSize: Vector2;
     textSize: number;
-    orientation: Orientation;
+    orientation: (keyof typeof orientations) | number;
+    defaultColor: ColorRepresentation;
+    defaultSize: number;
 };
 export declare class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicMaterial> {
     static readonly defaultOptions: {
@@ -21,9 +23,14 @@ export declare class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicM
         lineCount: number;
         charSize: Vector2;
         textSize: number;
-        orientation: Orientation;
+        orientation: (keyof typeof orientations) | number;
+        defaultColor: ColorRepresentation;
+        defaultSize: number;
     };
-    static readonly Orientation: typeof Orientation;
+    static readonly Orientation: {
+        Normal: number;
+        Billboard: number;
+    };
     static readonly Atlas: typeof TextHelperAtlas;
     static readonly Data: typeof TextHelperData;
     readonly textHelperId: number;
@@ -35,6 +42,7 @@ export declare class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicM
     data: TextHelperData;
     dataTexture: DataTexture;
     constructor(userOptions?: Partial<typeof defaultOptions>);
+    addTo(parent: Object3D | null): this;
     setData(data: TextHelperData): this;
     setTextAt(index: number, text: string, options?: TransformDeclaration & SetTextOption): this;
     setColorAt(index: number, color: Color): void;
