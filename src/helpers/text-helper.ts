@@ -1,1 +1,4 @@
-export * from './text-helper/index'
+/**
+ * @deprecated Use `helpers/text` instead
+ */
+export * from './text/index'

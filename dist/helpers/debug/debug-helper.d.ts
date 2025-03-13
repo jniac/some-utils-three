@@ -1,6 +1,6 @@
 import { BufferAttribute, BufferGeometry, ColorRepresentation, Group, LineSegments, Object3D, Points, PointsMaterial } from 'three';
 import { RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle';
-import { Vector3Declaration } from './declaration';
+import { Vector3Declaration } from '../../declaration';
 declare class PointsManager {
     static shapes: {
         square: number;
@@ -34,9 +34,9 @@ declare class PointsManager {
         size?: number | undefined;
         scale?: number | undefined;
         color?: ColorRepresentation | undefined;
-        shape?: "square" | "circle" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "cross" | undefined;
+        shape?: "circle" | "cross" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "square" | undefined;
     }): this;
-    point(p: Vector3Declaration, options?: Parameters<DebugDraw['points']>[1]): this;
+    point(p: Vector3Declaration, options?: Parameters<DebugHelper['points']>[1]): this;
 }
 declare class LinesManager {
     #private;
@@ -59,22 +59,24 @@ declare class LinesManager {
     segments(p: Vector3Declaration[], { color: argColor, }?: {
         color?: ColorRepresentation | undefined;
     }): this;
-    line(p0: Vector3Declaration, p1: Vector3Declaration, options?: Parameters<DebugDraw['segments']>[1]): this;
-    polyline(p: Vector3Declaration[], options?: Parameters<DebugDraw['segments']>[1]): this;
+    line(p0: Vector3Declaration, p1: Vector3Declaration, options?: Parameters<DebugHelper['segments']>[1]): this;
+    polyline(p: Vector3Declaration[], options?: Parameters<DebugHelper['segments']>[1]): this;
+    polylines(p: Vector3Declaration[][], options?: Parameters<DebugHelper['segments']>[1]): this;
+    polygon(p: Vector3Declaration[], options?: Parameters<DebugHelper['segments']>[1]): this;
+    polygons(p: Vector3Declaration[][], options?: Parameters<DebugHelper['segments']>[1]): this;
     static boxDefaultOptions: {
         inset: number;
     };
     box(value: {
         min: Vector3Declaration;
         max: Vector3Declaration;
-    }, options?: Partial<typeof LinesManager.boxDefaultOptions> & Parameters<DebugDraw['segments']>[1]): this;
+    }, options?: Partial<typeof LinesManager.boxDefaultOptions> & Parameters<DebugHelper['segments']>[1]): this;
     static rectDefaultOptions: {
         inset: number;
     };
-    rect(value: RectangleDeclaration, options?: Partial<typeof LinesManager.rectDefaultOptions> & Parameters<DebugDraw['segments']>[1]): this;
+    rect(value: RectangleDeclaration, options?: Partial<typeof LinesManager.rectDefaultOptions> & Parameters<DebugHelper['segments']>[1]): this;
 }
-declare class DebugDraw {
-    group: Group<import("three").Object3DEventMap>;
+declare class DebugHelper extends Group {
     parts: {
         pointsManager: PointsManager;
         linesManager: LinesManager;
@@ -84,11 +86,17 @@ declare class DebugDraw {
     segments(...args: Parameters<LinesManager['segments']>): this;
     line(...args: Parameters<LinesManager['line']>): this;
     polyline(...args: Parameters<LinesManager['polyline']>): this;
+    polylines(...args: Parameters<LinesManager['polylines']>): this;
+    polygon(...args: Parameters<LinesManager['polygon']>): this;
+    polygons(...args: Parameters<LinesManager['polygons']>): this;
     box(...args: Parameters<LinesManager['box']>): this;
     rect(...args: Parameters<LinesManager['rect']>): this;
     clear(): this;
     onTop(value?: boolean): this;
-    addTo(parent: Object3D): this;
+    addTo(parent: Object3D | null): this;
 }
-declare const debugDraw: DebugDraw;
-export { debugDraw };
+/**
+ * Static instance of DebugHelper for convenience. Can be used as a global debug draw.
+ */
+declare const debugHelper: DebugHelper;
+export { debugHelper, DebugHelper };

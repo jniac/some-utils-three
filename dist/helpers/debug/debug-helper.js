@@ -1,7 +1,7 @@
 import { BufferAttribute, BufferGeometry, Color, Group, LineSegments, Points, PointsMaterial, Vector3 } from 'three';
 import { Rectangle } from 'some-utils-ts/math/geom/rectangle';
-import { fromVector3Declaration } from './declaration.js';
-import { ShaderForge } from './shader-forge.js';
+import { fromVector3Declaration } from '../../declaration.js';
+import { ShaderForge } from '../../shader-forge.js';
 const _v0 = new Vector3();
 const _c0 = new Color();
 class PointsManager {
@@ -223,6 +223,23 @@ class LinesManager {
         }
         return this.segments(p2, options);
     }
+    polylines(p, options) {
+        for (const p1 of p) {
+            this.polyline(p1, options);
+        }
+        return this;
+    }
+    polygon(p, options) {
+        this.polyline(p, options);
+        this.line(p[p.length - 1], p[0], options);
+        return this;
+    }
+    polygons(p, options) {
+        for (const p1 of p) {
+            this.polygon(p1, options);
+        }
+        return this;
+    }
     static boxDefaultOptions = {
         inset: 0,
     };
@@ -299,13 +316,12 @@ class LinesManager {
         ], options);
     }
 }
-class DebugDraw {
-    group = new Group();
+class DebugHelper extends Group {
     parts = (() => {
         const pointsManager = new PointsManager();
-        this.group.add(pointsManager.parts.points);
+        this.add(pointsManager.parts.points);
         const linesManager = new LinesManager();
-        this.group.add(linesManager.parts.lines);
+        this.add(linesManager.parts.lines);
         return {
             pointsManager,
             linesManager,
@@ -331,6 +347,18 @@ class DebugDraw {
         this.parts.linesManager.polyline(...args);
         return this;
     }
+    polylines(...args) {
+        this.parts.linesManager.polylines(...args);
+        return this;
+    }
+    polygon(...args) {
+        this.parts.linesManager.polygon(...args);
+        return this;
+    }
+    polygons(...args) {
+        this.parts.linesManager.polygons(...args);
+        return this;
+    }
     box(...args) {
         this.parts.linesManager.box(...args);
         return this;
@@ -351,9 +379,17 @@ class DebugDraw {
         return this;
     }
     addTo(parent) {
-        parent.add(this.group);
+        if (parent) {
+            parent.add(this);
+        }
+        else {
+            this.removeFromParent();
+        }
         return this;
     }
 }
-const debugDraw = new DebugDraw();
-export { debugDraw };
+/**
+ * Static instance of DebugHelper for convenience. Can be used as a global debug draw.
+ */
+const debugHelper = new DebugHelper();
+export { debugHelper, DebugHelper };
