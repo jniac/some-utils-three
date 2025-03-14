@@ -34,7 +34,7 @@ declare class PointsManager {
         size?: number | undefined;
         scale?: number | undefined;
         color?: ColorRepresentation | undefined;
-        shape?: "square" | "circle" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "cross" | undefined;
+        shape?: "circle" | "cross" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "square" | undefined;
     }): this;
     point(p: Vector3Declaration, options?: Parameters<DebugHelper['points']>[1]): this;
 }
