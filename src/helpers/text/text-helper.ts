@@ -248,6 +248,12 @@ export class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicMaterial>
     return this
   }
 
+  clearAllText() {
+    this.instanceMatrix.array.fill(0)
+    this.instanceMatrix.needsUpdate = true
+    return this
+  }
+
   setTextAt(index: number, text: string, options: TransformDeclaration & SetTextOption = {}) {
     options.color ??= this.options.defaultColor
     options.size ??= this.options.defaultSize

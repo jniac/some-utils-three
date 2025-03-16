@@ -2,7 +2,10 @@ import { BufferAttribute, BufferGeometry, Color, Group, LineSegments, Points, Po
 import { Rectangle } from 'some-utils-ts/math/geom/rectangle';
 import { fromVector3Declaration } from '../../declaration.js';
 import { ShaderForge } from '../../shader-forge.js';
+import { TextHelper } from '../text.js';
 const _v0 = new Vector3();
+const _v1 = new Vector3();
+const _v2 = new Vector3();
 const _c0 = new Color();
 class PointsManager {
     static shapes = (() => {
@@ -192,18 +195,20 @@ class LinesManager {
         }
         return this;
     }
-    segments(p, { color: argColor = 'white', } = {}) {
-        const count = p.length;
-        const { index: i0 } = this.state;
+    static defaultOptions = {
+        color: 'white',
+    };
+    segmentsArray(p, options) {
         const { position, color } = this.parts.attributes;
-        const { r, g, b } = _c0.set(argColor);
-        for (let i1 = 0; i1 < count; i1++) {
-            const { x: x0, y: y0, z: z0 } = fromVector3Declaration(p[i1], _v0);
-            let i = i0 + i1;
-            position.setXYZ(i, x0, y0, z0);
-            color.setXYZ(i, r, g, b);
+        const { index } = this.state;
+        const { color: colorArg } = { ...LinesManager.defaultOptions, ...options };
+        const { r, g, b } = _c0.set(colorArg);
+        const count = p.length / 3;
+        position.array.set(p, index * 3);
+        for (let i = 0; i < count; i++) {
+            color.setXYZ(index + i, r, g, b);
         }
-        this.state.index = i0 + count;
+        this.state.index = index + count;
         this.parts.geometry.setDrawRange(0, this.state.index);
         for (const attr of Object.values(this.parts.attributes)) {
             attr.needsUpdate = true;
@@ -212,6 +217,18 @@ class LinesManager {
             throw new Error('Not implemented!');
         }
         return this;
+    }
+    segments(p, options) {
+        const count = p.length;
+        const array = new Float32Array(count * 3);
+        for (let i1 = 0; i1 < count; i1++) {
+            const { x, y, z } = fromVector3Declaration(p[i1], _v0);
+            const i = i1 * 3;
+            array[i + 0] = x;
+            array[i + 1] = y;
+            array[i + 2] = z;
+        }
+        return this.segmentsArray(array, options);
     }
     line(p0, p1, options) {
         return this.segments([p0, p1], options);
@@ -305,6 +322,84 @@ class LinesManager {
             { x: minX, y: minY, z: 0 },
         ], options);
     }
+    static circleQualityPresets = {
+        'low': 12,
+        'medium': 24,
+        'high': 64,
+        'ultra': 256,
+    };
+    circle({ center = 0, axis = 'z', radius = 1, quality = 'medium', segments = undefined, } = {}, options) {
+        segments ??= LinesManager.circleQualityPresets[quality];
+        const { x, y, z } = fromVector3Declaration(center, _v0);
+        fromVector3Declaration(axis, _v0)
+            .normalize();
+        _v1
+            .set(_v0.y, _v0.z, _v0.x) // permute to have a non-parallel vector
+            .cross(_v0)
+            .normalize();
+        _v2
+            .crossVectors(_v0, _v1);
+        const array = new Float32Array(segments * 3 * 2);
+        for (let i = 0; i < segments; i++) {
+            const a0 = i / segments * Math.PI * 2;
+            const a1 = (i + 1) / segments * Math.PI * 2;
+            const x0 = Math.cos(a0) * radius;
+            const y0 = Math.sin(a0) * radius;
+            const x1 = Math.cos(a1) * radius;
+            const y1 = Math.sin(a1) * radius;
+            const i6 = i * 6;
+            array[i6 + 0] = x + x0 * _v1.x + y0 * _v2.x;
+            array[i6 + 1] = y + x0 * _v1.y + y0 * _v2.y;
+            array[i6 + 2] = z + x0 * _v1.z + y0 * _v2.z;
+            array[i6 + 3] = x + x1 * _v1.x + y1 * _v2.x;
+            array[i6 + 4] = y + x1 * _v1.y + y1 * _v2.y;
+            array[i6 + 5] = z + x1 * _v1.z + y1 * _v2.z;
+        }
+        this.segmentsArray(array, options);
+        return this;
+    }
+}
+class TextsManager {
+    static createParts(count) {
+        const textHelper = new TextHelper({
+            textCount: count,
+        });
+        return {
+            count,
+            textHelper,
+        };
+    }
+    state = { index: 0 };
+    parts;
+    constructor(count = 1000) {
+        this.parts = TextsManager.createParts(count);
+    }
+    clear() {
+        this.state.index = 0;
+        this.parts.textHelper.clearAllText();
+    }
+    texts(points, { texts = ((i) => i.toString()), color = 'white', size = 1, backgroundColor = undefined, } = {}) {
+        let index = this.state.index;
+        const textDelegate = typeof texts === 'function'
+            ? texts
+            : (i) => texts[i % texts.length];
+        for (const p of points) {
+            const { x, y, z } = fromVector3Declaration(p, _v0);
+            this.parts.textHelper.setTextAt(index, textDelegate(index), {
+                x, y, z,
+                size,
+                color,
+                backgroundColor,
+                backgroundOpacity: backgroundColor ? 1 : 0,
+            });
+            index++;
+        }
+        this.state.index = index;
+        return this;
+    }
+    text(p, text, options) {
+        return this.texts([p], { ...options, texts: [text] });
+    }
 }
 const defaultLinePointsOptions = {
     color: undefined,
@@ -317,9 +412,12 @@ class DebugHelper extends Group {
         this.add(pointsManager.parts.points);
         const linesManager = new LinesManager();
         this.add(linesManager.parts.lines);
+        const textsManager = new TextsManager();
+        this.add(textsManager.parts.textHelper);
         return {
             pointsManager,
             linesManager,
+            textsManager,
         };
     })();
     points(...args) {
@@ -368,19 +466,36 @@ class DebugHelper extends Group {
         this.parts.linesManager.box(...args);
         return this;
     }
+    circle(...args) {
+        this.parts.linesManager.circle(...args);
+        return this;
+    }
     rect(...args) {
         this.parts.linesManager.rect(...args);
+        return this;
+    }
+    texts(...args) {
+        this.parts.textsManager.texts(...args);
+        return this;
+    }
+    text(...args) {
+        this.parts.textsManager.text(...args);
         return this;
     }
     clear() {
         this.onTop(false);
         this.parts.pointsManager.clear();
         this.parts.linesManager.clear();
+        this.parts.textsManager.clear();
         return this;
     }
     onTop(value = true) {
         this.parts.pointsManager.onTop(value);
         this.parts.linesManager.onTop(value);
+        return this;
+    }
+    globalExpose(name = 'debugHelper') {
+        Object.assign(globalThis, { [name]: this });
         return this;
     }
     addTo(parent) {

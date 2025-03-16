@@ -44,6 +44,7 @@ export declare class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicM
     constructor(userOptions?: Partial<typeof defaultOptions>);
     addTo(parent: Object3D | null): this;
     setData(data: TextHelperData): this;
+    clearAllText(): this;
     setTextAt(index: number, text: string, options?: TransformDeclaration & SetTextOption): this;
     setColorAt(index: number, color: Color): void;
     setTextColorAt(index: number, options: SetColorOptions): this;

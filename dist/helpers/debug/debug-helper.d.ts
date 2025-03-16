@@ -1,6 +1,7 @@
 import { BufferAttribute, BufferGeometry, ColorRepresentation, Group, LineSegments, Object3D, Points, PointsMaterial } from 'three';
 import { RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle';
 import { Vector3Declaration } from '../../declaration';
+import { TextHelper } from '../text';
 declare class PointsManager {
     static shapes: {
         square: number;
@@ -34,7 +35,7 @@ declare class PointsManager {
         size?: number | undefined;
         scale?: number | undefined;
         color?: ColorRepresentation | undefined;
-        shape?: "circle" | "cross" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "square" | undefined;
+        shape?: "square" | "circle" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "cross" | undefined;
     }): this;
     point(p: Vector3Declaration, options?: Parameters<DebugHelper['points']>[1]): this;
 }
@@ -56,9 +57,11 @@ declare class LinesManager {
     constructor(count?: number);
     clear(): void;
     onTop(value?: boolean): this;
-    segments(p: Vector3Declaration[], { color: argColor, }?: {
-        color?: ColorRepresentation | undefined;
-    }): this;
+    static defaultOptions: {
+        color: ColorRepresentation;
+    };
+    segmentsArray(p: Float32Array, options?: Partial<typeof LinesManager.defaultOptions>): this;
+    segments(p: Vector3Declaration[], options?: Partial<typeof LinesManager.defaultOptions>): this;
     line(p0: Vector3Declaration, p1: Vector3Declaration, options?: Parameters<DebugHelper['segments']>[1]): this;
     polyline(p: Vector3Declaration[], options?: Parameters<DebugHelper['segments']>[1]): this;
     polygon(p: Vector3Declaration[], options?: Parameters<DebugHelper['segments']>[1]): this;
@@ -73,6 +76,38 @@ declare class LinesManager {
         inset: number;
     };
     rect(value: RectangleDeclaration, options?: Partial<typeof LinesManager.rectDefaultOptions> & Parameters<DebugHelper['segments']>[1]): this;
+    static circleQualityPresets: {
+        low: number;
+        medium: number;
+        high: number;
+        ultra: number;
+    };
+    circle({ center, axis, radius, quality, segments, }?: {
+        center?: Vector3Declaration | undefined;
+        axis?: Vector3Declaration | undefined;
+        radius?: number | undefined;
+        quality?: "low" | "medium" | "high" | "ultra" | undefined;
+        segments?: number | undefined;
+    }, options?: Parameters<DebugHelper['segments']>[1]): this;
+}
+declare class TextsManager {
+    static createParts(count: number): {
+        count: number;
+        textHelper: TextHelper;
+    };
+    state: {
+        index: number;
+    };
+    parts: ReturnType<typeof TextsManager.createParts>;
+    constructor(count?: number);
+    clear(): void;
+    texts(points: Vector3Declaration[], { texts, color, size, backgroundColor, }?: {
+        texts?: string[] | ((i: number) => string) | undefined;
+        color?: ColorRepresentation | undefined;
+        size?: number | undefined;
+        backgroundColor?: ColorRepresentation | undefined;
+    }): this;
+    text(p: Vector3Declaration, text: string, options: Omit<Parameters<TextsManager['texts']>[1], 'texts'>): this;
 }
 declare const defaultLinePointsOptions: {
     color: ColorRepresentation | undefined;
@@ -86,6 +121,7 @@ declare class DebugHelper extends Group {
     parts: {
         pointsManager: PointsManager;
         linesManager: LinesManager;
+        textsManager: TextsManager;
     };
     points(...args: Parameters<PointsManager['points']>): this;
     point(...args: Parameters<PointsManager['point']>): this;
@@ -96,9 +132,13 @@ declare class DebugHelper extends Group {
     polygon(data: Parameters<LinesManager['polygon']>[0], options?: Parameters<LinesManager['polygon']>[1] & LinePointsOptions): this;
     polygons(data: Parameters<DebugHelper['polygon']>[0][], options?: Parameters<DebugHelper['polygon']>[1]): this;
     box(...args: Parameters<LinesManager['box']>): this;
+    circle(...args: Parameters<LinesManager['circle']>): this;
     rect(...args: Parameters<LinesManager['rect']>): this;
+    texts(...args: Parameters<TextsManager['texts']>): this;
+    text(...args: Parameters<TextsManager['text']>): this;
     clear(): this;
     onTop(value?: boolean): this;
+    globalExpose(name?: string): this;
     addTo(parent: Object3D | null): this;
 }
 /**

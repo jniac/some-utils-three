@@ -222,6 +222,11 @@ export class TextHelper extends InstancedMesh {
         this.dataTexture.needsUpdate = true;
         return this;
     }
+    clearAllText() {
+        this.instanceMatrix.array.fill(0);
+        this.instanceMatrix.needsUpdate = true;
+        return this;
+    }
     setTextAt(index, text, options = {}) {
         options.color ??= this.options.defaultColor;
         options.size ??= this.options.defaultSize;

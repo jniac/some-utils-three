@@ -4,8 +4,11 @@ import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectang
 
 import { fromVector3Declaration, Vector3Declaration } from '../../declaration'
 import { ShaderForge } from '../../shader-forge'
+import { TextHelper } from '../text'
 
 const _v0 = new Vector3()
+const _v1 = new Vector3()
+const _v2 = new Vector3()
 const _c0 = new Color()
 
 class PointsManager {
@@ -218,21 +221,24 @@ class LinesManager {
     return this
   }
 
-  segments(p: Vector3Declaration[], {
-    color: argColor = 'white' as ColorRepresentation,
-  } = {}) {
-    const count = p.length
-    const { index: i0 } = this.state
+  static defaultOptions = {
+    color: 'white' as ColorRepresentation,
+  }
+
+  segmentsArray(p: Float32Array, options?: Partial<typeof LinesManager.defaultOptions>) {
     const { position, color } = this.parts.attributes
-    const { r, g, b } = _c0.set(argColor)
-    for (let i1 = 0; i1 < count; i1++) {
-      const { x: x0, y: y0, z: z0 } = fromVector3Declaration(p[i1], _v0)
-      let i = i0 + i1
-      position.setXYZ(i, x0, y0, z0)
-      color.setXYZ(i, r, g, b)
+    const { index } = this.state
+
+    const { color: colorArg } = { ...LinesManager.defaultOptions, ...options }
+    const { r, g, b } = _c0.set(colorArg)
+    const count = p.length / 3
+
+    position.array.set(p, index * 3)
+    for (let i = 0; i < count; i++) {
+      color.setXYZ(index + i, r, g, b)
     }
 
-    this.state.index = i0 + count
+    this.state.index = index + count
     this.parts.geometry.setDrawRange(0, this.state.index)
 
     for (const attr of Object.values(this.parts.attributes)) {
@@ -244,6 +250,19 @@ class LinesManager {
     }
 
     return this
+  }
+
+  segments(p: Vector3Declaration[], options?: Partial<typeof LinesManager.defaultOptions>) {
+    const count = p.length
+    const array = new Float32Array(count * 3)
+    for (let i1 = 0; i1 < count; i1++) {
+      const { x, y, z } = fromVector3Declaration(p[i1], _v0)
+      const i = i1 * 3
+      array[i + 0] = x
+      array[i + 1] = y
+      array[i + 2] = z
+    }
+    return this.segmentsArray(array, options)
   }
 
   line(p0: Vector3Declaration, p1: Vector3Declaration, options?: Parameters<DebugHelper['segments']>[1]) {
@@ -342,6 +361,104 @@ class LinesManager {
       { x: minX, y: minY, z: 0 },
     ], options)
   }
+
+  static circleQualityPresets = {
+    'low': 12,
+    'medium': 24,
+    'high': 64,
+    'ultra': 256,
+  }
+
+  circle({
+    center = 0 as Vector3Declaration,
+    axis = 'z' as Vector3Declaration,
+    radius = 1,
+    quality = 'medium' as keyof typeof LinesManager.circleQualityPresets,
+    segments = undefined as number | undefined,
+  } = {}, options?: Parameters<DebugHelper['segments']>[1]) {
+    segments ??= LinesManager.circleQualityPresets[quality]
+    const { x, y, z } = fromVector3Declaration(center, _v0)
+    fromVector3Declaration(axis, _v0)
+      .normalize()
+    _v1
+      .set(_v0.y, _v0.z, _v0.x) // permute to have a non-parallel vector
+      .cross(_v0)
+      .normalize()
+    _v2
+      .crossVectors(_v0, _v1)
+    const array = new Float32Array(segments * 3 * 2)
+    for (let i = 0; i < segments; i++) {
+      const a0 = i / segments * Math.PI * 2
+      const a1 = (i + 1) / segments * Math.PI * 2
+      const x0 = Math.cos(a0) * radius
+      const y0 = Math.sin(a0) * radius
+      const x1 = Math.cos(a1) * radius
+      const y1 = Math.sin(a1) * radius
+      const i6 = i * 6
+      array[i6 + 0] = x + x0 * _v1.x + y0 * _v2.x
+      array[i6 + 1] = y + x0 * _v1.y + y0 * _v2.y
+      array[i6 + 2] = z + x0 * _v1.z + y0 * _v2.z
+      array[i6 + 3] = x + x1 * _v1.x + y1 * _v2.x
+      array[i6 + 4] = y + x1 * _v1.y + y1 * _v2.y
+      array[i6 + 5] = z + x1 * _v1.z + y1 * _v2.z
+    }
+    this.segmentsArray(array, options)
+    return this
+  }
+}
+
+class TextsManager {
+  static createParts(count: number) {
+    const textHelper = new TextHelper({
+      textCount: count,
+    })
+    return {
+      count,
+      textHelper,
+    }
+  }
+
+  state = { index: 0 }
+
+  parts: ReturnType<typeof TextsManager.createParts>
+
+  constructor(count = 1000) {
+    this.parts = TextsManager.createParts(count)
+  }
+
+  clear() {
+    this.state.index = 0
+    this.parts.textHelper.clearAllText()
+  }
+
+  texts(points: Vector3Declaration[], {
+    texts = ((i: number) => i.toString()) as ((i: number) => string) | string[],
+    color = 'white' as ColorRepresentation,
+    size = 1,
+    backgroundColor = undefined as ColorRepresentation | undefined,
+  } = {}) {
+    let index = this.state.index
+    const textDelegate = typeof texts === 'function'
+      ? texts
+      : (i: number) => texts[i % texts.length]
+    for (const p of points) {
+      const { x, y, z } = fromVector3Declaration(p, _v0)
+      this.parts.textHelper.setTextAt(index, textDelegate(index), {
+        x, y, z,
+        size,
+        color,
+        backgroundColor,
+        backgroundOpacity: backgroundColor ? 1 : 0,
+      })
+      index++
+    }
+    this.state.index = index
+    return this
+  }
+
+  text(p: Vector3Declaration, text: string, options: Omit<Parameters<TextsManager['texts']>[1], 'texts'>) {
+    return this.texts([p], { ...options, texts: [text] })
+  }
 }
 
 const defaultLinePointsOptions = {
@@ -361,9 +478,13 @@ class DebugHelper extends Group {
     const linesManager = new LinesManager()
     this.add(linesManager.parts.lines)
 
+    const textsManager = new TextsManager()
+    this.add(textsManager.parts.textHelper)
+
     return {
       pointsManager,
       linesManager,
+      textsManager,
     }
   })()
 
@@ -429,9 +550,13 @@ class DebugHelper extends Group {
     return this
   }
 
-
   box(...args: Parameters<LinesManager['box']>): this {
     this.parts.linesManager.box(...args)
+    return this
+  }
+
+  circle(...args: Parameters<LinesManager['circle']>): this {
+    this.parts.linesManager.circle(...args)
     return this
   }
 
@@ -440,16 +565,32 @@ class DebugHelper extends Group {
     return this
   }
 
+  texts(...args: Parameters<TextsManager['texts']>): this {
+    this.parts.textsManager.texts(...args)
+    return this
+  }
+
+  text(...args: Parameters<TextsManager['text']>): this {
+    this.parts.textsManager.text(...args)
+    return this
+  }
+
   clear(): this {
     this.onTop(false)
     this.parts.pointsManager.clear()
     this.parts.linesManager.clear()
+    this.parts.textsManager.clear()
     return this
   }
 
   onTop(value = true): this {
     this.parts.pointsManager.onTop(value)
     this.parts.linesManager.onTop(value)
+    return this
+  }
+
+  globalExpose(name = 'debugHelper'): this {
+    Object.assign(globalThis, { [name]: this })
     return this
   }
 
