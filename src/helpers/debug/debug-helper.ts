@@ -619,9 +619,10 @@ class TextsManager {
     const textDelegate = typeof texts === 'function'
       ? texts
       : (i: number) => texts[i % texts.length]
+    let i = 0
     for (const p of points) {
       const { x, y, z } = fromVector3Declaration(p, _v0)
-      this.parts.textHelper.setTextAt(index, textDelegate(index), {
+      this.parts.textHelper.setTextAt(index, textDelegate(i), {
         x, y, z,
         size,
         color,
@@ -629,6 +630,7 @@ class TextsManager {
         backgroundOpacity: backgroundColor ? 1 : 0,
       })
       index++
+      i++
     }
     this.state.index = index
     return this
