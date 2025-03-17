@@ -82,8 +82,10 @@ declare class LinesManager {
         position: "end" | "start" | "middle" | number;
         skipSmallSegments: boolean;
         skipSmallSegmentsThreshold: "size" | number;
+        type: "single" | "double" | "triple";
+        scale: number;
     };
-    static arrowPositionToNumber(position: typeof LinesManager.defaultArrowOptions['position'], length: number, size: number): number;
+    static arrowPositionToNumber(position: typeof LinesManager.defaultArrowOptions['position'], length: number, size: number, arrowIndex: number, arrowRepeat: number): number;
     static defaultOptions: {
         color: ColorRepresentation;
         arrow: boolean | OneOrMany<Partial<typeof LinesManager.defaultArrowOptions>>;

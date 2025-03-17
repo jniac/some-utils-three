@@ -8,6 +8,7 @@ const _v1 = new Vector3();
 const _v2 = new Vector3();
 const _v3 = new Vector3();
 const _v4 = new Vector3();
+const _v5 = new Vector3();
 const _c0 = new Color();
 const _m = new Matrix4();
 class Utils {
@@ -259,16 +260,19 @@ class LinesManager {
         position: 'middle',
         skipSmallSegments: true,
         skipSmallSegmentsThreshold: 'size',
+        type: 'single',
+        scale: 1,
     };
-    static arrowPositionToNumber(position, length, size) {
+    static arrowPositionToNumber(position, length, size, arrowIndex, arrowRepeat) {
+        const delta = size / length * .66;
         if (typeof position === 'number') {
             return position;
         }
         switch (position) {
-            case 'start': return 0;
-            case 'end': return 1;
+            case 'start': return delta * arrowIndex;
+            case 'end': return 1 - delta * arrowIndex;
             default:
-            case 'middle': return .5 + size / length / 2;
+            case 'middle': return .5 + delta * (arrowIndex + .5 - (arrowRepeat - 1) / 2);
         }
     }
     static defaultOptions = {
@@ -298,6 +302,7 @@ class LinesManager {
             const D = _v2; // direction
             const P = _v3; // position
             const N = _v4; // normal
+            const M = _v5; // middle
             const C = _c0; // color
             const arrowOptions = Array.isArray(options.arrow)
                 ? options.arrow
@@ -305,10 +310,12 @@ class LinesManager {
             let arrowCount = 0;
             const { index } = this.state;
             for (const arrowOption of arrowOptions) {
-                const { size: arrowSize, position: arrowPosition, skipSmallSegments, skipSmallSegmentsThreshold, } = { ...LinesManager.defaultArrowOptions, ...(typeof options.arrow === 'object' ? options.arrow : {}) };
+                const { size: arrowSize, position: arrowPosition, scale: arrowScale, skipSmallSegments, skipSmallSegmentsThreshold, } = { ...LinesManager.defaultArrowOptions, ...(typeof arrowOption === 'object' ? arrowOption : {}) };
                 const threshold = skipSmallSegmentsThreshold === 'size' ? arrowSize : skipSmallSegmentsThreshold;
-                console.log(threshold);
                 const squareThreshold = threshold * threshold;
+                const arrowRepeat = arrowOption.type === 'triple' ? 3 :
+                    arrowOption.type === 'double' ? 2 :
+                        1;
                 for (let i = 0; i < count / 2; i++) {
                     P0.fromArray(array, i * 6);
                     P1.fromArray(array, i * 6 + 3);
@@ -318,8 +325,7 @@ class LinesManager {
                         continue;
                     }
                     const l = Math.sqrt(l2);
-                    const t = LinesManager.arrowPositionToNumber(arrowPosition, l, arrowSize);
-                    P.copy(P0).addScaledVector(D, t);
+                    const s = arrowScale * arrowSize;
                     D.divideScalar(l);
                     // Normal based on the smallest component of the direction
                     const ax = Math.abs(D.x);
@@ -334,27 +340,31 @@ class LinesManager {
                     else {
                         N.set(0, D.z, -D.y).normalize();
                     }
-                    let i2 = (index + arrowCount * 4) * 3;
-                    P.toArray(position.array, i2);
-                    C.toArray(color.array, i2);
-                    i2 += 3;
-                    P0
-                        .copy(P)
-                        .addScaledVector(D, -arrowSize)
-                        .addScaledVector(N, arrowSize)
-                        .toArray(position.array, i2);
-                    C.toArray(color.array, i2);
-                    i2 += 3;
-                    P.toArray(position.array, i2);
-                    C.toArray(color.array, i2);
-                    i2 += 3;
-                    P0
-                        .copy(P)
-                        .addScaledVector(D, -arrowSize)
-                        .addScaledVector(N, -arrowSize)
-                        .toArray(position.array, i2);
-                    C.toArray(color.array, i2);
-                    arrowCount++;
+                    for (let j = 0; j < arrowRepeat; j++) {
+                        const t = LinesManager.arrowPositionToNumber(arrowPosition, l, s, j, arrowRepeat);
+                        P.lerpVectors(P0, P1, t);
+                        let i2 = (index + arrowCount * 4) * 3;
+                        P.toArray(position.array, i2);
+                        C.toArray(color.array, i2);
+                        i2 += 3;
+                        M
+                            .copy(P)
+                            .addScaledVector(D, -s)
+                            .addScaledVector(N, s)
+                            .toArray(position.array, i2);
+                        C.toArray(color.array, i2);
+                        i2 += 3;
+                        P.toArray(position.array, i2);
+                        C.toArray(color.array, i2);
+                        i2 += 3;
+                        M
+                            .copy(P)
+                            .addScaledVector(D, -s)
+                            .addScaledVector(N, -s)
+                            .toArray(position.array, i2);
+                        C.toArray(color.array, i2);
+                        arrowCount++;
+                    }
                 }
             }
             this.state.index += arrowCount * 4;
