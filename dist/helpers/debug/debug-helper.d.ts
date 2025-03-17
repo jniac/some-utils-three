@@ -61,12 +61,14 @@ declare class PointsManager {
     point(p: Vector3Declaration, options?: Parameters<PointsManager['points']>[1]): this;
 }
 declare class LinesManager {
+    #private;
     static createParts(count: number): {
         count: number;
         geometry: BufferGeometry<import("three").NormalBufferAttributes>;
         attributes: {
             position: BufferAttribute;
             color: BufferAttribute;
+            aOpacity: BufferAttribute;
         };
         lines: LineSegments<BufferGeometry<import("three").NormalBufferAttributes>, PointsMaterial, import("three").Object3DEventMap>;
     };
@@ -88,6 +90,7 @@ declare class LinesManager {
     static arrowPositionToNumber(position: typeof LinesManager.defaultArrowOptions['position'], length: number, size: number, arrowIndex: number, arrowRepeat: number): number;
     static defaultOptions: {
         color: ColorRepresentation;
+        opacity: number;
         arrow: boolean | OneOrMany<Partial<typeof LinesManager.defaultArrowOptions>>;
     };
     segmentsArray(array: Float32Array, options?: Partial<typeof LinesManager.defaultOptions>): this;
@@ -113,6 +116,13 @@ declare class LinesManager {
         quality?: "low" | "medium" | "high" | "ultra" | undefined;
         segments?: number | undefined;
     }, options?: Parameters<DebugHelper['segments']>[1]): this;
+    static regularGridDefaults: {
+        size: number;
+        subdivisions: number[];
+        opacity: number | number[];
+        color: ColorRepresentation | ColorRepresentation[];
+    };
+    regularGrid(options?: Partial<typeof LinesManager.regularGridDefaults>): this;
 }
 declare class TextsManager {
     static createParts(count: number): {
@@ -158,6 +168,7 @@ declare class DebugHelper extends Group {
     box(boxArg: Parameters<LinesManager['box']>[0], options?: Parameters<LinesManager['box']>[1] & LinePointsOptions): this;
     circle(...args: Parameters<LinesManager['circle']>): this;
     rect(...args: Parameters<LinesManager['rect']>): this;
+    regularGrid(...args: Parameters<LinesManager['regularGrid']>): this;
     texts(...args: Parameters<TextsManager['texts']>): this;
     text(...args: Parameters<TextsManager['text']>): this;
     clear(): this;
