@@ -242,11 +242,29 @@ class LinesManager {
     const attributes = {
       'position': new BufferAttribute(new Float32Array(count * 3 * 2), 3),
       'color': new BufferAttribute(new Float32Array(count * 3 * 2), 3),
+      'aOpacity': new BufferAttribute(new Float32Array(count * 2), 1),
     }
     for (const [name, attr] of Object.entries(attributes)) {
       geometry.setAttribute(name, attr)
     }
-    const material = new PointsMaterial({ vertexColors: true })
+    const material = new PointsMaterial({
+      vertexColors: true,
+      transparent: true,
+      depthWrite: false,
+    })
+    material.onBeforeCompile = shader => ShaderForge.with(shader)
+      .varying({
+        vOpacity: 'float',
+      })
+      .vertex.top(/* glsl */`
+        attribute float aOpacity;
+      `)
+      .vertex.mainAfterAll(/* glsl */`
+        vOpacity = aOpacity;
+      `)
+      .fragment.after('color_fragment', /* glsl */`
+        diffuseColor.a *= vOpacity;
+      `)
     const lines = new LineSegments(geometry, material)
     lines.frustumCulled = false
     return {
@@ -316,13 +334,35 @@ class LinesManager {
 
   static defaultOptions = {
     color: 'white' as ColorRepresentation,
+    opacity: 1,
     arrow: false as boolean | OneOrMany<Partial<typeof LinesManager.defaultArrowOptions>>,
   }
 
-  segmentsArray(array: Float32Array, options?: Partial<typeof LinesManager.defaultOptions>) {
-    const { position, color } = this.parts.attributes
+  #update(checkNaN = false) {
+    this.parts.geometry.setDrawRange(0, this.state.index)
 
-    const { color: colorArg } = { ...LinesManager.defaultOptions, ...options }
+    for (const attr of Object.values(this.parts.attributes)) {
+      attr.needsUpdate = true
+    }
+
+    if (this.state.index > this.parts.count * 2) {
+      throw new Error('Not implemented!')
+    }
+
+    if (checkNaN) {
+      for (const attr of Object.values(this.parts.attributes)) {
+        if (attr.array.some(v => isNaN(v))) {
+          console.log(attr.array.findIndex(v => isNaN(v)))
+          debugger
+        }
+      }
+    }
+  }
+
+  segmentsArray(array: Float32Array, options?: Partial<typeof LinesManager.defaultOptions>) {
+    const { position, color, aOpacity } = this.parts.attributes
+
+    const { color: colorArg, opacity: opacityArg } = { ...LinesManager.defaultOptions, ...options }
     const { r, g, b } = _c0.set(colorArg)
     const count = array.length / 3
 
@@ -336,6 +376,7 @@ class LinesManager {
       position.array.set(array, index * 3)
       for (let i = 0; i < count; i++) {
         color.setXYZ(index + i, r, g, b)
+        aOpacity.setX(index + i, opacityArg)
       }
 
       this.state.index += count
@@ -405,7 +446,13 @@ class LinesManager {
             const t = LinesManager.arrowPositionToNumber(arrowPosition, l, s, j, arrowRepeat)
             P.lerpVectors(P0, P1, t)
 
-            let i2 = (index + arrowCount * 4) * 3
+            let i1 = index + arrowCount * 4
+            aOpacity.setX(i1, opacityArg)
+            aOpacity.setX(i1 + 1, opacityArg)
+            aOpacity.setX(i1 + 2, opacityArg)
+            aOpacity.setX(i1 + 3, opacityArg)
+
+            let i2 = i1 * 3
             P.toArray(position.array, i2)
             C.toArray(color.array, i2)
 
@@ -437,20 +484,7 @@ class LinesManager {
       this.state.index += arrowCount * 4
     }
 
-    this.parts.geometry.setDrawRange(0, this.state.index)
-
-    for (const attr of Object.values(this.parts.attributes)) {
-      attr.needsUpdate = true
-    }
-
-    if (this.state.index > this.parts.count * 2) {
-      throw new Error('Not implemented!')
-    }
-
-    if (position.array.some(v => isNaN(v))) {
-      console.log(position.array.findIndex(v => isNaN(v)))
-      debugger
-    }
+    this.#update()
 
     return this
   }
@@ -581,6 +615,90 @@ class LinesManager {
       array[i6 + 5] = z + x1 * _v1.z + y1 * _v2.z
     }
     this.segmentsArray(array, options)
+    return this
+  }
+
+  static regularGridDefaults = {
+    size: 100,
+    subdivisions: [10, 2, 5],
+    opacity: [.1, .05, .01] as number | number[],
+    color: 'white' as ColorRepresentation | ColorRepresentation[],
+  }
+  regularGrid(options?: Partial<typeof LinesManager.regularGridDefaults>) {
+    const { size, subdivisions, opacity: opacityArg, color: colorArg } = { ...LinesManager.regularGridDefaults, ...options }
+    const subdivisionsCount = subdivisions.length
+    const cumul = subdivisions.map((v, i) => subdivisions.slice(i).reduce((a, b) => a * b, 1))
+    const count = cumul[0]
+    const positions = new Float32Array((count + 1) * 2 * 2 * 3)
+    const colors = new Float32Array((count + 1) * 2 * 2 * 3).fill(1)
+    const aOpacity = new Float32Array((count + 1) * 2 * 2).fill(1)
+
+    const colorArgArray = Array.isArray(colorArg) ? colorArg : [colorArg]
+    const colorArray = subdivisions.map((_, i) => {
+      const { r, g, b } = _c0.set(colorArgArray[Math.min(i, colorArgArray.length - 1)])
+      return [r, g, b]
+    })
+    const opacityArgArray = Array.isArray(opacityArg) ? opacityArg : [opacityArg]
+    const opacityArray = subdivisions.map((_, i) => {
+      return opacityArgArray[Math.min(i, opacityArgArray.length - 1)]
+    })
+
+    for (let i = 0; i <= count; i++) {
+      let j = subdivisionsCount - 1
+      while (i % cumul[j] === 0) {
+        if (--j <= 0) break
+      }
+
+      const [r, g, b] = colorArray[j]
+      const o = opacityArray[j]
+
+      const d = i / count * size
+      const i12 = i * 12
+
+      positions[i12 + 0] = -size / 2
+      positions[i12 + 1] = -size / 2 + d
+      positions[i12 + 2] = 0
+      positions[i12 + 3] = size / 2
+      positions[i12 + 4] = -size / 2 + d
+      positions[i12 + 5] = 0
+
+      positions[i12 + 6] = -size / 2 + d
+      positions[i12 + 7] = -size / 2
+      positions[i12 + 8] = 0
+      positions[i12 + 9] = -size / 2 + d
+      positions[i12 + 10] = size / 2
+      positions[i12 + 11] = 0
+
+      colors[i12 + 0] = r
+      colors[i12 + 1] = g
+      colors[i12 + 2] = b
+      colors[i12 + 3] = r
+      colors[i12 + 4] = g
+      colors[i12 + 5] = b
+
+      colors[i12 + 6] = r
+      colors[i12 + 7] = g
+      colors[i12 + 8] = b
+      colors[i12 + 9] = r
+      colors[i12 + 10] = g
+      colors[i12 + 11] = b
+
+      const i4 = i * 4
+      aOpacity[i4 + 0] = o
+      aOpacity[i4 + 1] = o
+      aOpacity[i4 + 2] = o
+      aOpacity[i4 + 3] = o
+    }
+
+    const { index } = this.state
+    this.parts.attributes.position.array.set(positions, index * 3)
+    this.parts.attributes.color.array.set(colors, index * 3)
+    this.parts.attributes.aOpacity.array.set(aOpacity, index)
+
+    this.state.index += (count + 1) * 2 * 2
+
+    this.#update()
+
     return this
   }
 }
@@ -748,6 +866,11 @@ class DebugHelper extends Group {
 
   rect(...args: Parameters<LinesManager['rect']>): this {
     this.parts.linesManager.rect(...args)
+    return this
+  }
+
+  regularGrid(...args: Parameters<LinesManager['regularGrid']>): this {
+    this.parts.linesManager.regularGrid(...args)
     return this
   }
 
