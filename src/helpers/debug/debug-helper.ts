@@ -12,6 +12,7 @@ const _v1 = new Vector3()
 const _v2 = new Vector3()
 const _v3 = new Vector3()
 const _v4 = new Vector3()
+const _v5 = new Vector3()
 const _c0 = new Color()
 const _m = new Matrix4()
 
@@ -290,17 +291,26 @@ class LinesManager {
     position: 'middle' as 'end' | 'start' | 'middle' | number,
     skipSmallSegments: true,
     skipSmallSegmentsThreshold: 'size' as 'size' | number,
+    type: 'single' as 'single' | 'double' | 'triple',
+    scale: 1,
   }
 
-  static arrowPositionToNumber(position: typeof LinesManager.defaultArrowOptions['position'], length: number, size: number) {
+  static arrowPositionToNumber(
+    position: typeof LinesManager.defaultArrowOptions['position'],
+    length: number,
+    size: number,
+    arrowIndex: number,
+    arrowRepeat: number,
+  ) {
+    const delta = size / length * .66
     if (typeof position === 'number') {
       return position
     }
     switch (position) {
-      case 'start': return 0
-      case 'end': return 1
+      case 'start': return delta * arrowIndex
+      case 'end': return 1 - delta * arrowIndex
       default:
-      case 'middle': return .5 + size / length / 2
+      case 'middle': return .5 + delta * (arrowIndex + .5 - (arrowRepeat - 1) / 2)
     }
   }
 
@@ -310,7 +320,6 @@ class LinesManager {
   }
 
   segmentsArray(array: Float32Array, options?: Partial<typeof LinesManager.defaultOptions>) {
-
     const { position, color } = this.parts.attributes
 
     const { color: colorArg } = { ...LinesManager.defaultOptions, ...options }
@@ -339,6 +348,7 @@ class LinesManager {
       const D = _v2 // direction
       const P = _v3 // position
       const N = _v4 // normal
+      const M = _v5 // middle
       const C = _c0 // color
 
       const arrowOptions = Array.isArray(options.arrow)
@@ -352,13 +362,17 @@ class LinesManager {
         const {
           size: arrowSize,
           position: arrowPosition,
+          scale: arrowScale,
           skipSmallSegments,
           skipSmallSegmentsThreshold,
-        } = { ...LinesManager.defaultArrowOptions, ...(typeof options.arrow === 'object' ? options.arrow : {}) }
+        } = { ...LinesManager.defaultArrowOptions, ...(typeof arrowOption === 'object' ? arrowOption : {}) }
 
         const threshold = skipSmallSegmentsThreshold === 'size' ? arrowSize : skipSmallSegmentsThreshold
-        console.log(threshold)
         const squareThreshold = threshold * threshold
+        const arrowRepeat =
+          arrowOption.type === 'triple' ? 3 :
+            arrowOption.type === 'double' ? 2 :
+              1
         for (let i = 0; i < count / 2; i++) {
           P0.fromArray(array, i * 6)
           P1.fromArray(array, i * 6 + 3)
@@ -371,8 +385,7 @@ class LinesManager {
           }
 
           const l = Math.sqrt(l2)
-          const t = LinesManager.arrowPositionToNumber(arrowPosition, l, arrowSize)
-          P.copy(P0).addScaledVector(D, t)
+          const s = arrowScale * arrowSize
 
           D.divideScalar(l)
 
@@ -388,31 +401,36 @@ class LinesManager {
             N.set(0, D.z, -D.y).normalize()
           }
 
-          let i2 = (index + arrowCount * 4) * 3
-          P.toArray(position.array, i2)
-          C.toArray(color.array, i2)
+          for (let j = 0; j < arrowRepeat; j++) {
+            const t = LinesManager.arrowPositionToNumber(arrowPosition, l, s, j, arrowRepeat)
+            P.lerpVectors(P0, P1, t)
 
-          i2 += 3
-          P0
-            .copy(P)
-            .addScaledVector(D, -arrowSize)
-            .addScaledVector(N, arrowSize)
-            .toArray(position.array, i2)
-          C.toArray(color.array, i2)
+            let i2 = (index + arrowCount * 4) * 3
+            P.toArray(position.array, i2)
+            C.toArray(color.array, i2)
 
-          i2 += 3
-          P.toArray(position.array, i2)
-          C.toArray(color.array, i2)
+            i2 += 3
+            M
+              .copy(P)
+              .addScaledVector(D, -s)
+              .addScaledVector(N, s)
+              .toArray(position.array, i2)
+            C.toArray(color.array, i2)
 
-          i2 += 3
-          P0
-            .copy(P)
-            .addScaledVector(D, -arrowSize)
-            .addScaledVector(N, -arrowSize)
-            .toArray(position.array, i2)
-          C.toArray(color.array, i2)
+            i2 += 3
+            P.toArray(position.array, i2)
+            C.toArray(color.array, i2)
 
-          arrowCount++
+            i2 += 3
+            M
+              .copy(P)
+              .addScaledVector(D, -s)
+              .addScaledVector(N, -s)
+              .toArray(position.array, i2)
+            C.toArray(color.array, i2)
+
+            arrowCount++
+          }
         }
       }
 
