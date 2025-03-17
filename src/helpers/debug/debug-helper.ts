@@ -1,15 +1,74 @@
-import { BufferAttribute, BufferGeometry, Color, ColorRepresentation, Group, LineSegments, Object3D, Points, PointsMaterial, Vector3 } from 'three'
+import { BufferAttribute, BufferGeometry, Color, ColorRepresentation, Group, LineSegments, Matrix4, Object3D, Points, PointsMaterial, Vector3 } from 'three'
 
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 
-import { fromVector3Declaration, Vector3Declaration } from '../../declaration'
+import { OneOrMany } from 'some-utils-ts/types'
+import { fromTransformDeclaration, fromVector3Declaration, TransformDeclaration, Vector3Declaration } from '../../declaration'
 import { ShaderForge } from '../../shader-forge'
 import { TextHelper } from '../text'
 
 const _v0 = new Vector3()
 const _v1 = new Vector3()
 const _v2 = new Vector3()
+const _v3 = new Vector3()
+const _v4 = new Vector3()
 const _c0 = new Color()
+const _m = new Matrix4()
+
+class Utils {
+  static boxPoints = {
+    p0: new Vector3(),
+    p1: new Vector3(),
+    p2: new Vector3(),
+    p3: new Vector3(),
+    p4: new Vector3(),
+    p5: new Vector3(),
+    p6: new Vector3(),
+    p7: new Vector3(),
+  }
+
+  static boxDefaults = {
+    inset: 0,
+    min: new Vector3(-.5, -.5, -.5) as Vector3Declaration,
+    max: new Vector3(.5, .5, .5) as Vector3Declaration,
+    transform: undefined as TransformDeclaration | undefined,
+  }
+
+  static box(value: Partial<typeof Utils.boxDefaults>) {
+    const { p0, p1, p2, p3, p4, p5, p6, p7 } = Utils.boxPoints
+    p0.copy(Utils.boxDefaults.min as Vector3)
+    p1.copy(Utils.boxDefaults.max as Vector3)
+    if (value.min && value.max) {
+      fromVector3Declaration(value.min, p0)
+      fromVector3Declaration(value.max, p1)
+    }
+    if (value.inset) {
+      p0.addScalar(value.inset)
+      p1.addScalar(-value.inset)
+    }
+    const { x: x0, y: y0, z: z0 } = p0
+    const { x: x1, y: y1, z: z1 } = p1
+    p1.set(x1, y0, z0)
+    p2.set(x1, y0, z1)
+    p3.set(x0, y0, z1)
+    p4.set(x0, y1, z0)
+    p5.set(x1, y1, z0)
+    p6.set(x1, y1, z1)
+    p7.set(x0, y1, z1)
+    if (value.transform) {
+      fromTransformDeclaration(value.transform, _m)
+      p0.applyMatrix4(_m)
+      p1.applyMatrix4(_m)
+      p2.applyMatrix4(_m)
+      p3.applyMatrix4(_m)
+      p4.applyMatrix4(_m)
+      p5.applyMatrix4(_m)
+      p6.applyMatrix4(_m)
+      p7.applyMatrix4(_m)
+    }
+    return Utils
+  }
+}
 
 class PointsManager {
   static shapes = (() => {
@@ -106,7 +165,7 @@ class PointsManager {
 
   parts: ReturnType<typeof PointsManager.createParts>
 
-  constructor(count = 1000) {
+  constructor(count = 4000) {
     this.parts = PointsManager.createParts(count)
   }
 
@@ -166,7 +225,12 @@ class PointsManager {
     return this
   }
 
-  point(p: Vector3Declaration, options?: Parameters<DebugHelper['points']>[1]) {
+  box(value: Parameters<typeof Utils.box>[0], options?: Parameters<PointsManager['points']>[1]) {
+    const { p0, p1, p2, p3, p4, p5, p6, p7 } = Utils.box(value).boxPoints
+    return this.points([p0, p1, p2, p3, p4, p5, p6, p7], options)
+  }
+
+  point(p: Vector3Declaration, options?: Parameters<PointsManager['points']>[1]) {
     return this.points([p], options)
   }
 }
@@ -196,7 +260,7 @@ class LinesManager {
 
   parts: ReturnType<typeof LinesManager.createParts>
 
-  constructor(count = 1000) {
+  constructor(count = 20000) {
     this.parts = LinesManager.createParts(count)
   }
 
@@ -221,24 +285,140 @@ class LinesManager {
     return this
   }
 
-  static defaultOptions = {
-    color: 'white' as ColorRepresentation,
+  static defaultArrowOptions = {
+    size: .1,
+    position: 'middle' as 'end' | 'start' | 'middle' | number,
+    skipSmallSegments: true,
+    skipSmallSegmentsThreshold: 'size' as 'size' | number,
   }
 
-  segmentsArray(p: Float32Array, options?: Partial<typeof LinesManager.defaultOptions>) {
+  static arrowPositionToNumber(position: typeof LinesManager.defaultArrowOptions['position'], length: number, size: number) {
+    if (typeof position === 'number') {
+      return position
+    }
+    switch (position) {
+      case 'start': return 0
+      case 'end': return 1
+      default:
+      case 'middle': return .5 + size / length / 2
+    }
+  }
+
+  static defaultOptions = {
+    color: 'white' as ColorRepresentation,
+    arrow: false as boolean | OneOrMany<Partial<typeof LinesManager.defaultArrowOptions>>,
+  }
+
+  segmentsArray(array: Float32Array, options?: Partial<typeof LinesManager.defaultOptions>) {
+
     const { position, color } = this.parts.attributes
-    const { index } = this.state
 
     const { color: colorArg } = { ...LinesManager.defaultOptions, ...options }
     const { r, g, b } = _c0.set(colorArg)
-    const count = p.length / 3
+    const count = array.length / 3
 
-    position.array.set(p, index * 3)
-    for (let i = 0; i < count; i++) {
-      color.setXYZ(index + i, r, g, b)
+    {
+      const { index } = this.state
+      const totalCount = count + (options?.arrow ? count * 2 : 0)
+      if (index + totalCount > this.parts.count) {
+        throw new Error('Overflow Handling Not implemented')
+      }
+
+      position.array.set(array, index * 3)
+      for (let i = 0; i < count; i++) {
+        color.setXYZ(index + i, r, g, b)
+      }
+
+      this.state.index += count
     }
 
-    this.state.index = index + count
+
+    if (options?.arrow) {
+      const P0 = _v0
+      const P1 = _v1
+      const D = _v2 // direction
+      const P = _v3 // position
+      const N = _v4 // normal
+      const C = _c0 // color
+
+      const arrowOptions = Array.isArray(options.arrow)
+        ? options.arrow
+        : [options.arrow === true ? {} : options.arrow]
+
+      let arrowCount = 0
+
+      const { index } = this.state
+      for (const arrowOption of arrowOptions) {
+        const {
+          size: arrowSize,
+          position: arrowPosition,
+          skipSmallSegments,
+          skipSmallSegmentsThreshold,
+        } = { ...LinesManager.defaultArrowOptions, ...(typeof options.arrow === 'object' ? options.arrow : {}) }
+
+        const threshold = skipSmallSegmentsThreshold === 'size' ? arrowSize : skipSmallSegmentsThreshold
+        console.log(threshold)
+        const squareThreshold = threshold * threshold
+        for (let i = 0; i < count / 2; i++) {
+          P0.fromArray(array, i * 6)
+          P1.fromArray(array, i * 6 + 3)
+
+          D.subVectors(P1, P0)
+
+          const l2 = D.lengthSq()
+          if (skipSmallSegments && l2 < squareThreshold) {
+            continue
+          }
+
+          const l = Math.sqrt(l2)
+          const t = LinesManager.arrowPositionToNumber(arrowPosition, l, arrowSize)
+          P.copy(P0).addScaledVector(D, t)
+
+          D.divideScalar(l)
+
+          // Normal based on the smallest component of the direction
+          const ax = Math.abs(D.x)
+          const ay = Math.abs(D.y)
+          const az = Math.abs(D.z)
+          if (ax >= az && ay >= az) {
+            N.set(D.y, -D.x, 0).normalize()
+          } else if (ay >= ax) {
+            N.set(D.z, 0, -D.x).normalize()
+          } else {
+            N.set(0, D.z, -D.y).normalize()
+          }
+
+          let i2 = (index + arrowCount * 4) * 3
+          P.toArray(position.array, i2)
+          C.toArray(color.array, i2)
+
+          i2 += 3
+          P0
+            .copy(P)
+            .addScaledVector(D, -arrowSize)
+            .addScaledVector(N, arrowSize)
+            .toArray(position.array, i2)
+          C.toArray(color.array, i2)
+
+          i2 += 3
+          P.toArray(position.array, i2)
+          C.toArray(color.array, i2)
+
+          i2 += 3
+          P0
+            .copy(P)
+            .addScaledVector(D, -arrowSize)
+            .addScaledVector(N, -arrowSize)
+            .toArray(position.array, i2)
+          C.toArray(color.array, i2)
+
+          arrowCount++
+        }
+      }
+
+      this.state.index += arrowCount * 4
+    }
+
     this.parts.geometry.setDrawRange(0, this.state.index)
 
     for (const attr of Object.values(this.parts.attributes)) {
@@ -247,6 +427,11 @@ class LinesManager {
 
     if (this.state.index > this.parts.count * 2) {
       throw new Error('Not implemented!')
+    }
+
+    if (position.array.some(v => isNaN(v))) {
+      console.log(position.array.findIndex(v => isNaN(v)))
+      debugger
     }
 
     return this
@@ -285,59 +470,34 @@ class LinesManager {
     return this
   }
 
-  static boxDefaultOptions = {
-    inset: 0,
-  }
-  static #box = { x0: 0, y0: 0, z0: 0, x1: 0, y1: 0, z1: 0 }
-  static #solveBox(value: Parameters<DebugHelper['box']>[0]) {
-    fromVector3Declaration(value.min, _v0)
-    LinesManager.#box.x0 = _v0.x
-    LinesManager.#box.y0 = _v0.y
-    LinesManager.#box.z0 = _v0.z
-    fromVector3Declaration(value.max, _v0)
-    LinesManager.#box.x1 = _v0.x
-    LinesManager.#box.y1 = _v0.y
-    LinesManager.#box.z1 = _v0.z
-  }
-  box(value: { min: Vector3Declaration, max: Vector3Declaration }, options?: Partial<typeof LinesManager.boxDefaultOptions> & Parameters<DebugHelper['segments']>[1]) {
-    LinesManager.#solveBox(value)
-    const { inset } = { ...LinesManager.boxDefaultOptions, ...options }
-    let { x0, y0, z0, x1, y1, z1 } = LinesManager.#box
-    x0 += inset
-    y0 += inset
-    z0 += inset
-    x1 -= inset
-    y1 -= inset
-    z1 -= inset
-    return this.segments([
-      // bottom
-      { x: x0, y: y0, z: z0 },
-      { x: x1, y: y0, z: z0 },
-      { x: x1, y: y0, z: z0 },
-      { x: x1, y: y1, z: z0 },
-      { x: x1, y: y1, z: z0 },
-      { x: x0, y: y1, z: z0 },
-      { x: x0, y: y1, z: z0 },
-      { x: x0, y: y0, z: z0 },
-      // top
-      { x: x0, y: y0, z: z1 },
-      { x: x1, y: y0, z: z1 },
-      { x: x1, y: y0, z: z1 },
-      { x: x1, y: y1, z: z1 },
-      { x: x1, y: y1, z: z1 },
-      { x: x0, y: y1, z: z1 },
-      { x: x0, y: y1, z: z1 },
-      { x: x0, y: y0, z: z1 },
-      // sides
-      { x: x0, y: y0, z: z0 },
-      { x: x0, y: y0, z: z1 },
-      { x: x1, y: y0, z: z0 },
-      { x: x1, y: y0, z: z1 },
-      { x: x1, y: y1, z: z0 },
-      { x: x1, y: y1, z: z1 },
-      { x: x0, y: y1, z: z0 },
-      { x: x0, y: y1, z: z1 },
-    ], options)
+  box(value: Parameters<typeof Utils.box>[0], options?: Parameters<DebugHelper['segments']>[1]) {
+    const { p0, p1, p2, p3, p4, p5, p6, p7 } = Utils.box(value).boxPoints
+    return this.segmentsArray(new Float32Array([
+      p0.x, p0.y, p0.z,
+      p1.x, p1.y, p1.z,
+      p1.x, p1.y, p1.z,
+      p2.x, p2.y, p2.z,
+      p2.x, p2.y, p2.z,
+      p3.x, p3.y, p3.z,
+      p3.x, p3.y, p3.z,
+      p0.x, p0.y, p0.z,
+      p4.x, p4.y, p4.z,
+      p5.x, p5.y, p5.z,
+      p5.x, p5.y, p5.z,
+      p6.x, p6.y, p6.z,
+      p6.x, p6.y, p6.z,
+      p7.x, p7.y, p7.z,
+      p7.x, p7.y, p7.z,
+      p4.x, p4.y, p4.z,
+      p0.x, p0.y, p0.z,
+      p4.x, p4.y, p4.z,
+      p1.x, p1.y, p1.z,
+      p5.x, p5.y, p5.z,
+      p2.x, p2.y, p2.z,
+      p6.x, p6.y, p6.z,
+      p3.x, p3.y, p3.z,
+      p7.x, p7.y, p7.z,
+    ]), options)
   }
 
   static rectDefaultOptions = {
@@ -422,7 +582,7 @@ class TextsManager {
 
   parts: ReturnType<typeof TextsManager.createParts>
 
-  constructor(count = 1000) {
+  constructor(count = 2000) {
     this.parts = TextsManager.createParts(count)
   }
 
@@ -530,12 +690,12 @@ class DebugHelper extends Group {
   }
 
   polygon(
-    data: Parameters<LinesManager['polygon']>[0],
+    polygonArg: Parameters<LinesManager['polygon']>[0],
     options?: Parameters<LinesManager['polygon']>[1] & LinePointsOptions,
   ): this {
-    this.parts.linesManager.polygon(data, options)
+    this.parts.linesManager.polygon(polygonArg, options)
     if (options?.points) {
-      this.points(data, { ...defaultLinePointsOptions, color: options.color, ...(options.points === true ? {} : options.points) })
+      this.points(polygonArg, { ...defaultLinePointsOptions, color: options.color, ...(options.points === true ? {} : options.points) })
     }
     return this
   }
@@ -550,8 +710,14 @@ class DebugHelper extends Group {
     return this
   }
 
-  box(...args: Parameters<LinesManager['box']>): this {
-    this.parts.linesManager.box(...args)
+  box(
+    boxArg: Parameters<LinesManager['box']>[0],
+    options?: Parameters<LinesManager['box']>[1] & LinePointsOptions,
+  ): this {
+    this.parts.linesManager.box(boxArg, options)
+    if (options?.points) {
+      this.parts.pointsManager.box(boxArg, { ...defaultLinePointsOptions, color: options.color, ...(options.points === true ? {} : options.points) })
+    }
     return this
   }
 

@@ -1,7 +1,27 @@
-import { BufferAttribute, BufferGeometry, ColorRepresentation, Group, LineSegments, Object3D, Points, PointsMaterial } from 'three';
+import { BufferAttribute, BufferGeometry, ColorRepresentation, Group, LineSegments, Object3D, Points, PointsMaterial, Vector3 } from 'three';
 import { RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle';
-import { Vector3Declaration } from '../../declaration';
+import { OneOrMany } from 'some-utils-ts/types';
+import { TransformDeclaration, Vector3Declaration } from '../../declaration';
 import { TextHelper } from '../text';
+declare class Utils {
+    static boxPoints: {
+        p0: Vector3;
+        p1: Vector3;
+        p2: Vector3;
+        p3: Vector3;
+        p4: Vector3;
+        p5: Vector3;
+        p6: Vector3;
+        p7: Vector3;
+    };
+    static boxDefaults: {
+        inset: number;
+        min: Vector3Declaration;
+        max: Vector3Declaration;
+        transform: TransformDeclaration | undefined;
+    };
+    static box(value: Partial<typeof Utils.boxDefaults>): typeof Utils;
+}
 declare class PointsManager {
     static shapes: {
         square: number;
@@ -37,10 +57,10 @@ declare class PointsManager {
         color?: ColorRepresentation | undefined;
         shape?: "square" | "circle" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "cross" | undefined;
     }): this;
-    point(p: Vector3Declaration, options?: Parameters<DebugHelper['points']>[1]): this;
+    box(value: Parameters<typeof Utils.box>[0], options?: Parameters<PointsManager['points']>[1]): this;
+    point(p: Vector3Declaration, options?: Parameters<PointsManager['points']>[1]): this;
 }
 declare class LinesManager {
-    #private;
     static createParts(count: number): {
         count: number;
         geometry: BufferGeometry<import("three").NormalBufferAttributes>;
@@ -57,21 +77,23 @@ declare class LinesManager {
     constructor(count?: number);
     clear(): void;
     onTop(value?: boolean): this;
+    static defaultArrowOptions: {
+        size: number;
+        position: "end" | "start" | "middle" | number;
+        skipSmallSegments: boolean;
+        skipSmallSegmentsThreshold: "size" | number;
+    };
+    static arrowPositionToNumber(position: typeof LinesManager.defaultArrowOptions['position'], length: number, size: number): number;
     static defaultOptions: {
         color: ColorRepresentation;
+        arrow: boolean | OneOrMany<Partial<typeof LinesManager.defaultArrowOptions>>;
     };
-    segmentsArray(p: Float32Array, options?: Partial<typeof LinesManager.defaultOptions>): this;
+    segmentsArray(array: Float32Array, options?: Partial<typeof LinesManager.defaultOptions>): this;
     segments(p: Vector3Declaration[], options?: Partial<typeof LinesManager.defaultOptions>): this;
     line(p0: Vector3Declaration, p1: Vector3Declaration, options?: Parameters<DebugHelper['segments']>[1]): this;
     polyline(p: Vector3Declaration[], options?: Parameters<DebugHelper['segments']>[1]): this;
     polygon(p: Vector3Declaration[], options?: Parameters<DebugHelper['segments']>[1]): this;
-    static boxDefaultOptions: {
-        inset: number;
-    };
-    box(value: {
-        min: Vector3Declaration;
-        max: Vector3Declaration;
-    }, options?: Partial<typeof LinesManager.boxDefaultOptions> & Parameters<DebugHelper['segments']>[1]): this;
+    box(value: Parameters<typeof Utils.box>[0], options?: Parameters<DebugHelper['segments']>[1]): this;
     static rectDefaultOptions: {
         inset: number;
     };
@@ -129,9 +151,9 @@ declare class DebugHelper extends Group {
     line(...args: Parameters<LinesManager['line']>): this;
     polyline(data: Parameters<LinesManager['polyline']>[0], options?: Parameters<LinesManager['polyline']>[1] & LinePointsOptions): this;
     polylines(data: Parameters<DebugHelper['polyline']>[0][], options?: Parameters<DebugHelper['polyline']>[1]): this;
-    polygon(data: Parameters<LinesManager['polygon']>[0], options?: Parameters<LinesManager['polygon']>[1] & LinePointsOptions): this;
+    polygon(polygonArg: Parameters<LinesManager['polygon']>[0], options?: Parameters<LinesManager['polygon']>[1] & LinePointsOptions): this;
     polygons(data: Parameters<DebugHelper['polygon']>[0][], options?: Parameters<DebugHelper['polygon']>[1]): this;
-    box(...args: Parameters<LinesManager['box']>): this;
+    box(boxArg: Parameters<LinesManager['box']>[0], options?: Parameters<LinesManager['box']>[1] & LinePointsOptions): this;
     circle(...args: Parameters<LinesManager['circle']>): this;
     rect(...args: Parameters<LinesManager['rect']>): this;
     texts(...args: Parameters<TextsManager['texts']>): this;
