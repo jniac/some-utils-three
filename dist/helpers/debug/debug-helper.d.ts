@@ -33,7 +33,9 @@ declare class PointsManager {
         'plus-ultra-thin': number;
         cross: number;
     };
-    static createParts(count: number): {
+    static createParts({ pointCount: count, }?: {
+        pointCount?: number | undefined;
+    }): {
         count: number;
         geometry: BufferGeometry<import("three").NormalBufferAttributes>;
         attributes: {
@@ -48,7 +50,7 @@ declare class PointsManager {
         index: number;
     };
     parts: ReturnType<typeof PointsManager.createParts>;
-    constructor(count?: number);
+    constructor(options?: Parameters<typeof PointsManager.createParts>[0]);
     clear(): void;
     onTop(value?: boolean): this;
     points(p: Vector3Declaration[], { size: argSize, scale: argScale, color: argColor, shape: argShape, }?: {
@@ -62,8 +64,16 @@ declare class PointsManager {
 }
 declare class LinesManager {
     #private;
-    static createParts(count: number): {
+    static createParts({ lineCount: count, defaultColor, defaultOpacity, }?: {
+        lineCount?: number | undefined;
+        defaultColor?: ColorRepresentation | undefined;
+        defaultOpacity?: number | undefined;
+    }): {
         count: number;
+        defaults: {
+            color: ColorRepresentation;
+            opacity: number;
+        };
         geometry: BufferGeometry<import("three").NormalBufferAttributes>;
         attributes: {
             position: BufferAttribute;
@@ -76,12 +86,12 @@ declare class LinesManager {
         index: number;
     };
     parts: ReturnType<typeof LinesManager.createParts>;
-    constructor(count?: number);
+    constructor(options?: Parameters<typeof LinesManager.createParts>[0]);
     clear(): void;
     onTop(value?: boolean): this;
     static defaultArrowOptions: {
         size: number;
-        position: "end" | "start" | "middle" | number;
+        position: OneOrMany<"end" | "start" | "middle" | number>;
         skipSmallSegments: boolean;
         skipSmallSegmentsThreshold: "size" | number;
         type: "single" | "double" | "triple";
@@ -89,7 +99,7 @@ declare class LinesManager {
     };
     static arrowPositionToNumber(position: typeof LinesManager.defaultArrowOptions['position'], length: number, size: number, arrowIndex: number, arrowRepeat: number): number;
     static defaultOptions: {
-        color: ColorRepresentation;
+        color: undefined | ColorRepresentation;
         opacity: number;
         arrow: boolean | OneOrMany<Partial<typeof LinesManager.defaultArrowOptions>>;
     };
@@ -125,7 +135,7 @@ declare class LinesManager {
     regularGrid(options?: Partial<typeof LinesManager.regularGridDefaults>): this;
 }
 declare class TextsManager {
-    static createParts(count: number): {
+    static createParts(options?: ConstructorParameters<typeof TextHelper>[0]): {
         count: number;
         textHelper: TextHelper;
     };
@@ -133,15 +143,16 @@ declare class TextsManager {
         index: number;
     };
     parts: ReturnType<typeof TextsManager.createParts>;
-    constructor(count?: number);
-    clear(): void;
+    constructor(options?: Parameters<typeof TextsManager.createParts>[0]);
+    clear(): this;
+    onTop(value?: boolean): this;
     texts(points: Vector3Declaration[], { texts, color, size, backgroundColor, }?: {
-        texts?: string[] | ((i: number) => string) | undefined;
+        texts?: ((i: number) => string) | string[] | undefined;
         color?: ColorRepresentation | undefined;
         size?: number | undefined;
         backgroundColor?: ColorRepresentation | undefined;
     }): this;
-    text(p: Vector3Declaration, text: string, options: Omit<Parameters<TextsManager['texts']>[1], 'texts'>): this;
+    text(p: Vector3Declaration, text: string, options?: Omit<Parameters<TextsManager['texts']>[1], 'texts'>): this;
 }
 declare const defaultLinePointsOptions: {
     color: ColorRepresentation | undefined;
@@ -152,11 +163,17 @@ type LinePointsOptions = {
     points?: boolean | Partial<typeof defaultLinePointsOptions>;
 };
 declare class DebugHelper extends Group {
-    parts: {
+    static createParts(instance: DebugHelper, options?: Partial<{
+        texts: ConstructorParameters<typeof TextsManager>[0];
+        lines: ConstructorParameters<typeof LinesManager>[0];
+        points: ConstructorParameters<typeof PointsManager>[0];
+    }>): {
         pointsManager: PointsManager;
         linesManager: LinesManager;
         textsManager: TextsManager;
     };
+    parts: ReturnType<typeof DebugHelper.createParts>;
+    constructor(options?: Parameters<typeof DebugHelper.createParts>[1]);
     points(...args: Parameters<PointsManager['points']>): this;
     point(...args: Parameters<PointsManager['point']>): this;
     segments(...args: Parameters<LinesManager['segments']>): this;

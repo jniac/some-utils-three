@@ -86,7 +86,9 @@ class PointsManager {
     }
   })()
 
-  static createParts(count: number) {
+  static createParts({
+    pointCount: count = 10000,
+  } = {}) {
     const geometry = new BufferGeometry()
     const attributes = {
       'position': new BufferAttribute(new Float32Array(count * 3), 3),
@@ -166,8 +168,8 @@ class PointsManager {
 
   parts: ReturnType<typeof PointsManager.createParts>
 
-  constructor(count = 4000) {
-    this.parts = PointsManager.createParts(count)
+  constructor(options?: Parameters<typeof PointsManager.createParts>[0]) {
+    this.parts = PointsManager.createParts(options)
   }
 
   clear() {
@@ -236,8 +238,14 @@ class PointsManager {
   }
 }
 
+const DEFAULT_LINE_COUNT = 20000
+
 class LinesManager {
-  static createParts(count: number) {
+  static createParts({
+    lineCount: count = DEFAULT_LINE_COUNT,
+    defaultColor = 'white' as ColorRepresentation,
+    defaultOpacity = 1,
+  } = {}) {
     const geometry = new BufferGeometry()
     const attributes = {
       'position': new BufferAttribute(new Float32Array(count * 3 * 2), 3),
@@ -269,6 +277,10 @@ class LinesManager {
     lines.frustumCulled = false
     return {
       count,
+      defaults: {
+        color: defaultColor,
+        opacity: defaultOpacity,
+      },
       geometry,
       attributes,
       lines,
@@ -279,8 +291,8 @@ class LinesManager {
 
   parts: ReturnType<typeof LinesManager.createParts>
 
-  constructor(count = 20000) {
-    this.parts = LinesManager.createParts(count)
+  constructor(options?: Parameters<typeof LinesManager.createParts>[0]) {
+    this.parts = LinesManager.createParts(options)
   }
 
   clear() {
@@ -306,7 +318,7 @@ class LinesManager {
 
   static defaultArrowOptions = {
     size: .1,
-    position: 'middle' as 'end' | 'start' | 'middle' | number,
+    position: 'middle' as OneOrMany<'end' | 'start' | 'middle' | number>,
     skipSmallSegments: true,
     skipSmallSegmentsThreshold: 'size' as 'size' | number,
     type: 'single' as 'single' | 'double' | 'triple',
@@ -322,7 +334,7 @@ class LinesManager {
   ) {
     const delta = size / length * .66
     if (typeof position === 'number') {
-      return position
+      return position + delta * (arrowIndex + .5 - (arrowRepeat - 1) / 2)
     }
     switch (position) {
       case 'start': return delta * arrowIndex
@@ -333,7 +345,7 @@ class LinesManager {
   }
 
   static defaultOptions = {
-    color: 'white' as ColorRepresentation,
+    color: undefined as undefined | ColorRepresentation,
     opacity: 1,
     arrow: false as boolean | OneOrMany<Partial<typeof LinesManager.defaultArrowOptions>>,
   }
@@ -362,7 +374,10 @@ class LinesManager {
   segmentsArray(array: Float32Array, options?: Partial<typeof LinesManager.defaultOptions>) {
     const { position, color, aOpacity } = this.parts.attributes
 
-    const { color: colorArg, opacity: opacityArg } = { ...LinesManager.defaultOptions, ...options }
+    const {
+      color: colorArg,
+      opacity: opacityArg,
+    } = { ...LinesManager.defaultOptions, ...options, ...this.parts.defaults }
     const { r, g, b } = _c0.set(colorArg)
     const count = array.length / 3
 
@@ -370,6 +385,7 @@ class LinesManager {
       const { index } = this.state
       const totalCount = count + (options?.arrow ? count * 2 : 0)
       if (index + totalCount > this.parts.count) {
+        console.log('Overflow Handling Not implemented', index + totalCount, this.parts.count)
         throw new Error('Overflow Handling Not implemented')
       }
 
@@ -443,40 +459,43 @@ class LinesManager {
           }
 
           for (let j = 0; j < arrowRepeat; j++) {
-            const t = LinesManager.arrowPositionToNumber(arrowPosition, l, s, j, arrowRepeat)
-            P.lerpVectors(P0, P1, t)
+            const aps = Array.isArray(arrowPosition) ? arrowPosition : [arrowPosition]
+            for (const ap of aps) {
+              const t = LinesManager.arrowPositionToNumber(ap, l, s, j, arrowRepeat)
+              P.lerpVectors(P0, P1, t)
 
-            let i1 = index + arrowCount * 4
-            aOpacity.setX(i1, opacityArg)
-            aOpacity.setX(i1 + 1, opacityArg)
-            aOpacity.setX(i1 + 2, opacityArg)
-            aOpacity.setX(i1 + 3, opacityArg)
+              let i1 = index + arrowCount * 4
+              aOpacity.setX(i1, opacityArg)
+              aOpacity.setX(i1 + 1, opacityArg)
+              aOpacity.setX(i1 + 2, opacityArg)
+              aOpacity.setX(i1 + 3, opacityArg)
 
-            let i2 = i1 * 3
-            P.toArray(position.array, i2)
-            C.toArray(color.array, i2)
+              let i2 = i1 * 3
+              P.toArray(position.array, i2)
+              C.toArray(color.array, i2)
 
-            i2 += 3
-            M
-              .copy(P)
-              .addScaledVector(D, -s)
-              .addScaledVector(N, s)
-              .toArray(position.array, i2)
-            C.toArray(color.array, i2)
+              i2 += 3
+              M
+                .copy(P)
+                .addScaledVector(D, -s)
+                .addScaledVector(N, s)
+                .toArray(position.array, i2)
+              C.toArray(color.array, i2)
 
-            i2 += 3
-            P.toArray(position.array, i2)
-            C.toArray(color.array, i2)
+              i2 += 3
+              P.toArray(position.array, i2)
+              C.toArray(color.array, i2)
 
-            i2 += 3
-            M
-              .copy(P)
-              .addScaledVector(D, -s)
-              .addScaledVector(N, -s)
-              .toArray(position.array, i2)
-            C.toArray(color.array, i2)
+              i2 += 3
+              M
+                .copy(P)
+                .addScaledVector(D, -s)
+                .addScaledVector(N, -s)
+                .toArray(position.array, i2)
+              C.toArray(color.array, i2)
 
-            arrowCount++
+              arrowCount++
+            }
           }
         }
       }
@@ -703,13 +722,16 @@ class LinesManager {
   }
 }
 
+const DEFAULT_TEXT_COUNT = 2000
+
 class TextsManager {
-  static createParts(count: number) {
+  static createParts(options?: ConstructorParameters<typeof TextHelper>[0]) {
     const textHelper = new TextHelper({
-      textCount: count,
+      textCount: DEFAULT_TEXT_COUNT,
+      ...options,
     })
     return {
-      count,
+      count: textHelper.count,
       textHelper,
     }
   }
@@ -718,19 +740,25 @@ class TextsManager {
 
   parts: ReturnType<typeof TextsManager.createParts>
 
-  constructor(count = 2000) {
-    this.parts = TextsManager.createParts(count)
+  constructor(options?: Parameters<typeof TextsManager.createParts>[0]) {
+    this.parts = TextsManager.createParts(options)
   }
 
   clear() {
     this.state.index = 0
     this.parts.textHelper.clearAllText()
+    return this
+  }
+
+  onTop(value = true) {
+    this.parts.textHelper.onTop(value)
+    return this
   }
 
   texts(points: Vector3Declaration[], {
     texts = ((i: number) => i.toString()) as ((i: number) => string) | string[],
-    color = 'white' as ColorRepresentation,
-    size = 1,
+    color = undefined as ColorRepresentation | undefined,
+    size = undefined as number | undefined,
     backgroundColor = undefined as ColorRepresentation | undefined,
   } = {}) {
     let index = this.state.index
@@ -745,7 +773,6 @@ class TextsManager {
         size,
         color,
         backgroundColor,
-        backgroundOpacity: backgroundColor ? 1 : 0,
       })
       index++
       i++
@@ -754,7 +781,7 @@ class TextsManager {
     return this
   }
 
-  text(p: Vector3Declaration, text: string, options: Omit<Parameters<TextsManager['texts']>[1], 'texts'>) {
+  text(p: Vector3Declaration, text: string, options?: Omit<Parameters<TextsManager['texts']>[1], 'texts'>) {
     return this.texts([p], { ...options, texts: [text] })
   }
 }
@@ -769,22 +796,33 @@ type LinePointsOptions = {
 }
 
 class DebugHelper extends Group {
-  parts = (() => {
-    const pointsManager = new PointsManager()
-    this.add(pointsManager.parts.points)
+  static createParts(instance: DebugHelper, options?: Partial<{
+    texts: ConstructorParameters<typeof TextsManager>[0],
+    lines: ConstructorParameters<typeof LinesManager>[0],
+    points: ConstructorParameters<typeof PointsManager>[0],
+  }>) {
+    const pointsManager = new PointsManager(options?.points)
+    instance.add(pointsManager.parts.points)
 
-    const linesManager = new LinesManager()
-    this.add(linesManager.parts.lines)
+    const linesManager = new LinesManager(options?.lines)
+    instance.add(linesManager.parts.lines)
 
-    const textsManager = new TextsManager()
-    this.add(textsManager.parts.textHelper)
+    const textsManager = new TextsManager(options?.texts)
+    instance.add(textsManager.parts.textHelper)
 
     return {
       pointsManager,
       linesManager,
       textsManager,
     }
-  })()
+  }
+
+  parts: ReturnType<typeof DebugHelper.createParts>
+
+  constructor(options?: Parameters<typeof DebugHelper.createParts>[1]) {
+    super()
+    this.parts = DebugHelper.createParts(this, options)
+  }
 
   points(...args: Parameters<PointsManager['points']>): this {
     this.parts.pointsManager.points(...args)
@@ -895,6 +933,7 @@ class DebugHelper extends Group {
   onTop(value = true): this {
     this.parts.pointsManager.onTop(value)
     this.parts.linesManager.onTop(value)
+    this.parts.textsManager.onTop(value)
     return this
   }
 

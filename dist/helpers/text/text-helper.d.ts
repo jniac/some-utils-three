@@ -1,5 +1,5 @@
 import { BufferGeometry, Color, ColorRepresentation, DataTexture, InstancedMesh, MeshBasicMaterial, Object3D, Vector2 } from 'three';
-import { TransformDeclaration } from '../../declaration';
+import { TransformDeclaration, Vector2Declaration } from '../../declaration';
 import { TextHelperAtlas } from './atlas';
 import { SetColorOptions, SetTextOption, TextHelperData } from './data';
 declare const orientations: {
@@ -12,8 +12,12 @@ declare const defaultOptions: {
     lineCount: number;
     charSize: Vector2;
     textSize: number;
+    textOffset: Vector2Declaration;
     orientation: (keyof typeof orientations) | number;
     defaultColor: ColorRepresentation;
+    defaultOpacity: number;
+    defaultBackgroundColor: ColorRepresentation;
+    defaultBackgroundOpacity: number;
     defaultSize: number;
 };
 export declare class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicMaterial> {
@@ -23,8 +27,12 @@ export declare class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicM
         lineCount: number;
         charSize: Vector2;
         textSize: number;
+        textOffset: Vector2Declaration;
         orientation: (keyof typeof orientations) | number;
         defaultColor: ColorRepresentation;
+        defaultOpacity: number;
+        defaultBackgroundColor: ColorRepresentation;
+        defaultBackgroundOpacity: number;
         defaultSize: number;
     };
     static readonly Orientation: {
@@ -43,6 +51,7 @@ export declare class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicM
     dataTexture: DataTexture;
     constructor(userOptions?: Partial<typeof defaultOptions>);
     addTo(parent: Object3D | null): this;
+    onTop(value?: boolean): this;
     setData(data: TextHelperData): this;
     clearAllText(): this;
     setTextAt(index: number, text: string, options?: TransformDeclaration & SetTextOption): this;
