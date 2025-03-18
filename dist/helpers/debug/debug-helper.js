@@ -1,8 +1,8 @@
 import { BufferAttribute, BufferGeometry, Color, Group, LineSegments, Matrix4, Points, PointsMaterial, Vector3 } from 'three';
 import { Rectangle } from 'some-utils-ts/math/geom/rectangle';
-import { fromTransformDeclaration, fromVector3Declaration } from '../../declaration';
-import { ShaderForge } from '../../shader-forge';
-import { TextHelper } from '../text';
+import { fromTransformDeclaration, fromVector3Declaration } from '../../declaration.js';
+import { ShaderForge } from '../../shader-forge.js';
+import { TextHelper } from '../text.js';
 const _v0 = new Vector3();
 const _v1 = new Vector3();
 const _v2 = new Vector3();

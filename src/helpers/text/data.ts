@@ -242,8 +242,6 @@ export class TextHelperData {
       backgroundOpacity = opacity ?? options.backgroundColor ? 1 : 0,
     } = options
 
-    console.log(options, textColor)
-
     const { array } = this
     const { strideByteSize: stride } = this.metadata
 

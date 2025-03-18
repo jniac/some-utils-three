@@ -64,10 +64,6 @@ export class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicMaterial>
 
   constructor(userOptions?: Partial<typeof defaultOptions>) {
     const atlas = new TextHelperAtlas()
-    if (userOptions) {
-      // Ensure default background opacity is set when background color is set
-      userOptions.defaultBackgroundOpacity ??= userOptions?.defaultBackgroundColor ? 1 : 0
-    }
     const options = { ...defaultOptions, ...userOptions }
     const planeSize = new Vector2(
       options.textSize * options.lineLength * options.charSize.x,

@@ -1,10 +1,10 @@
 import { DataTexture, DoubleSide, InstancedMesh, Matrix4, MeshBasicMaterial, PlaneGeometry, RGBAFormat, UnsignedByteType, Vector2 } from 'three';
-import { fromVector2Declaration } from '../../declaration';
-import { ShaderForge } from '../../shader-forge';
-import { makeMatrix4 } from '../../utils/make';
-import { TextHelperAtlas } from './atlas';
-import { TextHelperData } from './data';
-import { getDataStringView } from './utils';
+import { fromVector2Declaration } from '../../declaration.js';
+import { ShaderForge } from '../../shader-forge.js';
+import { makeMatrix4 } from '../../utils/make.js';
+import { TextHelperAtlas } from './atlas.js';
+import { TextHelperData } from './data.js';
+import { getDataStringView } from './utils.js';
 const orientations = {
     'oriented': 0,
     'billboard': 1,
@@ -51,10 +51,6 @@ export class TextHelper extends InstancedMesh {
     dataTexture;
     constructor(userOptions) {
         const atlas = new TextHelperAtlas();
-        if (userOptions) {
-            // Ensure default background opacity is set when background color is set
-            userOptions.defaultBackgroundOpacity ??= userOptions?.defaultBackgroundColor ? 1 : 0;
-        }
         const options = { ...defaultOptions, ...userOptions };
         const planeSize = new Vector2(options.textSize * options.lineLength * options.charSize.x, options.textSize * options.lineCount * options.charSize.y);
         const geometry = new PlaneGeometry(planeSize.width, planeSize.height);
