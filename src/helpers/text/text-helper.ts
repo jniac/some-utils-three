@@ -1,6 +1,6 @@
 import { BufferGeometry, Color, ColorRepresentation, DataTexture, DoubleSide, InstancedMesh, Matrix4, MeshBasicMaterial, Object3D, PlaneGeometry, RGBAFormat, UnsignedByteType, Vector2 } from 'three'
 
-import { TransformDeclaration } from '../../declaration'
+import { fromVector2Declaration, TransformDeclaration, Vector2Declaration } from '../../declaration'
 import { ShaderForge } from '../../shader-forge'
 import { makeMatrix4 } from '../../utils/make'
 
@@ -35,8 +35,12 @@ const defaultOptions = {
   lineCount: 2,
   charSize: new Vector2(.2, .3),
   textSize: 1,
+  textOffset: 0 as Vector2Declaration,
   orientation: 'billboard' as (keyof typeof orientations) | number,
   defaultColor: '#ff00ff' as ColorRepresentation,
+  defaultOpacity: 1,
+  defaultBackgroundColor: '#000000' as ColorRepresentation,
+  defaultBackgroundOpacity: 0,
   defaultSize: 1,
 }
 
@@ -61,6 +65,10 @@ export class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicMaterial>
 
   constructor(userOptions?: Partial<typeof defaultOptions>) {
     const atlas = new TextHelperAtlas()
+    if (userOptions) {
+      // Ensure default background opacity is set when background color is set
+      userOptions.defaultBackgroundOpacity ??= userOptions?.defaultBackgroundColor ? 1 : 0
+    }
     const options = { ...defaultOptions, ...userOptions }
     const planeSize = new Vector2(
       options.textSize * options.lineLength * options.charSize.x,
@@ -74,6 +82,7 @@ export class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicMaterial>
     const uniforms = {
       uCameraMatrix: { value: new Matrix4() },
       uOrientation: { value: solveOrientation(options.orientation) },
+      uTextOffset: { value: fromVector2Declaration(options.textOffset) },
       uPlaneSize: { value: planeSize },
       uCharSize: { value: options.charSize },
       uLineLength: { value: options.lineLength },
@@ -152,6 +161,8 @@ export class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicMaterial>
             uCameraMatrix[1],
             uCameraMatrix[2],
             modelMatrix * vec4(instanceMatrix[3].xyz, 1.0));
+
+        mvPosition.xy += uTextOffset;
 
         mvPosition = viewMatrix * textMatrix * mvPosition;
 
@@ -240,6 +251,21 @@ export class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicMaterial>
     return this
   }
 
+  onTop(value = true) {
+    if (value) {
+      this.renderOrder = 999
+      this.material.depthTest = false
+      this.material.depthWrite = false
+      this.material.transparent = true
+    } else {
+      this.renderOrder = 0
+      this.material.depthTest = true
+      this.material.depthWrite = true
+      this.material.transparent = false
+    }
+    return this
+  }
+
   setData(data: TextHelperData) {
     this.data = data
     this.dataTexture.image.data = data.array
@@ -255,8 +281,11 @@ export class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicMaterial>
   }
 
   setTextAt(index: number, text: string, options: TransformDeclaration & SetTextOption = {}) {
-    options.color ??= this.options.defaultColor
     options.size ??= this.options.defaultSize
+    options.textColor ??= this.options.defaultColor
+    options.textOpacity ??= this.options.defaultOpacity
+    options.backgroundColor ??= this.options.defaultBackgroundColor
+    options.backgroundOpacity ??= this.options.defaultBackgroundOpacity
 
     this.data.setTextAt(index, text, options)
     this.dataTexture.needsUpdate = true

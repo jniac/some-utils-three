@@ -7,7 +7,7 @@ function getDefaultSymbols() {
   const alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
   const diacritics = 'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ'
   const numbers = '0123456789'
-  const punctuation = ' .,!?¿:;-+*/=%&|()[]{}<>$\'’"'
+  const punctuation = ' #.,!?¿:;-+*/=%&|()[]{}<>$\'’"'
   return [...new Set([unknown, ...alphabet, ...diacritics, ...numbers, ...punctuation])].join('')
 }
 
