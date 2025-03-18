@@ -377,11 +377,16 @@ class LinesManager {
     const {
       color: colorArg,
       opacity: opacityArg,
-    } = { ...LinesManager.defaultOptions, ...options, ...this.parts.defaults }
+    } = {
+      ...LinesManager.defaultOptions,
+      ...this.parts.defaults,
+      ...options,
+    }
     const { r, g, b } = _c0.set(colorArg)
     const count = array.length / 3
 
     {
+      // The line's part (easy)
       const { index } = this.state
       const totalCount = count + (options?.arrow ? count * 2 : 0)
       if (index + totalCount > this.parts.count) {
@@ -400,6 +405,8 @@ class LinesManager {
 
 
     if (options?.arrow) {
+      // The arrow's part (less easy...)
+
       const P0 = _v0
       const P1 = _v1
       const D = _v2 // direction
