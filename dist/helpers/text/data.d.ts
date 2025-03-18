@@ -1,4 +1,5 @@
 import { ColorRepresentation, Vector2 } from 'three';
+import { TransformDeclaration } from '../../declaration';
 /**
  * Byte size of the info:
  * #0:
@@ -18,9 +19,15 @@ import { ColorRepresentation, Vector2 } from 'three';
 export declare const DATA_STRIDE_HEADER_BYTE_SIZE: number;
 export type SetColorOptions = Partial<{
     /**
-     * Sugar for `textColor`
+     * Defines the color of the text and background. Usefull when using the same
+     * color for both with different opacity.
      */
     color: ColorRepresentation;
+    /**
+     * Defines the opacity of the text and background. Usefull when using the same
+     * opacity for both with different color.
+     */
+    opacity: number;
     /**
      * The color of the text.
      */
@@ -40,7 +47,7 @@ export type SetColorOptions = Partial<{
      */
     backgroundOpacity: number;
 }>;
-export type SetTextOption = SetColorOptions & Partial<{
+export type SetTextOption = TransformDeclaration & SetColorOptions & Partial<{
     /**
      * Whether to trim the text before setting it.
      * @default false
@@ -51,6 +58,11 @@ export type SetTextOption = SetColorOptions & Partial<{
      * @default 1
      */
     size: number;
+    /**
+     * The size of the text.
+     * @default 1
+     */
+    scale: number;
 }>;
 export declare class TextHelperData {
     readonly metadata: {

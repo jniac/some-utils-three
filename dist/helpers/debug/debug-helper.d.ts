@@ -2,7 +2,7 @@ import { BufferAttribute, BufferGeometry, ColorRepresentation, Group, LineSegmen
 import { RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle';
 import { OneOrMany } from 'some-utils-ts/types';
 import { TransformDeclaration, Vector3Declaration } from '../../declaration';
-import { TextHelper } from '../text';
+import { SetTextOption, TextHelper } from '../text';
 declare class Utils {
     static boxPoints: {
         p0: Vector3;
@@ -146,13 +146,12 @@ declare class TextsManager {
     constructor(options?: Parameters<typeof TextsManager.createParts>[0]);
     clear(): this;
     onTop(value?: boolean): this;
-    texts(points: Vector3Declaration[], { texts, color, size, backgroundColor, }?: {
-        texts?: ((i: number) => string) | string[] | undefined;
-        color?: ColorRepresentation | undefined;
-        size?: number | undefined;
-        backgroundColor?: ColorRepresentation | undefined;
-    }): this;
-    text(p: Vector3Declaration, text: string, options?: Omit<Parameters<TextsManager['texts']>[1], 'texts'>): this;
+    static textDefaults: {
+        texts: ((i: number) => string) | string[];
+        debug: boolean;
+    };
+    texts(points: Vector3Declaration[], options?: Partial<typeof TextsManager.textDefaults> & SetTextOption): this;
+    text(p: Vector3Declaration, text: string, options?: SetTextOption): this;
 }
 declare const defaultLinePointsOptions: {
     color: ColorRepresentation | undefined;

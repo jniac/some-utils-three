@@ -1,8 +1,8 @@
 import { BufferAttribute, BufferGeometry, Color, Group, LineSegments, Matrix4, Points, PointsMaterial, Vector3 } from 'three';
 import { Rectangle } from 'some-utils-ts/math/geom/rectangle';
-import { fromTransformDeclaration, fromVector3Declaration } from '../../declaration.js';
-import { ShaderForge } from '../../shader-forge.js';
-import { TextHelper } from '../text.js';
+import { fromTransformDeclaration, fromVector3Declaration } from '../../declaration';
+import { ShaderForge } from '../../shader-forge';
+import { TextHelper } from '../text';
 const _v0 = new Vector3();
 const _v1 = new Vector3();
 const _v2 = new Vector3();
@@ -268,13 +268,11 @@ class LinesManager {
             lines.renderOrder = 999;
             lines.material.depthTest = false;
             lines.material.depthWrite = false;
-            lines.material.transparent = true;
         }
         else {
             lines.renderOrder = 0;
             lines.material.depthTest = true;
             lines.material.depthWrite = true;
-            lines.material.transparent = false;
         }
         return this;
     }
@@ -547,7 +545,7 @@ class LinesManager {
     static regularGridDefaults = {
         size: 100,
         subdivisions: [10, 2, 5],
-        opacity: [.1, .05, .01],
+        opacity: [.2, .05, .01],
         color: 'white',
     };
     regularGrid(options) {
@@ -642,8 +640,13 @@ class TextsManager {
         this.parts.textHelper.onTop(value);
         return this;
     }
-    texts(points, { texts = ((i) => i.toString()), color = undefined, size = undefined, backgroundColor = undefined, } = {}) {
+    static textDefaults = {
+        texts: ((i) => i.toString()),
+        debug: false,
+    };
+    texts(points, options) {
         let index = this.state.index;
+        const { texts, ...rest } = { ...TextsManager.textDefaults, ...options };
         const textDelegate = typeof texts === 'function'
             ? texts
             : (i) => texts[i % texts.length];
@@ -651,10 +654,8 @@ class TextsManager {
         for (const p of points) {
             const { x, y, z } = fromVector3Declaration(p, _v0);
             this.parts.textHelper.setTextAt(index, textDelegate(i), {
+                ...rest,
                 x, y, z,
-                size,
-                color,
-                backgroundColor,
             });
             index++;
             i++;

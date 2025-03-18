@@ -1,6 +1,6 @@
-import { BufferGeometry, Color, ColorRepresentation, DataTexture, DoubleSide, InstancedMesh, Matrix4, MeshBasicMaterial, Object3D, PlaneGeometry, RGBAFormat, UnsignedByteType, Vector2 } from 'three'
+import { BufferGeometry, Color, DataTexture, DoubleSide, InstancedMesh, Matrix4, MeshBasicMaterial, Object3D, PlaneGeometry, RGBAFormat, UnsignedByteType, Vector2 } from 'three'
 
-import { fromVector2Declaration, TransformDeclaration, Vector2Declaration } from '../../declaration'
+import { fromVector2Declaration, Vector2Declaration } from '../../declaration'
 import { ShaderForge } from '../../shader-forge'
 import { makeMatrix4 } from '../../utils/make'
 
@@ -37,11 +37,10 @@ const defaultOptions = {
   textSize: 1,
   textOffset: 0 as Vector2Declaration,
   orientation: 'billboard' as (keyof typeof orientations) | number,
-  defaultColor: '#ff00ff' as ColorRepresentation,
-  defaultOpacity: 1,
-  defaultBackgroundColor: '#000000' as ColorRepresentation,
-  defaultBackgroundOpacity: 0,
-  defaultSize: 1,
+  textDefaults: <SetTextOption>{
+    color: '#ff00ff',
+    size: 1,
+  },
 }
 
 let nextId = 0
@@ -280,14 +279,8 @@ export class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicMaterial>
     return this
   }
 
-  setTextAt(index: number, text: string, options: TransformDeclaration & SetTextOption = {}) {
-    options.size ??= this.options.defaultSize
-    options.textColor ??= this.options.defaultColor
-    options.textOpacity ??= this.options.defaultOpacity
-    options.backgroundColor ??= this.options.defaultBackgroundColor
-    options.backgroundOpacity ??= this.options.defaultBackgroundOpacity
-
-    this.data.setTextAt(index, text, options)
+  setTextAt(index: number, text: string, options: SetTextOption = {}) {
+    this.data.setTextAt(index, text, { ...this.options.textDefaults, ...options })
     this.dataTexture.needsUpdate = true
 
     this.setMatrixAt(index, makeMatrix4(options))

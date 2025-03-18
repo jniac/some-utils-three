@@ -1,6 +1,7 @@
 import { ColorRepresentation, Vector2 } from 'three'
 
 import { ceilPowerOfTwo, toff } from 'some-utils-ts/math/basic'
+import { TransformDeclaration } from '../../declaration'
 import { makeColor } from '../../utils/make'
 
 /**
@@ -23,9 +24,15 @@ export const DATA_STRIDE_HEADER_BYTE_SIZE = 4 * 4
 
 export type SetColorOptions = Partial<{
   /**
-   * Sugar for `textColor`
+   * Defines the color of the text and background. Usefull when using the same 
+   * color for both with different opacity.
    */
   color: ColorRepresentation
+  /**
+   * Defines the opacity of the text and background. Usefull when using the same 
+   * opacity for both with different color.
+   */
+  opacity: number
   /**
    * The color of the text.
    */
@@ -46,7 +53,7 @@ export type SetColorOptions = Partial<{
   backgroundOpacity: number
 }>
 
-export type SetTextOption = SetColorOptions & Partial<{
+export type SetTextOption = TransformDeclaration & SetColorOptions & Partial<{
   /**
    * Whether to trim the text before setting it.
    * @default false
@@ -57,6 +64,11 @@ export type SetTextOption = SetColorOptions & Partial<{
    * @default 1
    */
   size: number
+  /**
+   * The size of the text.
+   * @default 1
+   */
+  scale: number
 }>
 
 export class TextHelperData {
@@ -223,11 +235,14 @@ export class TextHelperData {
   setColorAt(index: number, options: SetColorOptions) {
     const {
       color,
+      opacity,
       textColor = color,
-      textOpacity,
+      textOpacity = opacity,
       backgroundColor = textColor,
-      backgroundOpacity,
+      backgroundOpacity = opacity ?? options.backgroundColor ? 1 : 0,
     } = options
+
+    console.log(options, textColor)
 
     const { array } = this
     const { strideByteSize: stride } = this.metadata

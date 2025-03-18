@@ -1,10 +1,10 @@
 import { DataTexture, DoubleSide, InstancedMesh, Matrix4, MeshBasicMaterial, PlaneGeometry, RGBAFormat, UnsignedByteType, Vector2 } from 'three';
-import { fromVector2Declaration } from '../../declaration.js';
-import { ShaderForge } from '../../shader-forge.js';
-import { makeMatrix4 } from '../../utils/make.js';
-import { TextHelperAtlas } from './atlas.js';
-import { TextHelperData } from './data.js';
-import { getDataStringView } from './utils.js';
+import { fromVector2Declaration } from '../../declaration';
+import { ShaderForge } from '../../shader-forge';
+import { makeMatrix4 } from '../../utils/make';
+import { TextHelperAtlas } from './atlas';
+import { TextHelperData } from './data';
+import { getDataStringView } from './utils';
 const orientations = {
     'oriented': 0,
     'billboard': 1,
@@ -30,11 +30,10 @@ const defaultOptions = {
     textSize: 1,
     textOffset: 0,
     orientation: 'billboard',
-    defaultColor: '#ff00ff',
-    defaultOpacity: 1,
-    defaultBackgroundColor: '#000000',
-    defaultBackgroundOpacity: 0,
-    defaultSize: 1,
+    textDefaults: {
+        color: '#ff00ff',
+        size: 1,
+    },
 };
 let nextId = 0;
 export class TextHelper extends InstancedMesh {
@@ -255,12 +254,7 @@ export class TextHelper extends InstancedMesh {
         return this;
     }
     setTextAt(index, text, options = {}) {
-        options.size ??= this.options.defaultSize;
-        options.textColor ??= this.options.defaultColor;
-        options.textOpacity ??= this.options.defaultOpacity;
-        options.backgroundColor ??= this.options.defaultBackgroundColor;
-        options.backgroundOpacity ??= this.options.defaultBackgroundOpacity;
-        this.data.setTextAt(index, text, options);
+        this.data.setTextAt(index, text, { ...this.options.textDefaults, ...options });
         this.dataTexture.needsUpdate = true;
         this.setMatrixAt(index, makeMatrix4(options));
         this.instanceMatrix.needsUpdate = true;

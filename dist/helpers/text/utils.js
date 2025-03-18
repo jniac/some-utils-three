@@ -1,4 +1,4 @@
-import { DATA_STRIDE_HEADER_BYTE_SIZE } from './data.js';
+import { DATA_STRIDE_HEADER_BYTE_SIZE } from './data';
 export function getDataStringView(atlas, dataTextureArray, dataStride, lineCount, lineLength, start = 0, length = 3) {
     const packed = Array.from({ length: dataTextureArray.length / 4 }, (_, i) => {
         const offset = i * 4;

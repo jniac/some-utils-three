@@ -1,7 +1,7 @@
 import { BufferAttribute, BufferGeometry, Color, GreaterDepth, LineBasicMaterial, LineSegments, Matrix4, Vector2, Vector3 } from 'three';
 import { Rectangle } from 'some-utils-ts/math/geom/rectangle';
 import { loopArray } from 'some-utils-ts/iteration/loop';
-import { fromTransformDeclaration, fromVector2Declaration, fromVector3Declaration } from '../declaration.js';
+import { fromTransformDeclaration, fromVector2Declaration, fromVector3Declaration } from '../declaration';
 const _vector2 = new Vector2();
 const _vector3 = new Vector3();
 const _m = new Matrix4();

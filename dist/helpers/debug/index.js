@@ -1,1 +1,1 @@
-export { debugHelper, DebugHelper } from './debug-helper.js';
+export { debugHelper, DebugHelper } from './debug-helper';

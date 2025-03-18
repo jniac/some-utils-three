@@ -1,5 +1,5 @@
-import { BufferGeometry, Color, ColorRepresentation, DataTexture, InstancedMesh, MeshBasicMaterial, Object3D, Vector2 } from 'three';
-import { TransformDeclaration, Vector2Declaration } from '../../declaration';
+import { BufferGeometry, Color, DataTexture, InstancedMesh, MeshBasicMaterial, Object3D, Vector2 } from 'three';
+import { Vector2Declaration } from '../../declaration';
 import { TextHelperAtlas } from './atlas';
 import { SetColorOptions, SetTextOption, TextHelperData } from './data';
 declare const orientations: {
@@ -14,11 +14,7 @@ declare const defaultOptions: {
     textSize: number;
     textOffset: Vector2Declaration;
     orientation: (keyof typeof orientations) | number;
-    defaultColor: ColorRepresentation;
-    defaultOpacity: number;
-    defaultBackgroundColor: ColorRepresentation;
-    defaultBackgroundOpacity: number;
-    defaultSize: number;
+    textDefaults: SetTextOption;
 };
 export declare class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicMaterial> {
     static readonly defaultOptions: {
@@ -29,11 +25,7 @@ export declare class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicM
         textSize: number;
         textOffset: Vector2Declaration;
         orientation: (keyof typeof orientations) | number;
-        defaultColor: ColorRepresentation;
-        defaultOpacity: number;
-        defaultBackgroundColor: ColorRepresentation;
-        defaultBackgroundOpacity: number;
-        defaultSize: number;
+        textDefaults: SetTextOption;
     };
     static readonly Orientation: {
         Normal: number;
@@ -54,7 +46,7 @@ export declare class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicM
     onTop(value?: boolean): this;
     setData(data: TextHelperData): this;
     clearAllText(): this;
-    setTextAt(index: number, text: string, options?: TransformDeclaration & SetTextOption): this;
+    setTextAt(index: number, text: string, options?: SetTextOption): this;
     setColorAt(index: number, color: Color): void;
     setTextColorAt(index: number, options: SetColorOptions): this;
     getDataStringView(start?: number, length?: number): string;

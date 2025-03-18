@@ -1,11 +1,11 @@
 import { BufferAttribute, BufferGeometry, Color, ColorRepresentation, Group, LineSegments, Matrix4, Object3D, Points, PointsMaterial, Vector3 } from 'three'
 
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
-
 import { OneOrMany } from 'some-utils-ts/types'
+
 import { fromTransformDeclaration, fromVector3Declaration, TransformDeclaration, Vector3Declaration } from '../../declaration'
 import { ShaderForge } from '../../shader-forge'
-import { TextHelper } from '../text'
+import { SetTextOption, TextHelper } from '../text'
 
 const _v0 = new Vector3()
 const _v1 = new Vector3()
@@ -306,12 +306,10 @@ class LinesManager {
       lines.renderOrder = 999
       lines.material.depthTest = false
       lines.material.depthWrite = false
-      lines.material.transparent = true
     } else {
       lines.renderOrder = 0
       lines.material.depthTest = true
       lines.material.depthWrite = true
-      lines.material.transparent = false
     }
     return this
   }
@@ -647,7 +645,7 @@ class LinesManager {
   static regularGridDefaults = {
     size: 100,
     subdivisions: [10, 2, 5],
-    opacity: [.1, .05, .01] as number | number[],
+    opacity: [.2, .05, .01] as number | number[],
     color: 'white' as ColorRepresentation | ColorRepresentation[],
   }
   regularGrid(options?: Partial<typeof LinesManager.regularGridDefaults>) {
@@ -762,13 +760,16 @@ class TextsManager {
     return this
   }
 
-  texts(points: Vector3Declaration[], {
-    texts = ((i: number) => i.toString()) as ((i: number) => string) | string[],
-    color = undefined as ColorRepresentation | undefined,
-    size = undefined as number | undefined,
-    backgroundColor = undefined as ColorRepresentation | undefined,
-  } = {}) {
+  static textDefaults = {
+    texts: ((i: number) => i.toString()) as ((i: number) => string) | string[],
+    debug: false,
+  }
+  texts(
+    points: Vector3Declaration[],
+    options?: Partial<typeof TextsManager.textDefaults> & SetTextOption,
+  ) {
     let index = this.state.index
+    const { texts, ...rest } = { ...TextsManager.textDefaults, ...options }
     const textDelegate = typeof texts === 'function'
       ? texts
       : (i: number) => texts[i % texts.length]
@@ -776,10 +777,8 @@ class TextsManager {
     for (const p of points) {
       const { x, y, z } = fromVector3Declaration(p, _v0)
       this.parts.textHelper.setTextAt(index, textDelegate(i), {
+        ...rest,
         x, y, z,
-        size,
-        color,
-        backgroundColor,
       })
       index++
       i++
@@ -788,7 +787,7 @@ class TextsManager {
     return this
   }
 
-  text(p: Vector3Declaration, text: string, options?: Omit<Parameters<TextsManager['texts']>[1], 'texts'>) {
+  text(p: Vector3Declaration, text: string, options?: SetTextOption) {
     return this.texts([p], { ...options, texts: [text] })
   }
 }

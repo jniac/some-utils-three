@@ -1,6 +1,6 @@
 import { Vector2 } from 'three';
 import { ceilPowerOfTwo, toff } from 'some-utils-ts/math/basic';
-import { makeColor } from '../../utils/make.js';
+import { makeColor } from '../../utils/make';
 /**
  * Byte size of the info:
  * #0:
@@ -132,7 +132,8 @@ export class TextHelperData {
         return this;
     }
     setColorAt(index, options) {
-        const { color, textColor = color, textOpacity, backgroundColor = textColor, backgroundOpacity, } = options;
+        const { color, opacity, textColor = color, textOpacity = opacity, backgroundColor = textColor, backgroundOpacity = opacity ?? options.backgroundColor ? 1 : 0, } = options;
+        console.log(options, textColor);
         const { array } = this;
         const { strideByteSize: stride } = this.metadata;
         {
