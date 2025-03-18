@@ -223,9 +223,9 @@ export class TextHelper extends InstancedMesh {
         }
         return this;
     }
-    onTop(value = true) {
-        if (value) {
-            this.renderOrder = 999;
+    onTop(renderOrder = 1000) {
+        if (renderOrder !== 0) {
+            this.renderOrder = renderOrder;
             this.material.depthTest = false;
             this.material.depthWrite = false;
             this.material.transparent = true;

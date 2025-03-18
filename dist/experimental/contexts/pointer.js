@@ -1,4 +1,4 @@
-import { Line3, Raycaster, Vector2, Vector3 } from 'three';
+import { Line3, Plane, Raycaster, Vector2, Vector3 } from 'three';
 import { isMesh } from '../../is.js';
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
@@ -111,6 +111,7 @@ export class Pointer {
      */
     get ray() { return this.raycaster.ray; }
     #intersectPlane = {
+        plane: new Plane(),
         point: new Vector3(),
         line: new Line3(),
         result: {
@@ -125,9 +126,26 @@ export class Pointer {
      */
     intersectPlane(plane, { distance = 1000, out = this.#intersectPlane.result.point, } = {}) {
         const { ray } = this.raycaster;
-        const { point, line, result } = this.#intersectPlane;
+        const { point, line, result, plane: plane2 } = this.#intersectPlane;
+        if (typeof plane === 'string') {
+            plane2.constant = 0;
+            switch (plane) {
+                case 'X':
+                    plane2.normal.set(1, 0, 0);
+                    break;
+                case 'Y':
+                    plane2.normal.set(0, 1, 0);
+                    break;
+                case 'Z':
+                    plane2.normal.set(0, 0, 1);
+                    break;
+            }
+        }
+        else {
+            plane2.copy(plane);
+        }
         line.set(ray.origin, point.copy(ray.origin).addScaledVector(ray.direction, distance));
-        result.intersected = !!plane.intersectLine(line, out);
+        result.intersected = !!plane2.intersectLine(line, out);
         return result;
     }
     updatePosition(camera, clientPosition, canvasRect) {

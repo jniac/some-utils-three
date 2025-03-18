@@ -52,7 +52,7 @@ declare class PointsManager {
     parts: ReturnType<typeof PointsManager.createParts>;
     constructor(options?: Parameters<typeof PointsManager.createParts>[0]);
     clear(): void;
-    onTop(value?: boolean): this;
+    onTop(renderOrder?: number): this;
     points(p: Vector3Declaration[], { size: argSize, scale: argScale, color: argColor, shape: argShape, }?: {
         size?: number | undefined;
         scale?: number | undefined;
@@ -88,7 +88,7 @@ declare class LinesManager {
     parts: ReturnType<typeof LinesManager.createParts>;
     constructor(options?: Parameters<typeof LinesManager.createParts>[0]);
     clear(): void;
-    onTop(value?: boolean): this;
+    onTop(renderOrder?: number): this;
     static defaultArrowOptions: {
         size: number;
         position: OneOrMany<"end" | "start" | "middle" | number>;
@@ -145,7 +145,7 @@ declare class TextsManager {
     parts: ReturnType<typeof TextsManager.createParts>;
     constructor(options?: Parameters<typeof TextsManager.createParts>[0]);
     clear(): this;
-    onTop(value?: boolean): this;
+    onTop(renderOrder?: number): this;
     static textDefaults: {
         texts: ((i: number) => string) | string[];
         debug: boolean;
@@ -188,7 +188,7 @@ declare class DebugHelper extends Group {
     texts(...args: Parameters<TextsManager['texts']>): this;
     text(...args: Parameters<TextsManager['text']>): this;
     clear(): this;
-    onTop(value?: boolean): this;
+    onTop(renderOrder?: number): this;
     globalExpose(name?: string): this;
     addTo(parent: Object3D | null): this;
 }

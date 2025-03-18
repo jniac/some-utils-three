@@ -87,7 +87,7 @@ export declare class Pointer {
      *
      * NOTE: The result point reference is reused, so it should be copied if needed for later use.
      */
-    intersectPlane(plane: Plane, { distance, out, }?: {
+    intersectPlane(plane: Plane | 'X' | 'Y' | 'Z', { distance, out, }?: {
         distance?: number | undefined;
         out?: Vector3 | undefined;
     }): {

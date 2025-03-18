@@ -43,7 +43,7 @@ export declare class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicM
     dataTexture: DataTexture;
     constructor(userOptions?: Partial<typeof defaultOptions>);
     addTo(parent: Object3D | null): this;
-    onTop(value?: boolean): this;
+    onTop(renderOrder?: number): this;
     setData(data: TextHelperData): this;
     clearAllText(): this;
     setTextAt(index: number, text: string, options?: SetTextOption): this;
