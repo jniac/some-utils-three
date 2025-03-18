@@ -177,10 +177,10 @@ class PointsManager {
     this.parts.geometry.setDrawRange(0, 0)
   }
 
-  onTop(value = true) {
+  onTop(renderOrder = 1000) {
     const { points } = this.parts
-    if (value) {
-      points.renderOrder = 999
+    if (renderOrder !== 0) {
+      points.renderOrder = renderOrder
       points.material.depthTest = false
       points.material.depthWrite = false
       points.material.transparent = true
@@ -300,10 +300,10 @@ class LinesManager {
     this.parts.geometry.setDrawRange(0, 0)
   }
 
-  onTop(value = true) {
+  onTop(renderOrder = 1000) {
     const { lines } = this.parts
-    if (value) {
-      lines.renderOrder = 999
+    if (renderOrder !== 0) {
+      lines.renderOrder = renderOrder
       lines.material.depthTest = false
       lines.material.depthWrite = false
     } else {
@@ -755,8 +755,8 @@ class TextsManager {
     return this
   }
 
-  onTop(value = true) {
-    this.parts.textHelper.onTop(value)
+  onTop(renderOrder = 1000) {
+    this.parts.textHelper.onTop(renderOrder)
     return this
   }
 
@@ -929,17 +929,17 @@ class DebugHelper extends Group {
   }
 
   clear(): this {
-    this.onTop(false)
     this.parts.pointsManager.clear()
     this.parts.linesManager.clear()
     this.parts.textsManager.clear()
     return this
   }
 
-  onTop(value = true): this {
-    this.parts.pointsManager.onTop(value)
-    this.parts.linesManager.onTop(value)
-    this.parts.textsManager.onTop(value)
+  onTop(renderOrder = 1000): this {
+    this.renderOrder = renderOrder
+    this.parts.pointsManager.onTop(renderOrder)
+    this.parts.linesManager.onTop(renderOrder)
+    this.parts.textsManager.onTop(renderOrder)
     return this
   }
 
