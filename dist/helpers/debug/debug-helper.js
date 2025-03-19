@@ -642,7 +642,6 @@ class TextsManager {
     }
     static textDefaults = {
         texts: ((i) => i.toString()),
-        debug: false,
     };
     texts(points, options) {
         let index = this.state.index;
@@ -665,6 +664,10 @@ class TextsManager {
     }
     text(p, text, options) {
         return this.texts([p], { ...options, texts: [text] });
+    }
+    textAt(index, text, options) {
+        this.parts.textHelper.setTextAt(index, text, { ...options });
+        return this;
     }
 }
 const defaultLinePointsOptions = {
@@ -758,6 +761,10 @@ class DebugHelper extends Group {
     }
     text(...args) {
         this.parts.textsManager.text(...args);
+        return this;
+    }
+    textAt(...args) {
+        this.parts.textsManager.textAt(...args);
         return this;
     }
     clear() {

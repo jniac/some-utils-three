@@ -148,10 +148,10 @@ declare class TextsManager {
     onTop(renderOrder?: number): this;
     static textDefaults: {
         texts: ((i: number) => string) | string[];
-        debug: boolean;
     };
     texts(points: Vector3Declaration[], options?: Partial<typeof TextsManager.textDefaults> & SetTextOption): this;
     text(p: Vector3Declaration, text: string, options?: SetTextOption): this;
+    textAt(index: number, text: string, options?: SetTextOption): this;
 }
 declare const defaultLinePointsOptions: {
     color: ColorRepresentation | undefined;
@@ -187,6 +187,7 @@ declare class DebugHelper extends Group {
     regularGrid(...args: Parameters<LinesManager['regularGrid']>): this;
     texts(...args: Parameters<TextsManager['texts']>): this;
     text(...args: Parameters<TextsManager['text']>): this;
+    textAt(...args: Parameters<TextsManager['textAt']>): this;
     clear(): this;
     onTop(renderOrder?: number): this;
     globalExpose(name?: string): this;
