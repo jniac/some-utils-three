@@ -1,5 +1,5 @@
 import { DataTexture, DoubleSide, InstancedMesh, Matrix4, MeshBasicMaterial, PlaneGeometry, RGBAFormat, UnsignedByteType, Vector2 } from 'three';
-import { fromVector2Declaration } from '../../declaration.js';
+import { fromTransformDeclarations, fromVector2Declaration } from '../../declaration.js';
 import { ShaderForge } from '../../shader-forge.js';
 import { makeMatrix4 } from '../../utils/make.js';
 import { TextHelperAtlas } from './atlas.js';
@@ -213,6 +213,21 @@ export class TextHelper extends InstancedMesh {
         this.data = data;
         this.dataTexture = dataTexture;
         this.derived = { planeSize };
+    }
+    /**
+     * Apply a transform to all text instances (not the TextHelper itself).
+     */
+    applyTransform(...transforms) {
+        const mt = fromTransformDeclarations(transforms);
+        const mi = new Matrix4();
+        const count = this.instanceMatrix.array.length;
+        for (let i = 0; i < count; i += 16) {
+            mi
+                .fromArray(this.instanceMatrix.array, i)
+                .multiply(mt)
+                .toArray(this.instanceMatrix.array, i);
+        }
+        return this;
     }
     addTo(parent) {
         if (parent) {

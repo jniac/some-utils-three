@@ -47,3 +47,10 @@ export declare const fromTransformDeclaration: {
     (props: TransformDeclaration, out: Matrix4): Matrix4;
     <T extends Object3D>(props: TransformDeclaration, out: T): T;
 };
+/**
+ * Combines multiple transform declarations into a single matrix.
+ *
+ * NOTE: The returned matrix, if not provided, is reused for performance reasons.
+ * Clone it if you need to keep it for later use.
+ */
+export declare function fromTransformDeclarations(transforms: TransformDeclaration[], out?: Matrix4): Matrix4;

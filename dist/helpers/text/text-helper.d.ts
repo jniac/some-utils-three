@@ -1,5 +1,5 @@
 import { BufferGeometry, Color, DataTexture, InstancedMesh, MeshBasicMaterial, Object3D, Vector2 } from 'three';
-import { Vector2Declaration } from '../../declaration';
+import { TransformDeclaration, Vector2Declaration } from '../../declaration';
 import { TextHelperAtlas } from './atlas';
 import { SetColorOptions, SetTextOption, TextHelperData } from './data';
 declare const orientations: {
@@ -42,6 +42,10 @@ export declare class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicM
     data: TextHelperData;
     dataTexture: DataTexture;
     constructor(userOptions?: Partial<typeof defaultOptions>);
+    /**
+     * Apply a transform to all text instances (not the TextHelper itself).
+     */
+    applyTransform(...transforms: TransformDeclaration[]): this;
     addTo(parent: Object3D | null): this;
     onTop(renderOrder?: number): this;
     setData(data: TextHelperData): this;

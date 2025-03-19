@@ -1,6 +1,6 @@
 import { BufferAttribute, BufferGeometry, Color, Group, LineSegments, Matrix4, Points, PointsMaterial, Vector3 } from 'three';
 import { Rectangle } from 'some-utils-ts/math/geom/rectangle';
-import { fromTransformDeclaration, fromVector3Declaration } from '../../declaration.js';
+import { fromTransformDeclaration, fromTransformDeclarations, fromVector3Declaration } from '../../declaration.js';
 import { ShaderForge } from '../../shader-forge.js';
 import { TextHelper } from '../text.js';
 const _v0 = new Vector3();
@@ -10,7 +10,7 @@ const _v3 = new Vector3();
 const _v4 = new Vector3();
 const _v5 = new Vector3();
 const _c0 = new Color();
-const _m = new Matrix4();
+const _m0 = new Matrix4();
 class Utils {
     static boxPoints = {
         p0: new Vector3(),
@@ -50,20 +50,26 @@ class Utils {
         p6.set(x1, y1, z1);
         p7.set(x0, y1, z1);
         if (value.transform) {
-            fromTransformDeclaration(value.transform, _m);
-            p0.applyMatrix4(_m);
-            p1.applyMatrix4(_m);
-            p2.applyMatrix4(_m);
-            p3.applyMatrix4(_m);
-            p4.applyMatrix4(_m);
-            p5.applyMatrix4(_m);
-            p6.applyMatrix4(_m);
-            p7.applyMatrix4(_m);
+            fromTransformDeclaration(value.transform, _m0);
+            p0.applyMatrix4(_m0);
+            p1.applyMatrix4(_m0);
+            p2.applyMatrix4(_m0);
+            p3.applyMatrix4(_m0);
+            p4.applyMatrix4(_m0);
+            p5.applyMatrix4(_m0);
+            p6.applyMatrix4(_m0);
+            p7.applyMatrix4(_m0);
         }
         return Utils;
     }
 }
-class PointsManager {
+class BaseManager {
+    transformMatrix = new Matrix4();
+    applyTransform(...transforms) {
+        throw new Error('Not implemented!');
+    }
+}
+class PointsManager extends BaseManager {
     static shapes = (() => {
         let i = 0;
         return {
@@ -155,7 +161,11 @@ class PointsManager {
     state = { index: 0 };
     parts;
     constructor(options) {
+        super();
         this.parts = PointsManager.createParts(options);
+    }
+    applyTransform(...transforms) {
+        this.parts.geometry.applyMatrix4(fromTransformDeclarations(transforms));
     }
     clear() {
         this.state.index = 0;
@@ -179,13 +189,14 @@ class PointsManager {
     }
     points(p, { size: argSize = .1, scale: argScale = 1, color: argColor = 'white', shape: argShape = 'square', } = {}) {
         const count = p.length;
+        const { transformMatrix } = this;
         const { index: i0 } = this.state;
         const { position, color, aScale, aShape } = this.parts.attributes;
         const { r, g, b } = _c0.set(argColor);
         const size = argScale * argSize;
         const shape = PointsManager.shapes[argShape];
         for (let i1 = 0; i1 < count; i1++) {
-            const { x, y, z } = fromVector3Declaration(p[i1], _v0);
+            const { x, y, z } = fromVector3Declaration(p[i1], _v0).applyMatrix4(transformMatrix);
             const i = i0 + i1;
             position.setXYZ(i, x, y, z);
             color.setXYZ(i, r, g, b);
@@ -211,7 +222,7 @@ class PointsManager {
     }
 }
 const DEFAULT_LINE_COUNT = 20000;
-class LinesManager {
+class LinesManager extends BaseManager {
     static createParts({ lineCount: count = DEFAULT_LINE_COUNT, defaultColor = 'white', defaultOpacity = 1, } = {}) {
         const geometry = new BufferGeometry();
         const attributes = {
@@ -256,7 +267,11 @@ class LinesManager {
     state = { index: 0 };
     parts;
     constructor(options) {
+        super();
         this.parts = LinesManager.createParts(options);
+    }
+    applyTransform(...transforms) {
+        this.parts.geometry.applyMatrix4(fromTransformDeclarations(transforms));
     }
     clear() {
         this.state.index = 0;
@@ -335,8 +350,12 @@ class LinesManager {
                 console.log('Overflow Handling Not implemented', index + totalCount, this.parts.count);
                 throw new Error('Overflow Handling Not implemented');
             }
-            position.array.set(array, index * 3);
+            const { transformMatrix } = this;
             for (let i = 0; i < count; i++) {
+                _v0
+                    .fromArray(array, i * 3)
+                    .applyMatrix4(transformMatrix)
+                    .toArray(position.array, (index + i) * 3);
                 color.setXYZ(index + i, r, g, b);
                 aOpacity.setX(index + i, opacityArg);
             }
@@ -619,7 +638,7 @@ class LinesManager {
     }
 }
 const DEFAULT_TEXT_COUNT = 2000;
-class TextsManager {
+class TextsManager extends BaseManager {
     static createParts(options) {
         const textHelper = new TextHelper({
             textCount: DEFAULT_TEXT_COUNT,
@@ -633,7 +652,11 @@ class TextsManager {
     state = { index: 0 };
     parts;
     constructor(options) {
+        super();
         this.parts = TextsManager.createParts(options);
+    }
+    applyTransform(...transforms) {
+        this.parts.textHelper.applyTransform(...transforms);
     }
     clear() {
         this.state.index = 0;
@@ -678,6 +701,7 @@ const defaultLinePointsOptions = {
     color: undefined,
     size: .1,
     shape: 'square',
+    scale: 1,
 };
 class DebugHelper extends Group {
     static createParts(instance, options) {
@@ -769,6 +793,12 @@ class DebugHelper extends Group {
     }
     textAt(...args) {
         this.parts.textsManager.textAt(...args);
+        return this;
+    }
+    applyTransform(...transforms) {
+        this.parts.pointsManager.applyTransform(...transforms);
+        this.parts.linesManager.applyTransform(...transforms);
+        this.parts.textsManager.applyTransform(...transforms);
         return this;
     }
     clear() {

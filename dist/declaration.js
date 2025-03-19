@@ -1,4 +1,4 @@
-import { Euler, Quaternion, Vector2, Vector3, Vector4 } from 'three';
+import { Euler, Matrix4, Quaternion, Vector2, Vector3, Vector4 } from 'three';
 import * as agnostic from 'some-utils-ts/declaration';
 import { angleScalars, fromAngleDeclaration, } from 'some-utils-ts/declaration';
 import { isEuler, isMatrix4, isObject3D } from './is.js';
@@ -100,3 +100,24 @@ export const fromTransformDeclaration = (() => {
     }
     return fromTransformDeclaration;
 })();
+const _m0 = new Matrix4();
+const _m1 = new Matrix4();
+/**
+ * Combines multiple transform declarations into a single matrix.
+ *
+ * NOTE: The returned matrix, if not provided, is reused for performance reasons.
+ * Clone it if you need to keep it for later use.
+ */
+export function fromTransformDeclarations(transforms, out = _m0) {
+    out.identity();
+    const iterator = transforms[Symbol.iterator]();
+    const first = iterator.next();
+    if (first.done)
+        return out; // Return identity matrix if no transforms
+    fromTransformDeclaration(first.value, out);
+    for (let entry = iterator.next(); !entry.done; entry = iterator.next()) {
+        fromTransformDeclaration(entry.value, _m1);
+        out.multiply(_m1);
+    }
+    return out;
+}

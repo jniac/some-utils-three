@@ -1,4 +1,4 @@
-import { BufferAttribute, BufferGeometry, ColorRepresentation, Group, LineSegments, Object3D, Points, PointsMaterial, Vector3 } from 'three';
+import { BufferAttribute, BufferGeometry, ColorRepresentation, Group, LineSegments, Matrix4, Object3D, Points, PointsMaterial, Vector3 } from 'three';
 import { RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle';
 import { OneOrMany } from 'some-utils-ts/types';
 import { TransformDeclaration, Vector3Declaration } from '../../declaration';
@@ -22,7 +22,11 @@ declare class Utils {
     };
     static box(value: Partial<typeof Utils.boxDefaults>): typeof Utils;
 }
-declare class PointsManager {
+declare class BaseManager {
+    transformMatrix: Matrix4;
+    applyTransform(...transforms: TransformDeclaration[]): void;
+}
+declare class PointsManager extends BaseManager {
     static shapes: {
         square: number;
         circle: number;
@@ -51,18 +55,19 @@ declare class PointsManager {
     };
     parts: ReturnType<typeof PointsManager.createParts>;
     constructor(options?: Parameters<typeof PointsManager.createParts>[0]);
+    applyTransform(...transforms: TransformDeclaration[]): void;
     clear(): void;
     onTop(renderOrder?: number): this;
     points(p: Vector3Declaration[], { size: argSize, scale: argScale, color: argColor, shape: argShape, }?: {
         size?: number | undefined;
         scale?: number | undefined;
         color?: ColorRepresentation | undefined;
-        shape?: "square" | "circle" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "cross" | undefined;
+        shape?: "circle" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "square" | "cross" | undefined;
     }): this;
     box(value: Parameters<typeof Utils.box>[0], options?: Parameters<PointsManager['points']>[1]): this;
     point(p: Vector3Declaration, options?: Parameters<PointsManager['points']>[1]): this;
 }
-declare class LinesManager {
+declare class LinesManager extends BaseManager {
     #private;
     static createParts({ lineCount: count, defaultColor, defaultOpacity, }?: {
         lineCount?: number | undefined;
@@ -87,6 +92,7 @@ declare class LinesManager {
     };
     parts: ReturnType<typeof LinesManager.createParts>;
     constructor(options?: Parameters<typeof LinesManager.createParts>[0]);
+    applyTransform(...transforms: TransformDeclaration[]): void;
     clear(): void;
     onTop(renderOrder?: number): this;
     static defaultArrowOptions: {
@@ -134,7 +140,7 @@ declare class LinesManager {
     };
     regularGrid(options?: Partial<typeof LinesManager.regularGridDefaults>): this;
 }
-declare class TextsManager {
+declare class TextsManager extends BaseManager {
     static createParts(options?: ConstructorParameters<typeof TextHelper>[0]): {
         count: number;
         textHelper: TextHelper;
@@ -144,6 +150,7 @@ declare class TextsManager {
     };
     parts: ReturnType<typeof TextsManager.createParts>;
     constructor(options?: Parameters<typeof TextsManager.createParts>[0]);
+    applyTransform(...transforms: TransformDeclaration[]): void;
     clear(): this;
     onTop(renderOrder?: number): this;
     static textDefaults: {
@@ -157,6 +164,7 @@ declare const defaultLinePointsOptions: {
     color: ColorRepresentation | undefined;
     size: number;
     shape: keyof typeof PointsManager.shapes;
+    scale: number;
 };
 type LinePointsOptions = {
     points?: boolean | Partial<typeof defaultLinePointsOptions>;
@@ -188,6 +196,7 @@ declare class DebugHelper extends Group {
     texts(...args: Parameters<TextsManager['texts']>): this;
     text(...args: Parameters<TextsManager['text']>): this;
     textAt(...args: Parameters<TextsManager['textAt']>): this;
+    applyTransform(...transforms: TransformDeclaration[]): this;
     clear(): this;
     onTop(renderOrder?: number): this;
     globalExpose(name?: string): this;
