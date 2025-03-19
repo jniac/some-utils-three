@@ -443,6 +443,8 @@ class LinesManager {
         return this.segments([p0, p1], options);
     }
     polyline(p, options) {
+        if (p.length < 2)
+            return this;
         const count = (p.length - 1) * 2;
         const p2 = new Array(count);
         for (let i = 1; i < p.length; i++) {
@@ -452,6 +454,8 @@ class LinesManager {
         return this.segments(p2, options);
     }
     polygon(p, options) {
+        if (p.length < 2)
+            return this;
         this.polyline(p, options);
         this.line(p[p.length - 1], p[0], options);
         return this;
