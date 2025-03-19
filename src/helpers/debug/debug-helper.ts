@@ -762,7 +762,6 @@ class TextsManager {
 
   static textDefaults = {
     texts: ((i: number) => i.toString()) as ((i: number) => string) | string[],
-    debug: false,
   }
   texts(
     points: Vector3Declaration[],
@@ -789,6 +788,11 @@ class TextsManager {
 
   text(p: Vector3Declaration, text: string, options?: SetTextOption) {
     return this.texts([p], { ...options, texts: [text] })
+  }
+
+  textAt(index: number, text: string, options?: SetTextOption) {
+    this.parts.textHelper.setTextAt(index, text, { ...options })
+    return this
   }
 }
 
@@ -925,6 +929,11 @@ class DebugHelper extends Group {
 
   text(...args: Parameters<TextsManager['text']>): this {
     this.parts.textsManager.text(...args)
+    return this
+  }
+
+  textAt(...args: Parameters<TextsManager['textAt']>): this {
+    this.parts.textsManager.textAt(...args)
     return this
   }
 
