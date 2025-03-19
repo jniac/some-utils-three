@@ -3,7 +3,7 @@ import { BufferAttribute, BufferGeometry, Color, ColorRepresentation, Group, Lin
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 import { OneOrMany } from 'some-utils-ts/types'
 
-import { fromTransformDeclaration, fromVector3Declaration, TransformDeclaration, Vector3Declaration } from '../../declaration'
+import { fromTransformDeclaration, fromTransformDeclarations, fromVector3Declaration, TransformDeclaration, Vector3Declaration } from '../../declaration'
 import { ShaderForge } from '../../shader-forge'
 import { SetTextOption, TextHelper } from '../text'
 
@@ -14,7 +14,8 @@ const _v3 = new Vector3()
 const _v4 = new Vector3()
 const _v5 = new Vector3()
 const _c0 = new Color()
-const _m = new Matrix4()
+const _m0 = new Matrix4()
+
 
 class Utils {
   static boxPoints = {
@@ -57,21 +58,28 @@ class Utils {
     p6.set(x1, y1, z1)
     p7.set(x0, y1, z1)
     if (value.transform) {
-      fromTransformDeclaration(value.transform, _m)
-      p0.applyMatrix4(_m)
-      p1.applyMatrix4(_m)
-      p2.applyMatrix4(_m)
-      p3.applyMatrix4(_m)
-      p4.applyMatrix4(_m)
-      p5.applyMatrix4(_m)
-      p6.applyMatrix4(_m)
-      p7.applyMatrix4(_m)
+      fromTransformDeclaration(value.transform, _m0)
+      p0.applyMatrix4(_m0)
+      p1.applyMatrix4(_m0)
+      p2.applyMatrix4(_m0)
+      p3.applyMatrix4(_m0)
+      p4.applyMatrix4(_m0)
+      p5.applyMatrix4(_m0)
+      p6.applyMatrix4(_m0)
+      p7.applyMatrix4(_m0)
     }
     return Utils
   }
 }
 
-class PointsManager {
+class BaseManager {
+  transformMatrix = new Matrix4()
+  applyTransform(...transforms: TransformDeclaration[]) {
+    throw new Error('Not implemented!')
+  }
+}
+
+class PointsManager extends BaseManager {
   static shapes = (() => {
     let i = 0
     return {
@@ -169,7 +177,12 @@ class PointsManager {
   parts: ReturnType<typeof PointsManager.createParts>
 
   constructor(options?: Parameters<typeof PointsManager.createParts>[0]) {
+    super()
     this.parts = PointsManager.createParts(options)
+  }
+
+  override applyTransform(...transforms: TransformDeclaration[]) {
+    this.parts.geometry.applyMatrix4(fromTransformDeclarations(transforms))
   }
 
   clear() {
@@ -200,13 +213,14 @@ class PointsManager {
     shape: argShape = 'square' as keyof typeof PointsManager.shapes,
   } = {}): this {
     const count = p.length
+    const { transformMatrix } = this
     const { index: i0 } = this.state
     const { position, color, aScale, aShape } = this.parts.attributes
     const { r, g, b } = _c0.set(argColor)
     const size = argScale * argSize
     const shape = PointsManager.shapes[argShape]
     for (let i1 = 0; i1 < count; i1++) {
-      const { x, y, z } = fromVector3Declaration(p[i1], _v0)
+      const { x, y, z } = fromVector3Declaration(p[i1], _v0).applyMatrix4(transformMatrix)
       const i = i0 + i1
       position.setXYZ(i, x, y, z)
       color.setXYZ(i, r, g, b)
@@ -240,7 +254,7 @@ class PointsManager {
 
 const DEFAULT_LINE_COUNT = 20000
 
-class LinesManager {
+class LinesManager extends BaseManager {
   static createParts({
     lineCount: count = DEFAULT_LINE_COUNT,
     defaultColor = 'white' as ColorRepresentation,
@@ -292,7 +306,12 @@ class LinesManager {
   parts: ReturnType<typeof LinesManager.createParts>
 
   constructor(options?: Parameters<typeof LinesManager.createParts>[0]) {
+    super()
     this.parts = LinesManager.createParts(options)
+  }
+
+  override applyTransform(...transforms: TransformDeclaration[]) {
+    this.parts.geometry.applyMatrix4(fromTransformDeclarations(transforms))
   }
 
   clear() {
@@ -392,8 +411,12 @@ class LinesManager {
         throw new Error('Overflow Handling Not implemented')
       }
 
-      position.array.set(array, index * 3)
+      const { transformMatrix } = this
       for (let i = 0; i < count; i++) {
+        _v0
+          .fromArray(array, i * 3)
+          .applyMatrix4(transformMatrix)
+          .toArray(position.array, (index + i) * 3)
         color.setXYZ(index + i, r, g, b)
         aOpacity.setX(index + i, opacityArg)
       }
@@ -736,7 +759,7 @@ class LinesManager {
 
 const DEFAULT_TEXT_COUNT = 2000
 
-class TextsManager {
+class TextsManager extends BaseManager {
   static createParts(options?: ConstructorParameters<typeof TextHelper>[0]) {
     const textHelper = new TextHelper({
       textCount: DEFAULT_TEXT_COUNT,
@@ -753,7 +776,12 @@ class TextsManager {
   parts: ReturnType<typeof TextsManager.createParts>
 
   constructor(options?: Parameters<typeof TextsManager.createParts>[0]) {
+    super()
     this.parts = TextsManager.createParts(options)
+  }
+
+  override applyTransform(...transforms: TransformDeclaration[]) {
+    this.parts.textHelper.applyTransform(...transforms)
   }
 
   clear() {
@@ -807,6 +835,7 @@ const defaultLinePointsOptions = {
   color: undefined as ColorRepresentation | undefined,
   size: .1,
   shape: 'square' as keyof typeof PointsManager.shapes,
+  scale: 1,
 }
 type LinePointsOptions = {
   points?: boolean | Partial<typeof defaultLinePointsOptions>
@@ -941,6 +970,13 @@ class DebugHelper extends Group {
 
   textAt(...args: Parameters<TextsManager['textAt']>): this {
     this.parts.textsManager.textAt(...args)
+    return this
+  }
+
+  applyTransform(...transforms: TransformDeclaration[]): this {
+    this.parts.pointsManager.applyTransform(...transforms)
+    this.parts.linesManager.applyTransform(...transforms)
+    this.parts.textsManager.applyTransform(...transforms)
     return this
   }
 

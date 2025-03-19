@@ -1,6 +1,6 @@
 import { BufferGeometry, Color, DataTexture, DoubleSide, InstancedMesh, Matrix4, MeshBasicMaterial, Object3D, PlaneGeometry, RGBAFormat, UnsignedByteType, Vector2 } from 'three'
 
-import { fromVector2Declaration, Vector2Declaration } from '../../declaration'
+import { fromTransformDeclarations, fromVector2Declaration, TransformDeclaration, Vector2Declaration } from '../../declaration'
 import { ShaderForge } from '../../shader-forge'
 import { makeMatrix4 } from '../../utils/make'
 
@@ -235,6 +235,22 @@ export class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicMaterial>
     this.data = data
     this.dataTexture = dataTexture
     this.derived = { planeSize }
+  }
+
+  /**
+   * Apply a transform to all text instances (not the TextHelper itself).
+   */
+  applyTransform(...transforms: TransformDeclaration[]) {
+    const mt = fromTransformDeclarations(transforms)
+    const mi = new Matrix4()
+    const count = this.instanceMatrix.array.length
+    for (let i = 0; i < count; i += 16) {
+      mi
+        .fromArray(this.instanceMatrix.array, i)
+        .multiply(mt)
+        .toArray(this.instanceMatrix.array, i)
+    }
+    return this
   }
 
   addTo(parent: Object3D | null): this {
