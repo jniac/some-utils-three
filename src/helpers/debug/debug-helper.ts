@@ -531,16 +531,23 @@ class LinesManager {
   }
 
   polyline(p: Vector3Declaration[], options?: Parameters<DebugHelper['segments']>[1]) {
+    if (p.length < 2)
+      return this
+
     const count = (p.length - 1) * 2
     const p2 = new Array(count)
     for (let i = 1; i < p.length; i++) {
       p2[i * 2 - 2] = p[i - 1]
       p2[i * 2 - 1] = p[i]
     }
+
     return this.segments(p2, options)
   }
 
   polygon(p: Vector3Declaration[], options?: Parameters<DebugHelper['segments']>[1]) {
+    if (p.length < 2)
+      return this
+
     this.polyline(p, options)
     this.line(p[p.length - 1], p[0], options)
     return this
