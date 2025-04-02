@@ -1,47 +1,29 @@
-import { BufferGeometry, Color, DataTexture, InstancedMesh, MeshBasicMaterial, Object3D, Vector2 } from 'three';
-import { TransformDeclaration, Vector2Declaration } from '../../declaration';
+import { BufferGeometry, Color, InstancedMesh, Material, Object3D, Vector2 } from 'three';
+import { TransformDeclaration } from '../../declaration';
 import { TextHelperAtlas } from './atlas';
-import { SetColorOptions, SetTextOption, TextHelperData } from './data';
-declare const orientations: {
-    oriented: number;
-    billboard: number;
-};
-declare const defaultOptions: {
-    textCount: number;
-    lineLength: number;
-    lineCount: number;
-    charSize: Vector2;
-    textSize: number;
-    textOffset: Vector2Declaration;
-    orientation: (keyof typeof orientations) | number;
-    textDefaults: SetTextOption;
-};
-export declare class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicMaterial> {
+import { TextHelperData } from './data';
+import { optionsDefaults, SetColorOptions, SetTextOption } from './types';
+export declare class TextHelper extends InstancedMesh<BufferGeometry, Material> {
     static readonly defaultOptions: {
         textCount: number;
         lineLength: number;
         lineCount: number;
         charSize: Vector2;
         textSize: number;
-        textOffset: Vector2Declaration;
-        orientation: (keyof typeof orientations) | number;
+        textOffset: import("some-utils-ts/declaration").Vector2Declaration;
+        orientation: (keyof typeof import("./types").orientations) | import("./types").Orientation;
         textDefaults: SetTextOption;
-    };
-    static readonly Orientation: {
-        Normal: number;
-        Billboard: number;
     };
     static readonly Atlas: typeof TextHelperAtlas;
     static readonly Data: typeof TextHelperData;
     readonly textHelperId: number;
-    readonly options: typeof defaultOptions;
+    readonly options: typeof optionsDefaults;
     readonly derived: {
         planeSize: Vector2;
     };
     atlas: TextHelperAtlas;
     data: TextHelperData;
-    dataTexture: DataTexture;
-    constructor(userOptions?: Partial<typeof defaultOptions>);
+    constructor(userOptions?: Partial<typeof optionsDefaults>);
     /**
      * Apply a transform to all text instances (not the TextHelper itself).
      */
@@ -55,4 +37,3 @@ export declare class TextHelper extends InstancedMesh<BufferGeometry, MeshBasicM
     setTextColorAt(index: number, options: SetColorOptions): this;
     getDataStringView(start?: number, length?: number): string;
 }
-export {};

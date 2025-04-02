@@ -1,75 +1,10 @@
-import { ColorRepresentation, Vector2 } from 'three'
+import { DataTexture, RGBAFormat, UnsignedByteType, Vector2 } from 'three'
 
 import { ceilPowerOfTwo, toff } from 'some-utils-ts/math/basic'
-import { TransformDeclaration } from '../../declaration'
+
 import { makeColor } from '../../utils/make'
 
-/**
- * Byte size of the info:
- * #0:
- * - Lines count (1 byte)
- * - empty (3 bytes)
- * #1:
- * - Text Color (3 bytes)
- * - Text Opacity (1 byte)
- * #2:
- * - Background Color (3 bytes)
- * - Background Opacity (1 byte)
- * #3:
- * - size (4 bytes)
- *
- * Should be a multiple of 4.
- */
-export const DATA_STRIDE_HEADER_BYTE_SIZE = 4 * 4
-
-export type SetColorOptions = Partial<{
-  /**
-   * Defines the color of the text and background. Usefull when using the same 
-   * color for both with different opacity.
-   */
-  color: ColorRepresentation
-  /**
-   * Defines the opacity of the text and background. Usefull when using the same 
-   * opacity for both with different color.
-   */
-  opacity: number
-  /**
-   * The color of the text.
-   */
-  textColor: ColorRepresentation
-  /**
-   * The opacity of the text.
-   * @default 1
-   */
-  textOpacity: number
-  /**
-   * The color of the background.
-   */
-  backgroundColor: ColorRepresentation
-  /**
-   * The opacity of the background.
-   * @default 0
-   */
-  backgroundOpacity: number
-}>
-
-export type SetTextOption = TransformDeclaration & SetColorOptions & Partial<{
-  /**
-   * Whether to trim the text before setting it.
-   * @default false
-   */
-  trim: boolean
-  /**
-   * The size of the text.
-   * @default 1
-   */
-  size: number
-  /**
-   * The size of the text.
-   * @default 1
-   */
-  scale: number
-}>
+import { DATA_STRIDE_HEADER_BYTE_SIZE, SetColorOptions, SetTextOption } from './types'
 
 export class TextHelperData {
   readonly metadata: {
@@ -87,6 +22,7 @@ export class TextHelperData {
   }
 
   readonly array: Uint8Array
+  readonly texture: DataTexture
 
   get textCount() { return this.metadata.textCount }
   get lineCount() { return this.metadata.lineCount }
@@ -140,6 +76,8 @@ export class TextHelperData {
     }
 
     this.array = array
+    this.texture = new DataTexture(array, width, height, RGBAFormat, UnsignedByteType)
+    this.texture.needsUpdate = true
   }
 
   encode() {
@@ -273,6 +211,8 @@ export class TextHelperData {
       }
     }
 
+    this.texture.needsUpdate = true
+
     return this
   }
 
@@ -341,5 +281,7 @@ export class TextHelperData {
         }
       }
     }
+
+    this.texture.needsUpdate = true
   }
 }

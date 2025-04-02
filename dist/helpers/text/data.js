@@ -1,26 +1,11 @@
-import { Vector2 } from 'three';
+import { DataTexture, RGBAFormat, UnsignedByteType, Vector2 } from 'three';
 import { ceilPowerOfTwo, toff } from 'some-utils-ts/math/basic';
 import { makeColor } from '../../utils/make.js';
-/**
- * Byte size of the info:
- * #0:
- * - Lines count (1 byte)
- * - empty (3 bytes)
- * #1:
- * - Text Color (3 bytes)
- * - Text Opacity (1 byte)
- * #2:
- * - Background Color (3 bytes)
- * - Background Opacity (1 byte)
- * #3:
- * - size (4 bytes)
- *
- * Should be a multiple of 4.
- */
-export const DATA_STRIDE_HEADER_BYTE_SIZE = 4 * 4;
+import { DATA_STRIDE_HEADER_BYTE_SIZE } from './types.js';
 export class TextHelperData {
     metadata;
     array;
+    texture;
     get textCount() { return this.metadata.textCount; }
     get lineCount() { return this.metadata.lineCount; }
     get lineLength() { return this.metadata.lineLength; }
@@ -62,6 +47,8 @@ export class TextHelperData {
             array[offset + 3] = 255 * defaultBackgroundOpacity;
         }
         this.array = array;
+        this.texture = new DataTexture(array, width, height, RGBAFormat, UnsignedByteType);
+        this.texture.needsUpdate = true;
     }
     encode() {
         const metadataString = JSON.stringify(this.metadata);
@@ -161,6 +148,7 @@ export class TextHelperData {
                 array[offset + 3] = toff(backgroundOpacity);
             }
         }
+        this.texture.needsUpdate = true;
         return this;
     }
     setTextAt(index, text, options = {}) {
@@ -209,5 +197,6 @@ export class TextHelperData {
                 }
             }
         }
+        this.texture.needsUpdate = true;
     }
 }
