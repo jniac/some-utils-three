@@ -1,6 +1,12 @@
 import { cameraPosition, cameraWorldMatrix, color, EPSILON, float, Fn, hash, If, mat3, mix, NodeAccess, normalWorld, objectPosition, positionLocal, positionWorld, storage, uniform, vec2, vec3, vec4 } from 'three/tsl';
 import { Matrix4, StorageInstancedBufferAttribute } from 'three/webgpu';
-export const autoLit = (mainColor = 'white', { emissive = .2, shadowColor = 'black', power = 2, } = {}) => Fn(() => {
+export const autoLitOptionsDefaults = {
+    emissive: .2,
+    shadowColor: 'black',
+    power: 2,
+};
+export const autoLit = (mainColor = 'white', options) => Fn(() => {
+    const { emissive, shadowColor, power } = { ...autoLitOptionsDefaults, ...options };
     const t1 = normalWorld.normalize().dot(positionWorld.sub(vec3(1, 3, 1)).normalize()).add(1).mul(0.5).oneMinus().pow(power);
     const t2 = mix(emissive, 1, t1);
     return mix(color(shadowColor), color(mainColor), t2.mul(1));

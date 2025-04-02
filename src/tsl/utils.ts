@@ -1,11 +1,14 @@
 import { cameraPosition, cameraWorldMatrix, color, EPSILON, float, Fn, hash, If, mat3, mix, NodeAccess, NodeRepresentation, normalWorld, objectPosition, positionLocal, positionWorld, ShaderNodeObject, storage, uniform, vec2, vec3, vec4 } from 'three/tsl'
 import { ColorRepresentation, Matrix4, Object3D, StorageBufferNode, StorageInstancedBufferAttribute } from 'three/webgpu'
 
-export const autoLit = (mainColor: ColorRepresentation = 'white', {
-  emissive = .2,
-  shadowColor = 'black',
-  power = 2,
-} = {}) => Fn(() => {
+export const autoLitOptionsDefaults = {
+  emissive: .2,
+  shadowColor: 'black',
+  power: 2,
+}
+export type AutoLitOptions = Partial<typeof autoLitOptionsDefaults>
+export const autoLit = (mainColor: ColorRepresentation = 'white', options?: AutoLitOptions) => Fn(() => {
+  const { emissive, shadowColor, power } = { ...autoLitOptionsDefaults, ...options }
   const t1 = normalWorld.normalize().dot(positionWorld.sub(vec3(1, 3, 1)).normalize()).add(1).mul(0.5).oneMinus().pow(power)
   const t2 = mix(emissive, 1, t1)
   return mix(color(shadowColor), color(mainColor), t2.mul(1))

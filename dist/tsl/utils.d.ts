@@ -1,10 +1,12 @@
 import { NodeRepresentation, ShaderNodeObject } from 'three/tsl';
 import { ColorRepresentation, Object3D, StorageBufferNode, StorageInstancedBufferAttribute } from 'three/webgpu';
-export declare const autoLit: (mainColor?: ColorRepresentation, { emissive, shadowColor, power, }?: {
-    emissive?: number | undefined;
-    shadowColor?: string | undefined;
-    power?: number | undefined;
-}) => ShaderNodeObject<import("three/src/nodes/TSL.js").ShaderCallNodeInternal>;
+export declare const autoLitOptionsDefaults: {
+    emissive: number;
+    shadowColor: string;
+    power: number;
+};
+export type AutoLitOptions = Partial<typeof autoLitOptionsDefaults>;
+export declare const autoLit: (mainColor?: ColorRepresentation, options?: AutoLitOptions) => ShaderNodeObject<import("three/src/nodes/TSL.js").ShaderCallNodeInternal>;
 /**
  * Clamps a vector to a maximum length.
  */
