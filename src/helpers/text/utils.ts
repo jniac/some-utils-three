@@ -1,5 +1,5 @@
 import { TextHelperAtlas } from './atlas'
-import { DATA_STRIDE_HEADER_BYTE_SIZE } from './data'
+import { DATA_STRIDE_HEADER_BYTE_SIZE } from './types'
 
 export function getDataStringView(atlas: TextHelperAtlas, dataTextureArray: Uint8Array, dataStride: number, lineCount: number, lineLength: number, start = 0, length = 3) {
   const packed = Array.from({ length: dataTextureArray.length / 4 }, (_, i) => {
