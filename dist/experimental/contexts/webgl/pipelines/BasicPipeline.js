@@ -58,7 +58,8 @@ export class BasicPipeline {
         const fxaa = new ShaderPass(FXAAShader);
         passMap.set(fxaa, { type: PassType.Antialiasing, insertOrder: 0 });
         composer.addPass(fxaa);
-        const smaa = new SMAAPass(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio);
+        // const smaa = new SMAAPass(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio)
+        const smaa = new SMAAPass();
         smaa.enabled = false;
         passMap.set(smaa, { type: PassType.Antialiasing, insertOrder: 0 });
         composer.addPass(smaa);

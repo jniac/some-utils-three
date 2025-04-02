@@ -38,6 +38,15 @@ export class TextHelperAtlas {
     const scaleY = height / (fullCharSize.y * charGrid.y)
     const charScaleRatio = .8
 
+    // Node.js proof
+    if (typeof document === 'undefined') {
+      this.canvas = null!
+      this.texture = null!
+      this.symbols = ''
+      this.charGrid = new Vector2()
+      return
+    }
+
     const canvas = document.createElement('canvas')
     canvas.width = width
     canvas.height = height
