@@ -25,21 +25,24 @@ export class AutoLitMaterial extends MeshBasicMaterial {
       uLuminosity: { value: luminosity },
     }
     super(rest)
-    this.onBeforeCompile = shader => ShaderForge.with(shader)
-      .uniforms(uniforms)
-      .varying({
-        vWorldNormal: 'vec3',
-      })
-      .vertex.mainAfterAll(/* glsl */`
+    this.onBeforeCompile = (shader, renderer) => {
+      console.log(renderer)
+      ShaderForge.with(shader)
+        .uniforms(uniforms)
+        .varying({
+          vWorldNormal: 'vec3',
+        })
+        .vertex.mainAfterAll(/* glsl */`
           vWorldNormal = mat3(modelMatrix) * normal;
       `)
-      .fragment.after('map_fragment', /* glsl */`
+        .fragment.after('map_fragment', /* glsl */`
         vec3 lightDirection = normalize(uSunPosition);
         float light = dot(vWorldNormal, lightDirection) * 0.5 + 0.5;
         light = pow(light, 2.0);
         light = mix(uLuminosity, 1.0, light);
         diffuseColor *= light;
       `)
+    }
 
     this.sunPosition = uniforms.uSunPosition.value
   }
