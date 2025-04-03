@@ -1,4 +1,4 @@
 import { MeshBasicNodeMaterial } from 'three/webgpu';
 import { TextHelperAtlas } from '../atlas';
 import { TextUniforms } from './uniforms';
-export declare function createTextNodeMaterial(uniformsSrc: TextUniforms, atlas: TextHelperAtlas): MeshBasicNodeMaterial;
+export declare function createTextNodeMaterial(uniforms: TextUniforms, atlas: TextHelperAtlas): MeshBasicNodeMaterial;
