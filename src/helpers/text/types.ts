@@ -23,6 +23,11 @@ export function solveOrientation(orientation: string | number): Orientation {
 }
 
 export const optionsDefaults = {
+  /**
+   * Should we use a node material (compatible with webgpu)?
+   * @default false
+   */
+  nodeMaterial: false,
   textCount: 1000,
   lineLength: 24,
   lineCount: 2,

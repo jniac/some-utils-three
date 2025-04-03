@@ -1,4 +1,4 @@
 /**
  * @deprecated Use `helpers/text` instead
  */
-export * from './text/index'
+export * from './text'
