@@ -3,6 +3,7 @@ import { fromTransformDeclarations } from '../../declaration.js';
 import { makeMatrix4 } from '../../utils/make.js';
 import { TextHelperAtlas } from './atlas.js';
 import { TextHelperData } from './data.js';
+import { createTextNodeMaterial } from './material/node.js';
 import { createTextUniforms } from './material/uniforms.js';
 import { createWebglMaterial } from './material/webgl.js';
 import { optionsDefaults } from './types.js';
@@ -26,7 +27,9 @@ export class TextHelper extends InstancedMesh {
         const uniforms = createTextUniforms(options, data, atlas);
         const planeSize = uniforms.uPlaneSize.value;
         const geometry = new PlaneGeometry(planeSize.width, planeSize.height);
-        const material = createWebglMaterial(uniforms, atlas);
+        const material = options.nodeMaterial
+            ? createTextNodeMaterial(uniforms, atlas)
+            : createWebglMaterial(uniforms, atlas);
         super(geometry, material, options.textCount);
         this.onBeforeRender = (renderer, scene, camera, geometry, material, group) => {
             uniforms.uCameraMatrix.value.copy(camera.matrixWorld);

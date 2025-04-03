@@ -1,4 +1,6 @@
-import { BufferAttribute, BufferGeometry, Color, ColorRepresentation, Group, LineSegments, Matrix4, Object3D, Points, PointsMaterial, Vector3 } from 'three'
+import { BufferAttribute, BufferGeometry, Color, ColorRepresentation, Group, LineBasicMaterial, LineSegments, Matrix4, Object3D, Points, PointsMaterial, Vector3 } from 'three'
+import { bufferAttribute, varying } from 'three/tsl'
+import { LineBasicNodeMaterial } from 'three/webgpu'
 
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 import { OneOrMany } from 'some-utils-ts/types'
@@ -15,7 +17,6 @@ const _v4 = new Vector3()
 const _v5 = new Vector3()
 const _c0 = new Color()
 const _m0 = new Matrix4()
-
 
 class Utils {
   static boxPoints = {
@@ -256,6 +257,7 @@ const DEFAULT_LINE_COUNT = 20000
 
 class LinesManager extends BaseManager {
   static createParts({
+    nodeMaterial = false,
     lineCount: count = DEFAULT_LINE_COUNT,
     defaultColor = 'white' as ColorRepresentation,
     defaultOpacity = 1,
@@ -269,24 +271,40 @@ class LinesManager extends BaseManager {
     for (const [name, attr] of Object.entries(attributes)) {
       geometry.setAttribute(name, attr)
     }
-    const material = new PointsMaterial({
-      vertexColors: true,
-      transparent: true,
-      depthWrite: false,
-    })
-    material.onBeforeCompile = shader => ShaderForge.with(shader)
-      .varying({
-        vOpacity: 'float',
+    const createLineMaterial = () => {
+      const material = new LineBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        depthWrite: false,
       })
-      .vertex.top(/* glsl */`
-        attribute float aOpacity;
-      `)
-      .vertex.mainAfterAll(/* glsl */`
-        vOpacity = aOpacity;
-      `)
-      .fragment.after('color_fragment', /* glsl */`
-        diffuseColor.a *= vOpacity;
-      `)
+      material.onBeforeCompile = shader => ShaderForge.with(shader)
+        .varying({
+          vOpacity: 'float',
+        })
+        .vertex.top(/* glsl */`
+          attribute float aOpacity;
+        `)
+        .vertex.mainAfterAll(/* glsl */`
+          vOpacity = aOpacity;
+        `)
+        .fragment.after('color_fragment', /* glsl */`
+          diffuseColor.a *= vOpacity;
+        `)
+      return material
+    }
+    const createLineNodeMaterial = () => {
+      const material = new LineBasicNodeMaterial({
+        vertexColors: true,
+        transparent: true,
+        depthWrite: false,
+      })
+      const aOpacity = bufferAttribute(attributes.aOpacity, 'float', 1, 0)
+      material.opacityNode = varying(aOpacity)
+      return material
+    }
+    const material = nodeMaterial
+      ? createLineNodeMaterial()
+      : createLineMaterial()
     const lines = new LineSegments(geometry, material)
     lines.frustumCulled = false
     return {
@@ -843,17 +861,19 @@ type LinePointsOptions = {
 
 class DebugHelper extends Group {
   static createParts(instance: DebugHelper, options?: Partial<{
+    nodeMaterial: boolean,
     texts: ConstructorParameters<typeof TextsManager>[0],
     lines: ConstructorParameters<typeof LinesManager>[0],
     points: ConstructorParameters<typeof PointsManager>[0],
   }>) {
+    const { nodeMaterial } = options ?? {}
     const pointsManager = new PointsManager(options?.points)
     instance.add(pointsManager.parts.points)
 
-    const linesManager = new LinesManager(options?.lines)
+    const linesManager = new LinesManager({ nodeMaterial, ...options?.lines })
     instance.add(linesManager.parts.lines)
 
-    const textsManager = new TextsManager(options?.texts)
+    const textsManager = new TextsManager({ nodeMaterial, ...options?.texts })
     instance.add(textsManager.parts.textHelper)
 
     return {

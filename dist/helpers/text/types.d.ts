@@ -8,6 +8,11 @@ export declare const orientations: {
 export type Orientation = (typeof orientations)[keyof typeof orientations];
 export declare function solveOrientation(orientation: string | number): Orientation;
 export declare const optionsDefaults: {
+    /**
+     * Should we use a node material (compatible with webgpu)?
+     * @default false
+     */
+    nodeMaterial: boolean;
     textCount: number;
     lineLength: number;
     lineCount: number;

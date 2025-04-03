@@ -5,6 +5,7 @@ import { makeMatrix4 } from '../../utils/make'
 
 import { TextHelperAtlas } from './atlas'
 import { TextHelperData } from './data'
+import { createTextNodeMaterial } from './material/node'
 import { createTextUniforms } from './material/uniforms'
 import { createWebglMaterial } from './material/webgl'
 import { optionsDefaults, SetColorOptions, SetTextOption } from './types'
@@ -36,7 +37,9 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
     const planeSize = uniforms.uPlaneSize.value
     const geometry = new PlaneGeometry(planeSize.width, planeSize.height)
 
-    const material = createWebglMaterial(uniforms, atlas)
+    const material = options.nodeMaterial
+      ? createTextNodeMaterial(uniforms, atlas)
+      : createWebglMaterial(uniforms, atlas)
     super(geometry, material, options.textCount)
 
     this.onBeforeRender = (renderer, scene, camera, geometry, material, group) => {

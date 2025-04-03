@@ -16,6 +16,11 @@ export function solveOrientation(orientation) {
     throw new Error(`Invalid orientation: ${orientation}`);
 }
 export const optionsDefaults = {
+    /**
+     * Should we use a node material (compatible with webgpu)?
+     * @default false
+     */
+    nodeMaterial: false,
     textCount: 1000,
     lineLength: 24,
     lineCount: 2,

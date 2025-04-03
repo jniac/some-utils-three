@@ -1,4 +1,6 @@
-import { BufferAttribute, BufferGeometry, Color, Group, LineSegments, Matrix4, Points, PointsMaterial, Vector3 } from 'three';
+import { BufferAttribute, BufferGeometry, Color, Group, LineBasicMaterial, LineSegments, Matrix4, Points, PointsMaterial, Vector3 } from 'three';
+import { bufferAttribute, varying } from 'three/tsl';
+import { LineBasicNodeMaterial } from 'three/webgpu';
 import { Rectangle } from 'some-utils-ts/math/geom/rectangle';
 import { fromTransformDeclaration, fromTransformDeclarations, fromVector3Declaration } from '../../declaration.js';
 import { ShaderForge } from '../../shader-forge.js';
@@ -223,7 +225,7 @@ class PointsManager extends BaseManager {
 }
 const DEFAULT_LINE_COUNT = 20000;
 class LinesManager extends BaseManager {
-    static createParts({ lineCount: count = DEFAULT_LINE_COUNT, defaultColor = 'white', defaultOpacity = 1, } = {}) {
+    static createParts({ nodeMaterial = false, lineCount: count = DEFAULT_LINE_COUNT, defaultColor = 'white', defaultOpacity = 1, } = {}) {
         const geometry = new BufferGeometry();
         const attributes = {
             'position': new BufferAttribute(new Float32Array(count * 3 * 2), 3),
@@ -233,24 +235,40 @@ class LinesManager extends BaseManager {
         for (const [name, attr] of Object.entries(attributes)) {
             geometry.setAttribute(name, attr);
         }
-        const material = new PointsMaterial({
-            vertexColors: true,
-            transparent: true,
-            depthWrite: false,
-        });
-        material.onBeforeCompile = shader => ShaderForge.with(shader)
-            .varying({
-            vOpacity: 'float',
-        })
-            .vertex.top(/* glsl */ `
-        attribute float aOpacity;
-      `)
-            .vertex.mainAfterAll(/* glsl */ `
-        vOpacity = aOpacity;
-      `)
-            .fragment.after('color_fragment', /* glsl */ `
-        diffuseColor.a *= vOpacity;
-      `);
+        const createLineMaterial = () => {
+            const material = new LineBasicMaterial({
+                vertexColors: true,
+                transparent: true,
+                depthWrite: false,
+            });
+            material.onBeforeCompile = shader => ShaderForge.with(shader)
+                .varying({
+                vOpacity: 'float',
+            })
+                .vertex.top(/* glsl */ `
+          attribute float aOpacity;
+        `)
+                .vertex.mainAfterAll(/* glsl */ `
+          vOpacity = aOpacity;
+        `)
+                .fragment.after('color_fragment', /* glsl */ `
+          diffuseColor.a *= vOpacity;
+        `);
+            return material;
+        };
+        const createLineNodeMaterial = () => {
+            const material = new LineBasicNodeMaterial({
+                vertexColors: true,
+                transparent: true,
+                depthWrite: false,
+            });
+            const aOpacity = bufferAttribute(attributes.aOpacity, 'float', 1, 0);
+            material.opacityNode = varying(aOpacity);
+            return material;
+        };
+        const material = nodeMaterial
+            ? createLineNodeMaterial()
+            : createLineMaterial();
         const lines = new LineSegments(geometry, material);
         lines.frustumCulled = false;
         return {
@@ -705,11 +723,12 @@ const defaultLinePointsOptions = {
 };
 class DebugHelper extends Group {
     static createParts(instance, options) {
+        const { nodeMaterial } = options ?? {};
         const pointsManager = new PointsManager(options?.points);
         instance.add(pointsManager.parts.points);
-        const linesManager = new LinesManager(options?.lines);
+        const linesManager = new LinesManager({ nodeMaterial, ...options?.lines });
         instance.add(linesManager.parts.lines);
-        const textsManager = new TextsManager(options?.texts);
+        const textsManager = new TextsManager({ nodeMaterial, ...options?.texts });
         instance.add(textsManager.parts.textHelper);
         return {
             pointsManager,

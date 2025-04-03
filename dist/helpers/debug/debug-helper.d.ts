@@ -1,4 +1,5 @@
-import { BufferAttribute, BufferGeometry, ColorRepresentation, Group, LineSegments, Matrix4, Object3D, Points, PointsMaterial, Vector3 } from 'three';
+import { BufferAttribute, BufferGeometry, ColorRepresentation, Group, LineBasicMaterial, LineSegments, Matrix4, Object3D, Points, PointsMaterial, Vector3 } from 'three';
+import { LineBasicNodeMaterial } from 'three/webgpu';
 import { RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle';
 import { OneOrMany } from 'some-utils-ts/types';
 import { TransformDeclaration, Vector3Declaration } from '../../declaration';
@@ -69,7 +70,8 @@ declare class PointsManager extends BaseManager {
 }
 declare class LinesManager extends BaseManager {
     #private;
-    static createParts({ lineCount: count, defaultColor, defaultOpacity, }?: {
+    static createParts({ nodeMaterial, lineCount: count, defaultColor, defaultOpacity, }?: {
+        nodeMaterial?: boolean | undefined;
         lineCount?: number | undefined;
         defaultColor?: ColorRepresentation | undefined;
         defaultOpacity?: number | undefined;
@@ -85,7 +87,7 @@ declare class LinesManager extends BaseManager {
             color: BufferAttribute;
             aOpacity: BufferAttribute;
         };
-        lines: LineSegments<BufferGeometry<import("three").NormalBufferAttributes>, PointsMaterial, import("three").Object3DEventMap>;
+        lines: LineSegments<BufferGeometry<import("three").NormalBufferAttributes>, LineBasicNodeMaterial | LineBasicMaterial, import("three").Object3DEventMap>;
     };
     state: {
         index: number;
@@ -171,6 +173,7 @@ type LinePointsOptions = {
 };
 declare class DebugHelper extends Group {
     static createParts(instance: DebugHelper, options?: Partial<{
+        nodeMaterial: boolean;
         texts: ConstructorParameters<typeof TextsManager>[0];
         lines: ConstructorParameters<typeof LinesManager>[0];
         points: ConstructorParameters<typeof PointsManager>[0];

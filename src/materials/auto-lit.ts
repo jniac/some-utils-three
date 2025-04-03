@@ -25,8 +25,7 @@ export class AutoLitMaterial extends MeshBasicMaterial {
       uLuminosity: { value: luminosity },
     }
     super(rest)
-    this.onBeforeCompile = (shader, renderer) => {
-      console.log(renderer)
+    this.onBeforeCompile = shader => {
       ShaderForge.with(shader)
         .uniforms(uniforms)
         .varying({

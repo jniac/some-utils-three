@@ -5,6 +5,7 @@ import { TextHelperData } from './data';
 import { optionsDefaults, SetColorOptions, SetTextOption } from './types';
 export declare class TextHelper extends InstancedMesh<BufferGeometry, Material> {
     static readonly defaultOptions: {
+        nodeMaterial: boolean;
         textCount: number;
         lineLength: number;
         lineCount: number;

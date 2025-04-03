@@ -3,13 +3,13 @@ import { ColorRepresentation, Matrix4, Object3D, StorageBufferNode, StorageInsta
 
 export const autoLitOptionsDefaults = {
   emissive: .2,
-  shadowColor: 'black',
+  shadowColor: '#808080',
   power: 2,
 }
 export type AutoLitOptions = Partial<typeof autoLitOptionsDefaults>
 export const autoLit = (mainColor: ColorRepresentation = 'white', options?: AutoLitOptions) => Fn(() => {
   const { emissive, shadowColor, power } = { ...autoLitOptionsDefaults, ...options }
-  const t1 = normalWorld.normalize().dot(positionWorld.sub(vec3(1, 3, 1)).normalize()).add(1).mul(0.5).oneMinus().pow(power)
+  const t1 = normalWorld.normalize().dot(positionWorld.sub(vec3(1, 3, 1)).normalize()).add(1).mul(0.5).pow(power).oneMinus()
   const t2 = mix(emissive, 1, t1)
   return mix(color(shadowColor), color(mainColor), t2.mul(1))
 })()
