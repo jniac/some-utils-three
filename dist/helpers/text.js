@@ -1,1 +1,1 @@
-export * from './text/index.js';
+export { TextHelper } from './text/text-helper.js';
