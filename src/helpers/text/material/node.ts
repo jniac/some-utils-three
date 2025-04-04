@@ -1,6 +1,6 @@
 import { DoubleSide } from 'three'
 
-import { add, div, float, floor, If, instanceIndex, mod, mul, NodeRepresentation, sub, texture, uniform, varying, vec2, vec4 } from 'three/tsl'
+import { add, cameraWorldMatrix, color, div, float, floor, Fn, If, instanceIndex, mat3, mod, mul, NodeRepresentation, positionGeometry, sub, texture, uniform, varying, vec2, vec3, vec4 } from 'three/tsl'
 import { MeshBasicNodeMaterial } from 'three/webgpu'
 import { TextHelperAtlas } from '../atlas'
 import { TextUniforms } from './uniforms'
@@ -12,17 +12,21 @@ export function createTextNodeMaterial(uniforms: TextUniforms, atlas: TextHelper
   material.alphaTest = 0.5
   material.side = DoubleSide
 
-  console.warn('TextHelperMaterial is not supported in WebGPU yet, using MeshBasicNodeMaterial instead')
+  console.warn('TextHelperMaterial is not supported in WebGPU yet, do not expect it to work.')
 
   const uDataTextureSize = uniform(uniforms.uDataTextureSize.value)
+    .onFrameUpdate(() => uniforms.uDataTextureSize.value)
   const uDataStride = uniform(uniforms.uDataStride.value)
+    .onFrameUpdate(() => uniforms.uDataStride.value)
   const uDataStrideHeader = uniform(uniforms.uDataStrideHeader.value)
+    .onFrameUpdate(() => uniforms.uDataStrideHeader.value)
   const uAtlasCharGrid = uniform(uniforms.uAtlasCharGrid.value)
+    .onFrameUpdate(() => uniforms.uAtlasCharGrid.value)
 
   function getData4(instanceId: NodeRepresentation, offset: NodeRepresentation) {
     const width = uDataTextureSize.x
     const index = add(mul(instanceId, uDataStride), offset)
-    const dataY = floor(div(index, width))
+    const dataY = div(index, width)
     const dataX = sub(index, mul(dataY, width))
     return texture(uniforms.uDataTexture.value, vec2(dataX, dataY))
   }
@@ -58,6 +62,21 @@ export function createTextNodeMaterial(uniforms: TextUniforms, atlas: TextHelper
   const size = float(1)
   // To be completed...
 
+  // Orientation is ok
+  const uOrientation = uniform(1)
+    .onRenderUpdate(() => uniforms.uOrientation.value)
+  const orientedPosition = Fn(() => {
+    const position = vec3().toVar()
+    If(uOrientation.equal(0), () => {
+      position.assign(positionGeometry)
+    }).Else(() => {
+      position.assign(mat3(cameraWorldMatrix).mul(positionGeometry))
+    })
+    return position
+  })
+  material.positionNode = orientedPosition()
+
+  material.colorNode = color('yellow')
 
   return material
 }
