@@ -7,3 +7,4 @@ declare const defaultTransform: {
 };
 export type Transform = typeof defaultTransform;
 export {};
+//# sourceMappingURL=transform.d.ts.map

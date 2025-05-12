@@ -245,3 +245,4 @@ export const ShaderForge = Object.assign(function (shader) {
     with: withShader,
     wrap,
 });
+//# sourceMappingURL=ShaderForge.js.map

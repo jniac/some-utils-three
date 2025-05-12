@@ -12,3 +12,4 @@ export declare function calculateVFOV(hfov: number, aspectRatio: number): number
  * @returns Horizontal field of view in degrees.
  */
 export declare function calculateHFOV(vfov: number, aspectRatio: number): number;
+//# sourceMappingURL=camera.d.ts.map

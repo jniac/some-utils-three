@@ -67,3 +67,4 @@ export declare class Chunk {
     }): Generator<Face, void, unknown>;
 }
 export {};
+//# sourceMappingURL=chunk.d.ts.map

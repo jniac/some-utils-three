@@ -39,3 +39,4 @@ export declare class UnifiedLoader {
     load(url: `${string}.${TextureExtension}`): Promise<Texture>;
 }
 export {};
+//# sourceMappingURL=unified-loader.d.ts.map

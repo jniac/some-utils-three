@@ -25,3 +25,4 @@ export function setvertexColors(geometry, colorsArg, startIndex = 0, endIndex = 
     }
     colorsAttribute.needsUpdate = true;
 }
+//# sourceMappingURL=geometry.js.map

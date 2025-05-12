@@ -200,3 +200,4 @@ export class TextHelperData {
         this.texture.needsUpdate = true;
     }
 }
+//# sourceMappingURL=data.js.map

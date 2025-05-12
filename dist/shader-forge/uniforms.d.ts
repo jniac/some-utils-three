@@ -18,3 +18,4 @@ export declare class UniformWrapper<T> implements IUniform<T> {
 }
 export type Uniforms = Record<string, UniformDeclaration>;
 export {};
+//# sourceMappingURL=uniforms.d.ts.map

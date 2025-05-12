@@ -7,3 +7,4 @@ export var PassType;
     PassType[PassType["Output"] = 4000] = "Output";
     PassType[PassType["Antialiasing"] = 5000] = "Antialiasing";
 })(PassType || (PassType = {}));
+//# sourceMappingURL=types.js.map

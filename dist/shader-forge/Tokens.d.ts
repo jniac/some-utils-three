@@ -6,3 +6,4 @@ type MeshPhysicalMaterialFragmentTokens = (typeof meshPhysicalMaterialFragmentTo
 type GlTokens = (typeof glTokens)[number];
 export type { MeshPhysicalMaterialVertexTokens, MeshPhysicalMaterialFragmentTokens, GlTokens, };
 export { meshPhysicalMaterialVertexTokens, meshPhysicalMaterialFragmentTokens, glTokens, };
+//# sourceMappingURL=Tokens.d.ts.map

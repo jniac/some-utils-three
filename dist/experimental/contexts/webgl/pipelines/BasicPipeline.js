@@ -171,3 +171,4 @@ export class BasicPipeline {
         return lines.join('\n');
     }
 }
+//# sourceMappingURL=BasicPipeline.js.map

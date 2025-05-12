@@ -6,3 +6,4 @@ export declare class VertigoHelper extends LineHelper {
         color?: ColorRepresentation | undefined;
     });
 }
+//# sourceMappingURL=helper.d.ts.map

@@ -22,3 +22,4 @@ export type ThreeBaseContext = {
     initialized: boolean;
     initialize: (domContainer: HTMLElement, pointerScope: HTMLElement) => Destroyable;
 };
+//# sourceMappingURL=types.d.ts.map

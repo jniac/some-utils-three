@@ -167,3 +167,4 @@ export class ManhattanBox2Falloff extends AbstractFalloff {
 // const foo = new Foo()
 // foo.foo = 4
 // foo.props.foo
+//# sourceMappingURL=falloffs.js.map

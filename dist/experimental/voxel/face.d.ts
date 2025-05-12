@@ -9,3 +9,4 @@ export declare class Face {
     positionToArray<T extends number[] | Float32Array>(out: T, offset?: number): T;
     normalToArray<T extends number[] | Float32Array>(out: T, offset?: number): T;
 }
+//# sourceMappingURL=face.d.ts.map

@@ -48,3 +48,4 @@ export declare function directionToVector(dir: Direction): Vector3;
 export declare const CHUNK_COORDS_SIZE = 1624;
 export declare function toChunkCoordsKey(x: number, y: number, z: number): number;
 export declare function fromChunkCoordsKey(key: number, out?: Vector3): Vector3;
+//# sourceMappingURL=core.d.ts.map

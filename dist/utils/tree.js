@@ -112,3 +112,4 @@ export function* queryAncestorsOf(child, query, options) {
         }
     }
 }
+//# sourceMappingURL=tree.js.map

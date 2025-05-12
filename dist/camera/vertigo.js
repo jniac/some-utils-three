@@ -266,3 +266,4 @@ export class Vertigo {
     }
 }
 const defaultVertigo = deepFreeze(new Vertigo());
+//# sourceMappingURL=vertigo.js.map

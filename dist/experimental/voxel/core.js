@@ -98,3 +98,4 @@ export function fromChunkCoordsKey(key, out = new Vector3()) {
     const x = n;
     return out.set(x - HALF_CHUNK_COORDS_SIZE, y - HALF_CHUNK_COORDS_SIZE, z - HALF_CHUNK_COORDS_SIZE);
 }
+//# sourceMappingURL=core.js.map

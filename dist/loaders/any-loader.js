@@ -45,3 +45,4 @@ class AnyLoader {
 }
 const anyLoader = new AnyLoader();
 export { anyLoader, AnyLoader };
+//# sourceMappingURL=any-loader.js.map

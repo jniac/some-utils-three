@@ -67,3 +67,4 @@ export function createTextNodeMaterial(uniforms, atlas) {
     material.colorNode = color('yellow');
     return material;
 }
+//# sourceMappingURL=node.js.map

@@ -37,3 +37,4 @@ export declare class AxesGeometry extends BufferGeometry {
     constructor(options?: Partial<AxesOptions>);
 }
 export {};
+//# sourceMappingURL=axis.d.ts.map

@@ -1,0 +1,1 @@
+{"version":3,"file":"helper.d.ts","sourceRoot":"","sources":["../../../src/camera/vertigo/helper.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,mBAAmB,EAAkF,MAAM,OAAO,CAAA;AAC3H,OAAO,EAAE,UAAU,EAAE,MAAM,oBAAoB,CAAA;AAC/C,OAAO,EAAE,OAAO,EAAE,MAAM,YAAY,CAAA;AAuBpC,qBAAa,aAAc,SAAQ,UAAU;gBAC/B,OAAO,EAAE,OAAO,EAAE,EAAE,KAAsC,EAAE;;KAAK;CAkC9E"}

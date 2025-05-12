@@ -254,3 +254,4 @@ export class VertigoControls extends DestroyableInstance {
             .apply(camera, aspect);
     }
 }
+//# sourceMappingURL=controls.js.map

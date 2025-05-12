@@ -60,3 +60,4 @@ export declare class BasicPipeline implements PipelineBase {
     render(tick: Tick): void;
     getPassesInfo(): string;
 }
+//# sourceMappingURL=BasicPipeline.d.ts.map

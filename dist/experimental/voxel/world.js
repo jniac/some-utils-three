@@ -162,3 +162,4 @@ export class World {
         }
     }
 }
+//# sourceMappingURL=world.js.map

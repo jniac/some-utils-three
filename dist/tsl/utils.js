@@ -179,3 +179,4 @@ export const sdf2D = {
         return d.max(0).length().add(d.x.max(d.y).min(0));
     },
 };
+//# sourceMappingURL=utils.js.map

@@ -41,3 +41,4 @@ export function getFibonacciSphereSamplesArray(n = 24, { out = new Float32Array(
     }
     return out;
 }
+//# sourceMappingURL=fibonacci-sphere-samples.js.map

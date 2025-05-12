@@ -16,3 +16,4 @@ export const computeTangentMatrixFromNormal = (() => {
         out.set(tangent.x, bitangent.x, normal.x, position.x, tangent.y, bitangent.y, normal.y, position.y, tangent.z, bitangent.z, normal.z, position.z, 0, 0, 0, 1);
     };
 })();
+//# sourceMappingURL=matrix.js.map

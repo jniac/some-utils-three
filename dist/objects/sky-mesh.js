@@ -22,3 +22,4 @@ export class SkyMesh extends Mesh {
         };
     }
 }
+//# sourceMappingURL=sky-mesh.js.map

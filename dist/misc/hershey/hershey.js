@@ -151,3 +151,4 @@ export class HersheyText extends LineSegments {
         this.height = height;
     }
 }
+//# sourceMappingURL=hershey.js.map

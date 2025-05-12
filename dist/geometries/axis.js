@@ -88,3 +88,4 @@ export class AxesGeometry extends BufferGeometry {
         geometry.dispose();
     }
 }
+//# sourceMappingURL=axis.js.map

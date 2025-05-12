@@ -107,3 +107,4 @@ export class TextHelper extends InstancedMesh {
         return getDataStringView(this.atlas, this.data.array, this.data.strideByteSize, this.options.lineCount, this.options.lineLength, start, length);
     }
 }
+//# sourceMappingURL=text-helper.js.map

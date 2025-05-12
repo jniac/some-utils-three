@@ -132,3 +132,4 @@ export function createWebglMaterial(uniforms, atlas) {
     `);
     return material;
 }
+//# sourceMappingURL=webgl.js.map

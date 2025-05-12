@@ -225,3 +225,4 @@ export class Pointer {
         return destroy;
     }
 }
+//# sourceMappingURL=pointer.js.map

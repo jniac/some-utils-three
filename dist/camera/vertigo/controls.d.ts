@@ -66,3 +66,4 @@ export declare class VertigoControls extends DestroyableInstance {
     update(camera: Camera, aspect: number, deltaTime?: number): void;
 }
 export type { ControlInput as VertigoControlInput, ControlInputString as VertigoControlInputString };
+//# sourceMappingURL=controls.d.ts.map

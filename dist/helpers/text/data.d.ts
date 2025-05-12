@@ -40,3 +40,4 @@ export declare class TextHelperData {
     setColorAt(index: number, options: SetColorOptions): this;
     setTextAt(index: number, text: string, options?: SetTextOption): void;
 }
+//# sourceMappingURL=data.d.ts.map

@@ -34,3 +34,4 @@ export function getDataStringView(atlas, dataTextureArray, dataStride, lineCount
     }
     return withHeader.join('\n');
 }
+//# sourceMappingURL=utils.js.map

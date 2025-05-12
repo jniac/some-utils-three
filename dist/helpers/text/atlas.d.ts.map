@@ -1,0 +1,1 @@
+{"version":3,"file":"atlas.d.ts","sourceRoot":"","sources":["../../../src/helpers/text/atlas.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,aAAa,EAAE,OAAO,EAAE,MAAM,OAAO,CAAA;AAI9C,iBAAS,iBAAiB,WAOzB;AAQD,qBAAa,eAAe;IAC1B,MAAM,CAAC,iBAAiB,2BAAoB;IAE5C,MAAM,EAAE,iBAAiB,CAAA;IACzB,OAAO,EAAE,aAAa,CAAA;IACtB,OAAO,EAAE,MAAM,CAAA;IACf,QAAQ,EAAE,OAAO,CAAA;;CAgDlB"}

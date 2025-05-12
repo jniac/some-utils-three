@@ -11,3 +11,4 @@ export declare class AutoLitMaterial extends MeshBasicMaterial {
     constructor(options?: Options);
 }
 export {};
+//# sourceMappingURL=auto-lit.d.ts.map

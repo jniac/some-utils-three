@@ -128,3 +128,4 @@ export class ThreeWebGPUContext {
         this.internal.cancelPointer?.();
     };
 }
+//# sourceMappingURL=webgpu.js.map

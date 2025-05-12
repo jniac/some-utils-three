@@ -43,3 +43,4 @@ export declare class HersheyText<TMaterial extends Material = LineBasicMaterial>
     constructor(text: string, incomingProps?: HersheyLineProps, material?: TMaterial);
 }
 export {};
+//# sourceMappingURL=hershey.d.ts.map

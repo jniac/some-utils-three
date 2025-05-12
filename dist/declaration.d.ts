@@ -54,3 +54,4 @@ export declare const fromTransformDeclaration: {
  * Clone it if you need to keep it for later use.
  */
 export declare function fromTransformDeclarations(transforms: TransformDeclaration[], out?: Matrix4): Matrix4;
+//# sourceMappingURL=declaration.d.ts.map

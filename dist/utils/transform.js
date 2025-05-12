@@ -95,3 +95,4 @@ export function getTransform(target) {
         visible: target.visible,
     };
 }
+//# sourceMappingURL=transform.js.map

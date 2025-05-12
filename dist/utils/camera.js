@@ -20,3 +20,4 @@ export function calculateHFOV(vfov, aspectRatio) {
     const hfovRadians = 2 * Math.atan(Math.tan(vfovRadians / 2) * aspectRatio);
     return hfovRadians * 180 / Math.PI;
 }
+//# sourceMappingURL=camera.js.map

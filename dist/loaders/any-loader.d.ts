@@ -13,3 +13,4 @@ declare class AnyLoader {
 }
 declare const anyLoader: AnyLoader;
 export { anyLoader, AnyLoader };
+//# sourceMappingURL=any-loader.d.ts.map

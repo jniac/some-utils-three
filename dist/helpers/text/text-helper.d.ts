@@ -38,3 +38,4 @@ export declare class TextHelper extends InstancedMesh<BufferGeometry, Material> 
     setTextColorAt(index: number, options: SetColorOptions): this;
     getDataStringView(start?: number, length?: number): string;
 }
+//# sourceMappingURL=text-helper.d.ts.map

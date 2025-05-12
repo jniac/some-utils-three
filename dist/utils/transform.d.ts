@@ -61,3 +61,4 @@ export type TransformProps = Partial<typeof defaultTransformProps & {
 export declare function applyTransform<T extends Object3D = Object3D>(target: T, props?: TransformProps): T;
 export declare function getTransform(target: Object3D): Transform;
 export {};
+//# sourceMappingURL=transform.d.ts.map

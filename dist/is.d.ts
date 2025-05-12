@@ -31,3 +31,4 @@ export declare function isMesh(value: any): value is Mesh;
  * Safe type check for Mesh (safer than `instanceof` which may fail with different versions of Three.js).
  */
 export declare function isSprite(value: any): value is Sprite;
+//# sourceMappingURL=is.d.ts.map

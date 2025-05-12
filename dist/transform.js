@@ -5,3 +5,4 @@ const defaultTransform = {
     scale: new Vector3(1, 1, 1),
     visible: true,
 };
+//# sourceMappingURL=transform.js.map

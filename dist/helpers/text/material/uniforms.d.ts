@@ -44,3 +44,4 @@ export declare function createTextUniforms(userOptions: Options, data: TextHelpe
         value: number;
     };
 };
+//# sourceMappingURL=uniforms.d.ts.map

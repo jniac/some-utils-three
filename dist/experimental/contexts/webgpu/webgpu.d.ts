@@ -39,3 +39,4 @@ export declare class ThreeWebGPUContext implements ThreeBaseContext {
     destroyed: boolean;
     destroy: () => void;
 }
+//# sourceMappingURL=webgpu.d.ts.map

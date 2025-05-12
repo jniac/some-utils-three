@@ -3,3 +3,4 @@ export * from './core';
 export * from './face';
 export * from './meshers/naive';
 export * from './world';
+//# sourceMappingURL=index.d.ts.map

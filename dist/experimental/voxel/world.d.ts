@@ -56,3 +56,4 @@ export declare class World {
     }): Generator<import("./face").Face, void, unknown>;
 }
 export {};
+//# sourceMappingURL=world.d.ts.map

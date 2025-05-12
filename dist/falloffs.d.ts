@@ -40,3 +40,4 @@ export declare class ManhattanBox2Falloff extends AbstractFalloff<typeof default
     setup(): void;
 }
 export {};
+//# sourceMappingURL=falloffs.d.ts.map

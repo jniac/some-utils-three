@@ -14,3 +14,4 @@ export declare function makeMatrix4(props: TransformDeclaration): Matrix4;
  * be used immediately or copied / cloned if it needs to be stored.
  */
 export declare function makeColor(color: ColorRepresentation): Color;
+//# sourceMappingURL=make.d.ts.map

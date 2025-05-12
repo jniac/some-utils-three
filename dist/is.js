@@ -46,3 +46,4 @@ export function isMesh(value) {
 export function isSprite(value) {
     return !!value.isSprite;
 }
+//# sourceMappingURL=is.js.map

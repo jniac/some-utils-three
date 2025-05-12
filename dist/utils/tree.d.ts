@@ -57,3 +57,4 @@ export declare function allAncestorsOf(child: Object3D, options?: Partial<typeof
 export declare function queryDescendantsOf(parent: Object3D, query: (child: Object3D) => boolean, options?: Parameters<typeof allAncestorsOf>[1]): Generator<Object3D>;
 export declare function queryAncestorsOf(child: Object3D, query: (parent: Object3D) => boolean, options?: Parameters<typeof allAncestorsOf>[1]): Generator<Object3D>;
 export {};
+//# sourceMappingURL=tree.d.ts.map

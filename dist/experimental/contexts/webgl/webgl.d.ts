@@ -58,3 +58,4 @@ export declare class ThreeWebGLContext implements ThreeBaseContext {
     find(query: string | RegExp | ((object: any) => boolean)): Object3D<import("three").Object3DEventMap> | null;
     isPartOfScene(object: Object3D | null): boolean;
 }
+//# sourceMappingURL=webgl.d.ts.map

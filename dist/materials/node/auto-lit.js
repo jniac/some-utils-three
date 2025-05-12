@@ -11,3 +11,4 @@ export class NodeAutoLitMaterial extends MeshBasicNodeMaterial {
         });
     }
 }
+//# sourceMappingURL=auto-lit.js.map

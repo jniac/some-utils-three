@@ -71,3 +71,4 @@ export class UniformWrapper {
         throw new Error(`unhandled value: "${value?.constructor.name}"`);
     }
 }
+//# sourceMappingURL=uniforms.js.map

@@ -44,3 +44,4 @@ export declare function updatePosition3d(container: HTMLDivElement, div: HTMLDiv
     resetScale?: number | undefined;
     leftHanded?: boolean | undefined;
 }): void;
+//# sourceMappingURL=compute.d.ts.map

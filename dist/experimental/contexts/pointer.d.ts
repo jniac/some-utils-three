@@ -114,3 +114,4 @@ export declare class Pointer {
     initialize(domElement: HTMLElement, scope: HTMLElement, camera: Camera, ticker: Ticker): () => void;
 }
 export {};
+//# sourceMappingURL=pointer.d.ts.map

@@ -82,3 +82,4 @@ type ShaderForgeType = {
  */
 export declare const ShaderForge: ShaderForgeType;
 export type { Uniforms };
+//# sourceMappingURL=ShaderForge.d.ts.map

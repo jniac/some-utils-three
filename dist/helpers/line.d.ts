@@ -99,3 +99,4 @@ export declare class LineHelper<T extends Material & {
     cross(center?: Vector2Declaration, size?: number, options?: BasicOptions): this;
 }
 export {};
+//# sourceMappingURL=line.d.ts.map

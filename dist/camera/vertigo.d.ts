@@ -99,3 +99,4 @@ export declare class Vertigo {
     toDeclaration(): Props;
 }
 export type { Props as VertigoProps };
+//# sourceMappingURL=vertigo.d.ts.map

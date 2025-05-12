@@ -68,3 +68,4 @@ export declare const sdf2D: {
      */
     box: (p: NodeRepresentation, size?: NodeRepresentation) => ShaderNodeObject<import("three/src/nodes/math/OperatorNode.js").default>;
 };
+//# sourceMappingURL=utils.d.ts.map

@@ -194,3 +194,4 @@ export class ThreeWebGLContext {
         return false;
     }
 }
+//# sourceMappingURL=webgl.js.map

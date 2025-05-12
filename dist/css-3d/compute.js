@@ -203,3 +203,4 @@ export function updatePosition3d(container, div, camera, target, { pixelPerUnit 
     div.style.transform = computeMatrix3d(camera, target, container, pixelPerUnit, resetRotation, resetScale, leftHanded);
     div.style.zIndex = computeZIndex(camera, target);
 }
+//# sourceMappingURL=compute.js.map

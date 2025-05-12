@@ -35,3 +35,4 @@ export class AutoLitMaterial extends MeshBasicMaterial {
         this.sunPosition = uniforms.uSunPosition.value;
     }
 }
+//# sourceMappingURL=auto-lit.js.map

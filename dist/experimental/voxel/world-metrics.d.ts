@@ -40,3 +40,4 @@ export declare class WorldMetrics {
     fromIndexes(superChunkIndex: number, chunkIndex: number, voxelIndex: number, out?: Vector3): Vector3;
     getAdjacentChunkIndexes(superChunkIndex: number, chunkIndex: number): readonly [WorldIndexes, WorldIndexes, WorldIndexes, WorldIndexes, WorldIndexes, WorldIndexes];
 }
+//# sourceMappingURL=world-metrics.d.ts.map

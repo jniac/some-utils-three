@@ -121,3 +121,4 @@ export function fromTransformDeclarations(transforms, out = _m0) {
     }
     return out;
 }
+//# sourceMappingURL=declaration.js.map

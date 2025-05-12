@@ -26,3 +26,4 @@ export type PipelineBase = {
     render(tick: Tick): void;
     setSize(width: number, height: number, pixelRatio?: number): void;
 };
+//# sourceMappingURL=types.d.ts.map

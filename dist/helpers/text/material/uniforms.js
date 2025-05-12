@@ -20,3 +20,4 @@ export function createTextUniforms(userOptions, data, atlas) {
         uBoxBorderWidth: { value: 0 }, // debug border
     };
 }
+//# sourceMappingURL=uniforms.js.map

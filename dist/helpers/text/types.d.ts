@@ -87,3 +87,4 @@ export type SetTextOption = TransformDeclaration & SetColorOptions & Partial<{
      */
     scale: number;
 }>;
+//# sourceMappingURL=types.d.ts.map

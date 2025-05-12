@@ -17,3 +17,4 @@ export declare class SimpleGridHelper extends LineSegments<BufferGeometry, LineB
     set(props: SimpleGridProps): this;
 }
 export {};
+//# sourceMappingURL=grid.d.ts.map

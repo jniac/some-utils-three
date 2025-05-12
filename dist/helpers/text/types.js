@@ -50,3 +50,4 @@ export const optionsDefaults = {
  * Should be a multiple of 4.
  */
 export const DATA_STRIDE_HEADER_BYTE_SIZE = 4 * 4;
+//# sourceMappingURL=types.js.map

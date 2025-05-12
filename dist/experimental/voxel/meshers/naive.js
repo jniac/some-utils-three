@@ -45,3 +45,4 @@ export function createNaiveVoxelGeometry(faces, { geometry = new BufferGeometry(
     }
     return geometry;
 }
+//# sourceMappingURL=naive.js.map

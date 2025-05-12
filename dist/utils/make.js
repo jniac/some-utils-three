@@ -20,3 +20,4 @@ const _color = new Color();
 export function makeColor(color) {
     return _color.set(color);
 }
+//# sourceMappingURL=make.js.map
