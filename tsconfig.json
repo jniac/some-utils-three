@@ -8,7 +8,9 @@
     "strict": true, // Enable all strict type-checking options
     "esModuleInterop": true, // For compatibility with ES6 modules
     "skipLibCheck": true,
-    "moduleResolution": "Bundler"
+    "moduleResolution": "Bundler",
+    "sourceMap": true,
+    "declarationMap": true
   },
   "include": [
     "src/**/*",
