@@ -28,16 +28,10 @@
     "typescript": "^5.5.4"
   },
   "exports": {
-    "./ts/*": {
-      "default": "./src/*.ts"
-    },
     "./*": {
-      "default": "./dist/*.js",
-      "types": "./dist/*.d.ts"
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js",
+      "require": "./dist/*.js"
     }
-  },
-  "files": [
-    "dist",
-    "src"
-  ]
+  }
 }
