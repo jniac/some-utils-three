@@ -1,32 +1,9 @@
-import { BufferAttribute, BufferGeometry, ColorRepresentation, Group, LineBasicMaterial, LineSegments, Matrix4, Object3D, Points, PointsMaterial, Vector3 } from 'three';
-import { LineBasicNodeMaterial } from 'three/webgpu';
-import { RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle';
-import { OneOrMany } from 'some-utils-ts/types';
+import { BufferAttribute, BufferGeometry, ColorRepresentation, Group, Object3D, Points, PointsMaterial } from 'three';
 import { TransformDeclaration, Vector3Declaration } from '../../declaration';
 import { SetTextOption, TextHelper } from '../text';
-declare class Utils {
-    static boxPoints: {
-        p0: Vector3;
-        p1: Vector3;
-        p2: Vector3;
-        p3: Vector3;
-        p4: Vector3;
-        p5: Vector3;
-        p6: Vector3;
-        p7: Vector3;
-    };
-    static boxDefaults: {
-        inset: number;
-        min: Vector3Declaration;
-        max: Vector3Declaration;
-        transform: TransformDeclaration | undefined;
-    };
-    static box(value: Partial<typeof Utils.boxDefaults>): typeof Utils;
-}
-declare class BaseManager {
-    transformMatrix: Matrix4;
-    applyTransform(...transforms: TransformDeclaration[]): void;
-}
+import { BaseManager } from './base';
+import { LinesManager } from './lines';
+import { Utils } from './shared';
 declare class PointsManager extends BaseManager {
     static shapes: {
         square: number;
@@ -59,88 +36,15 @@ declare class PointsManager extends BaseManager {
     applyTransform(...transforms: TransformDeclaration[]): void;
     clear(): void;
     onTop(renderOrder?: number): this;
-    points(p: Vector3Declaration[], { size: argSize, scale: argScale, color: argColor, shape: argShape, }?: {
+    points(p: Vector3Declaration[], { key, size: argSize, scale: argScale, color: argColor, shape: argShape, }?: {
+        key?: any;
         size?: number | undefined;
         scale?: number | undefined;
         color?: ColorRepresentation | undefined;
-        shape?: "circle" | "cross" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "square" | undefined;
+        shape?: "square" | "circle" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "cross" | undefined;
     }): this;
     box(value: Parameters<typeof Utils.box>[0], options?: Parameters<PointsManager['points']>[1]): this;
     point(p: Vector3Declaration, options?: Parameters<PointsManager['points']>[1]): this;
-}
-declare class LinesManager extends BaseManager {
-    #private;
-    static createParts({ nodeMaterial, lineCount: count, defaultColor, defaultOpacity, }?: {
-        nodeMaterial?: boolean | undefined;
-        lineCount?: number | undefined;
-        defaultColor?: ColorRepresentation | undefined;
-        defaultOpacity?: number | undefined;
-    }): {
-        count: number;
-        defaults: {
-            color: ColorRepresentation;
-            opacity: number;
-        };
-        geometry: BufferGeometry<import("three").NormalBufferAttributes>;
-        attributes: {
-            position: BufferAttribute;
-            color: BufferAttribute;
-            aOpacity: BufferAttribute;
-        };
-        lines: LineSegments<BufferGeometry<import("three").NormalBufferAttributes>, LineBasicMaterial | LineBasicNodeMaterial, import("three").Object3DEventMap>;
-    };
-    state: {
-        index: number;
-    };
-    parts: ReturnType<typeof LinesManager.createParts>;
-    constructor(options?: Parameters<typeof LinesManager.createParts>[0]);
-    applyTransform(...transforms: TransformDeclaration[]): void;
-    clear(): void;
-    onTop(renderOrder?: number): this;
-    static defaultArrowOptions: {
-        size: number;
-        position: OneOrMany<"end" | "start" | "middle" | number>;
-        skipSmallSegments: boolean;
-        skipSmallSegmentsThreshold: "size" | number;
-        type: "single" | "double" | "triple";
-        scale: number;
-    };
-    static arrowPositionToNumber(position: typeof LinesManager.defaultArrowOptions['position'], length: number, size: number, arrowIndex: number, arrowRepeat: number): number;
-    static defaultOptions: {
-        color: undefined | ColorRepresentation;
-        opacity: number;
-        arrow: boolean | OneOrMany<Partial<typeof LinesManager.defaultArrowOptions>>;
-    };
-    segmentsArray(array: Float32Array, options?: Partial<typeof LinesManager.defaultOptions>): this;
-    segments(p: Vector3Declaration[], options?: Partial<typeof LinesManager.defaultOptions>): this;
-    line(p0: Vector3Declaration, p1: Vector3Declaration, options?: Parameters<DebugHelper['segments']>[1]): this;
-    polyline(p: Vector3Declaration[], options?: Parameters<DebugHelper['segments']>[1]): this;
-    polygon(p: Vector3Declaration[], options?: Parameters<DebugHelper['segments']>[1]): this;
-    box(value: Parameters<typeof Utils.box>[0], options?: Parameters<DebugHelper['segments']>[1]): this;
-    static rectDefaultOptions: {
-        inset: number;
-    };
-    rect(value: RectangleDeclaration, options?: Partial<typeof LinesManager.rectDefaultOptions> & Parameters<DebugHelper['segments']>[1]): this;
-    static circleQualityPresets: {
-        low: number;
-        medium: number;
-        high: number;
-        ultra: number;
-    };
-    circle({ center, axis, radius, quality, segments, }?: {
-        center?: Vector3Declaration | undefined;
-        axis?: Vector3Declaration | undefined;
-        radius?: number | undefined;
-        quality?: "low" | "medium" | "high" | "ultra" | undefined;
-        segments?: number | undefined;
-    }, options?: Parameters<DebugHelper['segments']>[1]): this;
-    static regularGridDefaults: {
-        size: number;
-        subdivisions: number[];
-        opacity: number | number[];
-        color: ColorRepresentation | ColorRepresentation[];
-    };
-    regularGrid(options?: Partial<typeof LinesManager.regularGridDefaults>): this;
 }
 declare class TextsManager extends BaseManager {
     static createParts(options?: ConstructorParameters<typeof TextHelper>[0]): {
