@@ -123,7 +123,7 @@ function computeArrowPoints(segments, arrowOptions) {
                 }
             }
             const length = Math.sqrt(lengthSq);
-            const s = proportionalSize ? size * length : size;
+            const s = (proportionalSize ? length : 1) * size * scale;
             D.copy(V).divideScalar(length);
             // Normal based on the smallest component of the direction
             const ax = Math.abs(D.x);

@@ -154,7 +154,7 @@ function computeArrowPoints(segments: Float32Array, arrowOptions?: ArrowOptionsA
       }
 
       const length = Math.sqrt(lengthSq)
-      const s = proportionalSize ? size * length : size
+      const s = (proportionalSize ? length : 1) * size * scale
       D.copy(V).divideScalar(length)
 
       // Normal based on the smallest component of the direction
