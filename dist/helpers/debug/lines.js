@@ -412,8 +412,8 @@ export class LinesManager extends BaseManager {
         ], options);
     }
     static circleQualityPresets = {
-        'low': 12,
-        'medium': 24,
+        'low': 18,
+        'medium': 36,
         'high': 64,
         'ultra': 256,
     };
