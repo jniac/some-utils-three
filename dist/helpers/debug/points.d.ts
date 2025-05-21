@@ -12,7 +12,9 @@ export declare class PointsManager extends BaseManager {
         plus: number;
         'plus-thin': number;
         'plus-ultra-thin': number;
-        cross: number;
+        x: number;
+        'x-thin': number;
+        'x-ultra-thin': number;
     };
     static createParts({ pointCount: count, }?: {
         pointCount?: number | undefined;
@@ -40,7 +42,7 @@ export declare class PointsManager extends BaseManager {
         size?: number | undefined;
         scale?: number | undefined;
         color?: ColorRepresentation | undefined;
-        shape?: "square" | "circle" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "cross" | undefined;
+        shape?: "square" | "circle" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "x" | "x-thin" | "x-ultra-thin" | undefined;
     }): this;
     box(value: Parameters<typeof Utils.box>[0], options?: Parameters<PointsManager['points']>[1]): this;
     point(p: Vector3Declaration, options?: Parameters<PointsManager['points']>[1]): this;

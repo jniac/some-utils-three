@@ -18,7 +18,9 @@ export class PointsManager extends BaseManager {
       'plus': i++,
       'plus-thin': i++,
       'plus-ultra-thin': i++,
-      'cross': i++,
+      'x': i++,
+      'x-thin': i++,
+      'x-ultra-thin': i++,
     }
   })();
 
@@ -55,6 +57,10 @@ export class PointsManager extends BaseManager {
         }
       `)
       .fragment.after('color_fragment', /* glsl */ `
+        float regular = .2;
+        float thin = .1;
+        float ultraThin = .033;
+
         if (vShape == ${PointsManager.shapes['circle']}.0) {
           float d = distance(gl_PointCoord * 2.0, vec2(1.0));
           if (d > 1.0) discard;
@@ -71,22 +77,50 @@ export class PointsManager extends BaseManager {
         }
 
         else if (vShape == ${PointsManager.shapes['plus']}.0) {
-          float d0 = sdBox(gl_PointCoord * 2.0 - 1.0, vec2(1.0, 0.2));
-          float d1 = sdBox(gl_PointCoord * 2.0 - 1.0, vec2(0.2, 1.0));
+          float d0 = sdBox(gl_PointCoord * 2.0 - 1.0, vec2(1.0, regular));
+          float d1 = sdBox(gl_PointCoord * 2.0 - 1.0, vec2(regular, 1.0));
           if (d0 > 0.0 && d1 > 0.0) discard;
         }
 
         else if (vShape == ${PointsManager.shapes['plus-thin']}.0) {
-          float d0 = sdBox(gl_PointCoord * 2.0 - 1.0, vec2(1.0, 0.1));
-          float d1 = sdBox(gl_PointCoord * 2.0 - 1.0, vec2(0.1, 1.0));
+          float d0 = sdBox(gl_PointCoord * 2.0 - 1.0, vec2(1.0, thin));
+          float d1 = sdBox(gl_PointCoord * 2.0 - 1.0, vec2(thin, 1.0));
           if (d0 > 0.0 && d1 > 0.0) discard;
         }
 
         else if (vShape == ${PointsManager.shapes['plus-ultra-thin']}.0) {
-          float d0 = sdBox(gl_PointCoord * 2.0 - 1.0, vec2(1.0, 0.033));
-          float d1 = sdBox(gl_PointCoord * 2.0 - 1.0, vec2(0.033, 1.0));
+          float d0 = sdBox(gl_PointCoord * 2.0 - 1.0, vec2(1.0, ultraThin));
+          float d1 = sdBox(gl_PointCoord * 2.0 - 1.0, vec2(ultraThin, 1.0));
           if (d0 > 0.0 && d1 > 0.0) discard;
         }
+
+        else if (vShape == ${PointsManager.shapes['x']}.0) {
+          vec2 p = gl_PointCoord * 2.0 - 1.0;
+          float c = 0.70710678;
+          p = mat2(c, -c, c, c) * p;
+          float d0 = sdBox(p, vec2(1.0, regular));
+          float d1 = sdBox(p, vec2(regular, 1.0));
+          if (d0 > 0.0 && d1 > 0.0) discard;
+        }
+
+        else if (vShape == ${PointsManager.shapes['x-thin']}.0) {
+          vec2 p = gl_PointCoord * 2.0 - 1.0;
+          float c = 0.70710678;
+          p = mat2(c, -c, c, c) * p;
+          float d0 = sdBox(p, vec2(1.0, thin));
+          float d1 = sdBox(p, vec2(thin, 1.0));
+          if (d0 > 0.0 && d1 > 0.0) discard;
+        }
+
+        else if (vShape == ${PointsManager.shapes['x-ultra-thin']}.0) {
+          vec2 p = gl_PointCoord * 2.0 - 1.0;
+          float c = 0.70710678;
+          p = mat2(c, -c, c, c) * p;
+          float d0 = sdBox(p, vec2(1.0, ultraThin));
+          float d1 = sdBox(p, vec2(ultraThin, 1.0));
+          if (d0 > 0.0 && d1 > 0.0) discard;
+        }
+
         // diffuseColor.rgb *= vec3(gl_PointCoord, 1.0);
       `)
     const points = new Points(geometry, material)
