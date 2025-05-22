@@ -136,8 +136,10 @@ export class PointsManager extends BaseManager {
         this.parts.geometry.applyMatrix4(fromTransformDeclarations(transforms));
     }
     clear() {
+        super.clear();
         this.state.index = 0;
         this.parts.geometry.setDrawRange(0, 0);
+        return this;
     }
     onTop(renderOrder = 1000) {
         const { points } = this.parts;

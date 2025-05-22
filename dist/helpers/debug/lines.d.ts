@@ -93,7 +93,7 @@ export declare class LinesManager extends BaseManager {
     parts: ReturnType<typeof LinesManager.createParts>;
     constructor(options?: Parameters<typeof LinesManager.createParts>[0]);
     applyTransform(...transforms: TransformDeclaration[]): void;
-    clear(): void;
+    clear(): this;
     onTop(renderOrder?: number): this;
     segmentsArray(array: Float32Array, options?: LineOptions): this;
     segments(p: Vector3Declaration[], options?: LineOptions): this;

@@ -35,14 +35,14 @@ export declare class PointsManager extends BaseManager {
     parts: ReturnType<typeof PointsManager.createParts>;
     constructor(options?: Parameters<typeof PointsManager.createParts>[0]);
     applyTransform(...transforms: TransformDeclaration[]): void;
-    clear(): void;
+    clear(): this;
     onTop(renderOrder?: number): this;
     points(p: Vector3Declaration[], { key, size: argSize, scale: argScale, color: argColor, shape: argShape, }?: {
         key?: any;
         size?: number | undefined;
         scale?: number | undefined;
         color?: ColorRepresentation | undefined;
-        shape?: "x" | "square" | "circle" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "x-thin" | "x-ultra-thin" | undefined;
+        shape?: "square" | "circle" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "x" | "x-thin" | "x-ultra-thin" | undefined;
     }): this;
     box(value: Parameters<typeof Utils.box>[0], options?: Parameters<PointsManager['points']>[1]): this;
     point(p: Vector3Declaration, options?: Parameters<PointsManager['points']>[1]): this;

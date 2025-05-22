@@ -11,5 +11,6 @@ export declare class BaseManager {
     };
     transformMatrix: Matrix4;
     applyTransform(...transforms: TransformDeclaration[]): void;
+    clear(): this;
 }
 //# sourceMappingURL=base.d.ts.map

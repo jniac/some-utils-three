@@ -18,5 +18,9 @@ export class BaseManager {
     applyTransform(...transforms) {
         throw new Error('Not implemented!');
     }
+    clear() {
+        this.keyMap.clear();
+        return this;
+    }
 }
 //# sourceMappingURL=base.js.map
