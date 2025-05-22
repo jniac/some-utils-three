@@ -19,11 +19,11 @@
   "peerDependencies": {
     "some-utils-dom": "workspace:*",
     "some-utils-ts": "workspace:*",
-    "three": ">=0.172.0"
+    "three": ">=0.176.0"
   },
   "devDependencies": {
-    "@types/three": ">=0.172.0",
-    "three": ">=0.172.0",
+    "@types/three": ">=0.176.0",
+    "three": ">=0.176.0",
     "tsc-watch": "^6.2.1",
     "typescript": "^5.5.4"
   },
