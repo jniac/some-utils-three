@@ -22,4 +22,9 @@ export class BaseManager {
   applyTransform(...transforms: TransformDeclaration[]) {
     throw new Error('Not implemented!')
   }
+
+  clear() {
+    this.keyMap.clear()
+    return this
+  }
 }
