@@ -1,9 +1,11 @@
 import { NodeRepresentation, ShaderNodeObject } from 'three/tsl';
 import { ColorRepresentation, Object3D, StorageBufferNode, StorageInstancedBufferAttribute } from 'three/webgpu';
+import { Vector3Declaration } from '../declaration';
 export declare const autoLitOptionsDefaults: {
     emissive: number;
-    shadowColor: string;
+    shadowColor: ColorRepresentation;
     power: number;
+    sunDirection: Vector3Declaration;
 };
 export type AutoLitOptions = Partial<typeof autoLitOptionsDefaults>;
 export declare const autoLit: (mainColor?: ColorRepresentation, options?: AutoLitOptions) => ShaderNodeObject<import("three/src/nodes/TSL.js").ShaderCallNodeInternal>;

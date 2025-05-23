@@ -88,7 +88,7 @@ export class ThreeWebGLContext {
     initialized = false;
     initialize(domContainer, pointerScope = domContainer) {
         if (this.initialized) {
-            console.warn('ThreeWebglContext is already initialized.');
+            console.warn('ThreeWebGLContext is already initialized.');
             return this;
         }
         Object.defineProperty(this, 'initialized', { value: true, writable: false, configurable: false, enumerable: false });
@@ -124,7 +124,7 @@ export class ThreeWebGLContext {
     destroyed = false;
     destroy = () => {
         if (this.destroyed) {
-            console.warn('ThreeWebglContext is already destroyed.');
+            console.warn('ThreeWebGLContext is already destroyed.');
             return;
         }
         Object.defineProperty(this, 'destroyed', { value: true, writable: false, configurable: false, enumerable: false });

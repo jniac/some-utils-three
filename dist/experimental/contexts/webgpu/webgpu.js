@@ -59,14 +59,14 @@ export class ThreeWebGPUContext {
     }
     initialized = false;
     /**
-     * Initialize the ThreeWebglContext.
+     * Initialize the ThreeWebGLContext.
      * @param domContainer The container element for the renderer
      * @param pointerScope The element to listen for pointer events on, defaults to the domContainer but sometimes you might want to listen for pointer events on a different element (eg: document.body).
      * @returns
      */
     initialize(domContainer, pointerScope = domContainer) {
         if (this.initialized) {
-            console.warn('ThreeWebglContext is already initialized.');
+            console.warn('ThreeWebGLContext is already initialized.');
             return this;
         }
         Object.defineProperty(this, 'initialized', { value: true, writable: false, configurable: false, enumerable: false });
@@ -117,7 +117,7 @@ export class ThreeWebGPUContext {
     destroyed = false;
     destroy = () => {
         if (this.destroyed) {
-            console.warn('ThreeWebglContext is already destroyed.');
+            console.warn('ThreeWebGLContext is already destroyed.');
             return;
         }
         Object.defineProperty(this, 'destroyed', { value: true, writable: false, configurable: false, enumerable: false });

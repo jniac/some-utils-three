@@ -1,15 +1,20 @@
-import { cameraPosition, cameraWorldMatrix, color, EPSILON, float, Fn, hash, If, mat3, mix, NodeAccess, NodeRepresentation, normalWorld, objectPosition, positionLocal, positionWorld, ShaderNodeObject, storage, uniform, vec2, vec3, vec4 } from 'three/tsl'
+import { cameraPosition, cameraWorldMatrix, color, EPSILON, float, Fn, hash, If, mat3, mix, NodeAccess, NodeRepresentation, normalWorld, objectPosition, positionLocal, ShaderNodeObject, storage, uniform, vec2, vec3, vec4 } from 'three/tsl'
 import { ColorRepresentation, Matrix4, Object3D, StorageBufferNode, StorageInstancedBufferAttribute } from 'three/webgpu'
+
+import { fromVector3Declaration, Vector3Declaration } from '../declaration'
 
 export const autoLitOptionsDefaults = {
   emissive: .2,
-  shadowColor: '#808080',
+  shadowColor: <ColorRepresentation>'#808080',
   power: 2,
+  sunDirection: <Vector3Declaration>[1, 3, -1],
 }
 export type AutoLitOptions = Partial<typeof autoLitOptionsDefaults>
 export const autoLit = (mainColor: ColorRepresentation = 'white', options?: AutoLitOptions) => Fn(() => {
-  const { emissive, shadowColor, power } = { ...autoLitOptionsDefaults, ...options }
-  const t1 = normalWorld.normalize().dot(positionWorld.sub(vec3(1, 3, 1)).normalize()).add(1).mul(0.5).pow(power).oneMinus()
+  const { emissive, shadowColor, power, sunDirection } = { ...autoLitOptionsDefaults, ...options }
+  const sunDirectionVector = fromVector3Declaration(sunDirection).negate().normalize()
+  const t1 = normalWorld.normalize().dot(vec3(sunDirectionVector)).add(1).mul(0.5).pow(power).oneMinus()
+  // const t1 = normalWorld.normalize().dot(positionWorld.sub(vec3(1, 3, 1)).normalize()).add(1).mul(0.5).pow(power).oneMinus()
   const t2 = mix(emissive, 1, t1)
   return mix(color(shadowColor), color(mainColor), t2.mul(1))
 })()

@@ -29,7 +29,7 @@ export declare class ThreeWebGPUContext implements ThreeBaseContext {
     }>): this;
     initialized: boolean;
     /**
-     * Initialize the ThreeWebglContext.
+     * Initialize the ThreeWebGLContext.
      * @param domContainer The container element for the renderer
      * @param pointerScope The element to listen for pointer events on, defaults to the domContainer but sometimes you might want to listen for pointer events on a different element (eg: document.body).
      * @returns
