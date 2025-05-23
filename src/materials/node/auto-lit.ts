@@ -8,6 +8,7 @@ export class NodeAutoLitMaterial extends MeshBasicNodeMaterial {
       emissive,
       shadowColor,
       power,
+      sunDirection, // consume
       ...rest
     } = { ...autoLitOptionsDefaults, ...parameters }
     super(rest)
