@@ -129,3 +129,15 @@ export function* queryAncestorsOf(child: Object3D, query: (parent: Object3D) => 
     }
   }
 }
+
+export function queryFirstDescendantOf(...args: Parameters<typeof queryDescendantsOf>): Object3D | null {
+  for (const child of queryDescendantsOf(...args))
+    return child
+  return null
+}
+
+export function queryFirstAncestorOf(...args: Parameters<typeof queryAncestorsOf>): Object3D | null {
+  for (const parent of queryAncestorsOf(...args))
+    return parent
+  return null
+}

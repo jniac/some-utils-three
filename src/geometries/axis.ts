@@ -3,23 +3,55 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 const defaultAxisOptions = {
   /** 
-   * The axis of the axis. Determines its orientations. Defaults to "x".
+   * The axis of the axis. Determines its orientations.
+   * @default 'x'.
    */
   axis: <'x' | 'y' | 'z'>'x',
   /**
-   * The length of the axis. Defaults to 1.
+   * The length of the axis.
+   * @default 1.
    */
   length: 1,
   /**
-   * The number of the radial segments. Defaults to 12.
+   * The number of the radial segments.
+   * @default 12.
    */
   radialSegments: 12,
+  /**
+   * The radius of the axis.
+   * @default 0.01
+   */
   radius: .01,
+  /**
+   * The ratio of the cone to the length of the axis.
+   * @default 0.1
+   */
   coneRatio: .1,
+  /**
+   * The scale of the radius.
+   * @default 1
+   */
   radiusScale: 1,
+  /**
+   * Whether to use vertex colors.
+   * @default true
+   */
   vertexColor: true,
+  /**
+   * The base cap of the axis.
+   * @default 'flat'
+   */
   baseCap: <'none' | 'flat' | 'sphere'>'flat',
+  /**
+   * The color of the axis.
+   * @default 'white'
+   */
   color: <ColorRepresentation>'white',
+  /**
+   * The alignment of the axis.
+   * @default 0
+   */
+  align: 0,
 }
 
 const _color = new Color()
@@ -35,6 +67,7 @@ function createAxisGeometry(options?: Partial<typeof defaultAxisOptions>) {
     vertexColor,
     baseCap,
     color,
+    align,
   } = { ...defaultAxisOptions, ...options }
 
   const r = radius * radiusScale
@@ -63,6 +96,10 @@ function createAxisGeometry(options?: Partial<typeof defaultAxisOptions>) {
       : new SphereGeometry(r, radialSegments, 3, 0, Math.PI * 2, 0, Math.PI * .5).rotateZ(Math.PI / 2).rotateX(Math.PI / 2)
 
   const geometry = mergeGeometries([cone, cyl, cap])
+
+  if (align !== 0) {
+    geometry.translate(-length * align, 0, 0)
+  }
 
   switch (axis) {
     case 'y':
