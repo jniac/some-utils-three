@@ -112,4 +112,14 @@ export function* queryAncestorsOf(child, query, options) {
         }
     }
 }
+export function queryFirstDescendantOf(...args) {
+    for (const child of queryDescendantsOf(...args))
+        return child;
+    return null;
+}
+export function queryFirstAncestorOf(...args) {
+    for (const parent of queryAncestorsOf(...args))
+        return parent;
+    return null;
+}
 //# sourceMappingURL=tree.js.map

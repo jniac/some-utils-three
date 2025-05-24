@@ -42,7 +42,7 @@ export declare class PointsManager extends BaseManager {
         size?: number | undefined;
         scale?: number | undefined;
         color?: ColorRepresentation | undefined;
-        shape?: "x" | "square" | "circle" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "x-thin" | "x-ultra-thin" | undefined;
+        shape?: "x" | "circle" | "ring" | "ring-thin" | "plus" | "plus-thin" | "plus-ultra-thin" | "x-thin" | "x-ultra-thin" | "square" | undefined;
     }): this;
     box(value: Parameters<typeof Utils.box>[0], options?: Parameters<PointsManager['points']>[1]): this;
     point(p: Vector3Declaration, options?: Parameters<PointsManager['points']>[1]): this;

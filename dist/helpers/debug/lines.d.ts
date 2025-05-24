@@ -85,7 +85,7 @@ export declare class LinesManager extends BaseManager {
             color: BufferAttribute;
             aOpacity: BufferAttribute;
         };
-        lines: LineSegments<BufferGeometry<import("three").NormalBufferAttributes>, LineBasicNodeMaterial | LineBasicMaterial, import("three").Object3DEventMap>;
+        lines: LineSegments<BufferGeometry<import("three").NormalBufferAttributes>, LineBasicMaterial | LineBasicNodeMaterial, import("three").Object3DEventMap>;
     };
     state: {
         index: number;
