@@ -116,6 +116,8 @@ class DebugHelper extends Group {
     }
   }
 
+  userData = { helper: true }
+
   parts: ReturnType<typeof DebugHelper.createParts>
 
   constructor(options?: Parameters<typeof DebugHelper.createParts>[1]) {
