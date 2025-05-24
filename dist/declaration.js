@@ -1,20 +1,11 @@
 import { Euler, Matrix4, Quaternion, Vector2, Vector3, Vector4 } from 'three';
 import * as agnostic from 'some-utils-ts/declaration';
-import { angleScalars, fromAngleDeclaration, } from 'some-utils-ts/declaration';
-import { isEuler, isMatrix4, isObject3D } from './is.js';
+import { fromEulerDeclaration } from './declaration/euler.js';
+import { isMatrix4, isObject3D } from './is.js';
+export * from './declaration/euler.js';
+export * from './declaration/vector.js';
 export * from './is.js';
 export { fromAngleDeclaration, isVector2Declaration, isVector3Declaration, isVector4Declaration, toAngleDeclarationString, toVector2Declaration, toVector3Declaration, toVector4Declaration } from 'some-utils-ts/declaration';
-function formatNumber(x, fractionDigits) {
-    return x
-        .toFixed(fractionDigits)
-        .replace(/\.([0-9]+[1-9])?0+$/, (_, m0) => m0?.length > 0 ? `.${m0}` : '');
-}
-function isAngleUnit(arg) {
-    return typeof arg === 'string' && /^(rad|deg|turn)$/.test(arg);
-}
-function isEulerOrder(arg) {
-    return typeof arg === 'string' && /^(XYZ|XZY|YXZ|YZX|ZXY|ZYX)$/.test(arg);
-}
 export function fromVector2Declaration(arg, out = new Vector2()) {
     return agnostic.fromVector2Declaration(arg, out);
 }
@@ -23,58 +14,6 @@ export function fromVector3Declaration(arg, out = new Vector3()) {
 }
 export function fromVector4Declaration(arg, out = new Vector4()) {
     return agnostic.fromVector4Declaration(arg, out);
-}
-const defaultFromEulerDeclarationOptions = { defaultOrder: 'XYZ' };
-function fromEulerDeclarationString(str, options, out = new Euler()) {
-    const [xAngle, yAngle = '', zAngle = '', orderOption] = str.split(',').map(x => x.trim());
-    const x = fromAngleDeclaration(xAngle) || 0;
-    const y = fromAngleDeclaration(yAngle) || 0;
-    const z = fromAngleDeclaration(zAngle) || 0;
-    const order = isEulerOrder(orderOption) ? orderOption : options.defaultOrder;
-    return out.set(x, y, z, order);
-}
-export function fromEulerDeclaration(...args) {
-    const parseArgs = () => {
-        if (args.length === 1)
-            return [args[0], defaultFromEulerDeclarationOptions, new Euler()];
-        if (args.length === 2) {
-            return isEuler(args[1])
-                ? [args[0], defaultFromEulerDeclarationOptions, args[1]]
-                : [args[0], args[1], new Euler()];
-        }
-        if (args.length === 3)
-            return args;
-        throw new Error('Invalid number of arguments');
-    };
-    const [arg, options, out] = parseArgs();
-    if (typeof arg === 'string') {
-        return fromEulerDeclarationString(arg, options, out);
-    }
-    if (isEuler(arg)) {
-        return out.copy(arg);
-    }
-    const { defaultOrder } = options;
-    if (Array.isArray(arg)) {
-        const [x, y, z, arg0, arg1] = arg;
-        const unit = isAngleUnit(arg0) ? arg0 : isAngleUnit(arg1) ? arg1 : 'rad';
-        const order = isEulerOrder(arg0) ? arg0 : isEulerOrder(arg1) ? arg1 : defaultOrder;
-        return out.set(fromAngleDeclaration(x, unit), fromAngleDeclaration(y, unit), fromAngleDeclaration(z, unit), order);
-    }
-    const { x, y, z, order = defaultOrder, unit = 'rad' } = arg;
-    return out.set(fromAngleDeclaration(x, unit), fromAngleDeclaration(y, unit), fromAngleDeclaration(z, unit), order);
-}
-export function toEulerDeclarationString(arg, unit = 'deg') {
-    const { x, y, z, order } = fromEulerDeclaration(arg);
-    const scalar = angleScalars[unit];
-    const fd = {
-        rad: 3,
-        deg: 1,
-        turn: 4,
-    }[unit];
-    const xStr = formatNumber(x / scalar, fd);
-    const yStr = formatNumber(y / scalar, fd);
-    const zStr = formatNumber(z / scalar, fd);
-    return `[${xStr}, ${yStr}, ${zStr}, '${unit}', '${order}']`;
 }
 export const fromTransformDeclaration = (() => {
     const _position = new Vector3();
