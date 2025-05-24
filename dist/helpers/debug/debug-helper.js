@@ -86,6 +86,7 @@ class DebugHelper extends Group {
             textsManager,
         };
     }
+    userData = { helper: true };
     parts;
     constructor(options) {
         super();

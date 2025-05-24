@@ -44,6 +44,9 @@ declare class DebugHelper extends Group {
         linesManager: LinesManager;
         textsManager: TextsManager;
     };
+    userData: {
+        helper: boolean;
+    };
     parts: ReturnType<typeof DebugHelper.createParts>;
     constructor(options?: Parameters<typeof DebugHelper.createParts>[1]);
     points(...args: Parameters<PointsManager['points']>): this;
