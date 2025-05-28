@@ -1,6 +1,6 @@
 import { MeshBasicNodeMaterial } from 'three/webgpu';
 import { autoLit, autoLitOptionsDefaults } from '../../tsl/utils.js';
-export class NodeAutoLitMaterial extends MeshBasicNodeMaterial {
+export class AutoLitNodeMaterial extends MeshBasicNodeMaterial {
     constructor(parameters) {
         const { color = 'white', emissive, shadowColor, power, sunDirection, // consume
         ...rest } = { ...autoLitOptionsDefaults, ...parameters };
@@ -12,4 +12,9 @@ export class NodeAutoLitMaterial extends MeshBasicNodeMaterial {
         });
     }
 }
+export { 
+/**
+ * @deprecated Use `AutoLitNodeMaterial` instead.
+ */
+AutoLitNodeMaterial as NodeAutoLitMaterial };
 //# sourceMappingURL=auto-lit.js.map
