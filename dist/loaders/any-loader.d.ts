@@ -4,7 +4,9 @@ declare const extensions: {
     linear: readonly ["hdr", "exr"];
     gltf: readonly ["gltf", "glb"];
 };
-type TextureExtension = typeof extensions.srgb[number] | typeof extensions.linear[number];
+type SRGBExtension = typeof extensions.srgb[number];
+type LinearExtension = typeof extensions.linear[number];
+type TextureExtension = SRGBExtension | LinearExtension;
 type Promisified<T> = T & Promise<T>;
 declare class AnyLoader {
     #private;

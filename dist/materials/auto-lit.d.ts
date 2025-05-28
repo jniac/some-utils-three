@@ -1,6 +1,8 @@
-import { MeshBasicMaterial, MeshBasicMaterialParameters, Vector3 } from 'three';
+import { ColorRepresentation, MeshBasicMaterial, MeshBasicMaterialParameters, Vector3 } from 'three';
 declare const defaultOptions: {
+    shadowColor: ColorRepresentation;
     luminosity: number;
+    rampPower: number;
 };
 type Options = Partial<typeof defaultOptions> & MeshBasicMaterialParameters;
 /**

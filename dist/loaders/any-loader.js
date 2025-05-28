@@ -1,13 +1,23 @@
 import { TextureLoader } from 'three';
+import { RGBELoader } from 'three/examples/jsm/Addons.js';
 const extensions = {
     srgb: ['jpg', 'jpeg', 'png', 'webp'],
     linear: ['hdr', 'exr'],
     gltf: ['gltf', 'glb'],
 };
+const isSRGBExtension = (ext) => extensions.srgb.includes(ext);
+const isLinearExtension = (ext) => extensions.linear.includes(ext);
+const isTextureExtension = (ext) => isSRGBExtension(ext) || isLinearExtension(ext);
 class AnyLoader {
     #textureLoader = null;
+    #rgbeLoader = null;
     loadTexture(url) {
-        const loader = this.#textureLoader ??= new TextureLoader();
+        const extension = url.match(/[^.]+$/)?.[0];
+        if (extension === undefined)
+            throw new Error(`No extension found in url: ${url}`);
+        const loader = isLinearExtension(extension)
+            ? (this.#rgbeLoader ??= new RGBELoader())
+            : (this.#textureLoader ??= new TextureLoader());
         let resolve;
         let reject;
         const texture = loader.load(url, texture => {
@@ -38,7 +48,7 @@ class AnyLoader {
         const extension = url.match(/[^.]+$/)?.[0];
         if (extension === undefined)
             throw new Error(`No extension found in url: ${url}`);
-        if (extensions.srgb.includes(extension))
+        if (isTextureExtension(extension))
             return this.loadTexture(url);
         throw new Error(`Unsupported extension: ${url}`);
     }

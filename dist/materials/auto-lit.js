@@ -1,7 +1,9 @@
-import { MeshBasicMaterial, Vector3 } from 'three';
+import { Color, MeshBasicMaterial, Vector3 } from 'three';
 import { ShaderForge } from '../shader-forge.js';
 const defaultOptions = {
-    luminosity: .5,
+    shadowColor: '#808080',
+    luminosity: 1,
+    rampPower: 1,
 };
 /**
  * A simple shader material that uses vertex colors and a simple lighting model.
@@ -9,9 +11,11 @@ const defaultOptions = {
 export class AutoLitMaterial extends MeshBasicMaterial {
     sunPosition;
     constructor(options) {
-        const { luminosity, ...rest } = { ...defaultOptions, ...options };
+        const { rampPower, shadowColor, luminosity, ...rest } = { ...defaultOptions, ...options };
         const uniforms = {
             uSunPosition: { value: new Vector3(0.5, 0.7, 0.3) },
+            uShadowColor: { value: new Color(shadowColor) },
+            uRampPower: { value: rampPower },
             uLuminosity: { value: luminosity },
         };
         super(rest);
@@ -27,9 +31,8 @@ export class AutoLitMaterial extends MeshBasicMaterial {
                 .fragment.after('map_fragment', /* glsl */ `
         vec3 lightDirection = normalize(uSunPosition);
         float light = dot(vWorldNormal, lightDirection) * 0.5 + 0.5;
-        light = pow(light, 2.0);
-        light = mix(uLuminosity, 1.0, light);
-        diffuseColor *= light;
+        light = pow(light, uRampPower);
+        diffuseColor.rgb *= mix(uShadowColor * uLuminosity, vec3(1.0), light);
       `);
         };
         this.sunPosition = uniforms.uSunPosition.value;
