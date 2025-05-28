@@ -1,7 +1,7 @@
 import { MeshBasicMaterialParameters, MeshBasicNodeMaterial } from 'three/webgpu'
 import { autoLit, AutoLitOptions, autoLitOptionsDefaults } from '../../tsl/utils'
 
-export class NodeAutoLitMaterial extends MeshBasicNodeMaterial {
+export class AutoLitNodeMaterial extends MeshBasicNodeMaterial {
   constructor(parameters?: MeshBasicMaterialParameters & AutoLitOptions) {
     const {
       color = 'white',
@@ -18,4 +18,11 @@ export class NodeAutoLitMaterial extends MeshBasicNodeMaterial {
       power,
     })
   }
+}
+
+export {
+  /**
+   * @deprecated Use `AutoLitNodeMaterial` instead.
+   */
+  AutoLitNodeMaterial as NodeAutoLitMaterial
 }
