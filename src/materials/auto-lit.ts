@@ -1,9 +1,11 @@
-import { MeshBasicMaterial, MeshBasicMaterialParameters, Vector3 } from 'three'
+import { Color, ColorRepresentation, MeshBasicMaterial, MeshBasicMaterialParameters, Vector3 } from 'three'
 
 import { ShaderForge } from '../shader-forge'
 
 const defaultOptions = {
-  luminosity: .5,
+  shadowColor: <ColorRepresentation>'#808080',
+  luminosity: 1,
+  rampPower: 1,
 }
 
 // type Options = Partial<Omit<ShaderMaterialParameters, 'fragmentShader' | 'vertexShader'> & typeof defaultOptions>
@@ -17,11 +19,15 @@ export class AutoLitMaterial extends MeshBasicMaterial {
 
   constructor(options?: Options) {
     const {
+      rampPower,
+      shadowColor,
       luminosity,
       ...rest
     } = { ...defaultOptions, ...options }
     const uniforms = {
       uSunPosition: { value: new Vector3(0.5, 0.7, 0.3) },
+      uShadowColor: { value: new Color(shadowColor) },
+      uRampPower: { value: rampPower },
       uLuminosity: { value: luminosity },
     }
     super(rest)
@@ -37,9 +43,8 @@ export class AutoLitMaterial extends MeshBasicMaterial {
         .fragment.after('map_fragment', /* glsl */`
         vec3 lightDirection = normalize(uSunPosition);
         float light = dot(vWorldNormal, lightDirection) * 0.5 + 0.5;
-        light = pow(light, 2.0);
-        light = mix(uLuminosity, 1.0, light);
-        diffuseColor *= light;
+        light = pow(light, uRampPower);
+        diffuseColor.rgb *= mix(uShadowColor * uLuminosity, vec3(1.0), light);
       `)
     }
 

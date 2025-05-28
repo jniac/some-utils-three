@@ -1,4 +1,5 @@
 import { Texture, TextureLoader } from 'three'
+import { RGBELoader } from 'three/examples/jsm/Addons.js'
 
 const extensions = {
   srgb:
@@ -9,14 +10,35 @@ const extensions = {
     ['gltf', 'glb'] as const,
 }
 
-type TextureExtension = typeof extensions.srgb[number] | typeof extensions.linear[number]
+type SRGBExtension = typeof extensions.srgb[number]
+const isSRGBExtension = (ext: string): ext is SRGBExtension =>
+  extensions.srgb.includes(ext as SRGBExtension)
+
+type LinearExtension = typeof extensions.linear[number]
+const isLinearExtension = (ext: string): ext is LinearExtension =>
+  extensions.linear.includes(ext as LinearExtension)
+
+type TextureExtension = SRGBExtension | LinearExtension
+const isTextureExtension = (ext: string): ext is TextureExtension =>
+  isSRGBExtension(ext) || isLinearExtension(ext)
 
 type Promisified<T> = T & Promise<T>
 
 class AnyLoader {
   #textureLoader: TextureLoader | null = null
+  #rgbeLoader: RGBELoader | null = null
+
   loadTexture(url: string): Promisified<Texture> {
-    const loader = this.#textureLoader ??= new TextureLoader()
+    const extension = url.match(/[^.]+$/)?.[0]
+
+    if (extension === undefined)
+      throw new Error(`No extension found in url: ${url}`)
+
+    const loader =
+      isLinearExtension(extension)
+        ? (this.#rgbeLoader ??= new RGBELoader())
+        : (this.#textureLoader ??= new TextureLoader())
+
     let resolve: (texture: Texture) => void
     let reject: (error: Error) => void
     const texture = loader.load(url, texture => {
@@ -51,7 +73,7 @@ class AnyLoader {
     if (extension === undefined)
       throw new Error(`No extension found in url: ${url}`)
 
-    if (extensions.srgb.includes(extension as any))
+    if (isTextureExtension(extension))
       return this.loadTexture(url)
 
     throw new Error(`Unsupported extension: ${url}`)
