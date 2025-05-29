@@ -58,6 +58,18 @@ function parseInputs(inputs: string) {
   }) as ControlInput[]
 }
 
+/**
+ * The VertigoControls allows to control a "Vertigo" camera from pointer / wheel 
+ * input.
+ * 
+ * @example
+ * const controls = new VertigoControls({
+ *   size: 20,
+ *   perspective: .5,
+ * })
+ * controls.initialize('canvas')
+ * controls.start()
+ */
 export class VertigoControls extends DestroyableInstance {
   /**
    * The decay factor for the vertigo controls (expresses the missing part after 1 second).
@@ -201,7 +213,13 @@ export class VertigoControls extends DestroyableInstance {
     this.vertigo.zoom = newZoom
   }
 
-  initialize(element: HTMLElement = document.body): this {
+  initialize(element: HTMLElement | string = document.body): this {
+    if (typeof element === 'string')
+      element = document.querySelector(element) as HTMLElement
+
+    if (!(element instanceof HTMLElement))
+      throw new Error(`Invalid element: ${element}`)
+
     this.element = element
     return this
   }
