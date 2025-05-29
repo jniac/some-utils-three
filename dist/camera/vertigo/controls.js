@@ -38,6 +38,18 @@ function parseInputs(inputs) {
         return ok;
     });
 }
+/**
+ * The VertigoControls allows to control a "Vertigo" camera from pointer / wheel
+ * input.
+ *
+ * @example
+ * const controls = new VertigoControls({
+ *   size: 20,
+ *   perspective: .5,
+ * })
+ * controls.initialize('canvas')
+ * controls.start()
+ */
 export class VertigoControls extends DestroyableInstance {
     /**
      * The decay factor for the vertigo controls (expresses the missing part after 1 second).
@@ -166,6 +178,10 @@ export class VertigoControls extends DestroyableInstance {
         this.vertigo.zoom = newZoom;
     }
     initialize(element = document.body) {
+        if (typeof element === 'string')
+            element = document.querySelector(element);
+        if (!(element instanceof HTMLElement))
+            throw new Error(`Invalid element: ${element}`);
         this.element = element;
         return this;
     }

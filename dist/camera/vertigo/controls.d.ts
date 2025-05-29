@@ -5,6 +5,18 @@ import { Vertigo, VertigoProps } from '../vertigo';
 declare const controlInputs: readonly ["shift", "alt", "control", "meta"];
 type ControlInput = typeof controlInputs[number];
 type ControlInputString = '' | `${ControlInput}` | `${ControlInput}+${ControlInput}` | `${ControlInput}+${ControlInput}+${ControlInput}` | `${ControlInput}+${ControlInput}+${ControlInput}+${ControlInput}`;
+/**
+ * The VertigoControls allows to control a "Vertigo" camera from pointer / wheel
+ * input.
+ *
+ * @example
+ * const controls = new VertigoControls({
+ *   size: 20,
+ *   perspective: .5,
+ * })
+ * controls.initialize('canvas')
+ * controls.start()
+ */
 export declare class VertigoControls extends DestroyableInstance {
     /**
      * The decay factor for the vertigo controls (expresses the missing part after 1 second).
@@ -54,7 +66,7 @@ export declare class VertigoControls extends DestroyableInstance {
      */
     rotate(...args: Parameters<VertigoControls['orbit']>): void;
     zoomAt(newZoom: number, vertigoRelativePointer: Vector2Like): void;
-    initialize(element?: HTMLElement): this;
+    initialize(element?: HTMLElement | string): this;
     /**
      * @param element The element to attach the pointer events to is the one provided by `initialize()` by default. But you can provide a different one here.
      */
