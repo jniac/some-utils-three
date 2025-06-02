@@ -4,6 +4,7 @@
   "description": "A library for Three.js utilities and components",
   "main": "",
   "scripts": {
+    "postinstall": "pnpm build && node -e \"console.log('Memo: Use \\\"pnpm build\\\" to keep the dist folder sync with source after any pull.')\"",
     "dev": "tsc-watch --onSuccess \"node scripts/post-build.mjs\"",
     "build": "rm -rf dist && tsc && node scripts/post-build.mjs"
   },
