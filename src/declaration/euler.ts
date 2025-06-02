@@ -35,7 +35,13 @@ function formatNumber(x: number, fractionDigits: number): string {
 }
 
 function fromEulerDeclarationString(str: string, options: FromEulerDeclarationOptions, out: Euler = new Euler()): Euler {
-  const [xAngle, yAngle = '', zAngle = '', orderOption] = str.split(',').map(x => x.trim()) as [string, string, string, string]
+  str = str.replace(/\s+\/\s+/g, '/').trim()
+  const array = str.split(',').map(x => x.trim())
+  const [xAngle, yAngle = '', zAngle = '', orderOption] = array as [string, string?, string?, string?]
+  if (array.length === 1 && /\s/.test(str)) {
+    console.warn('Detected a single string with spaces, treating it as an Euler declaration string. Commas are expected to separate values.')
+    return fromEulerDeclarationString(str.replace(/\s/, ','), options, out)
+  }
   const x = fromAngleDeclaration(xAngle as AngleDeclaration) || 0
   const y = fromAngleDeclaration(yAngle as AngleDeclaration) || 0
   const z = fromAngleDeclaration(zAngle as AngleDeclaration) || 0
