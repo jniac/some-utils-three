@@ -140,7 +140,7 @@ export class ThreeWebGPUContext implements ThreeBaseContext {
   renderFrame() {
     const { scene, postProcessing, pointer } = this
 
-    pointer.update(scene)
+    pointer.updateStart(scene)
 
     scene.traverse(child => {
       if ('onTick' in child) {

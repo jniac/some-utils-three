@@ -71,6 +71,11 @@ export class Pointer {
   camera: Camera | null = null
 
   /**
+   * The current intersections of the pointer with the scene. Updated on each frame.
+   */
+  intersections: Intersection[] = []
+
+  /**
    * Return true if the pointer button is currently pressed.
    */
   buttonDown(button = PointerButton.Left) {
@@ -98,10 +103,13 @@ export class Pointer {
     return !this.buttonDown(button) && this.buttonDownOld(button)
   }
 
+  /**
+   * Return true if the pointer button was pressed then released within the specified duration.
+   */
   buttonTap(button = PointerButton.Left, maxDuration = .25) {
-    if (this.buttonDownExit(button) === false) {
+    if (this.buttonDownExit(button) === false)
       return false
-    }
+
     const delta = this.upTimes.get(button)! - this.downTimes.get(button)!
     return delta < maxDuration
   }
@@ -183,45 +191,55 @@ export class Pointer {
   }
 
   /**
-   * Traverse the scene and cast rays from the camera to the pointer, if the object 
+   * Traverse the tree and cast rays from the camera to the pointer, if the object 
    * has geometry and matches the conditions (visibility, metadata, etc), any
    * associated "pointer" callback (userData) will be called.
    */
-  raycastScene(scene: Object3D) {
+  raycast(root: Object3D): Intersection[] {
     const intersections: Intersection[] = []
 
-    scene.traverse(child => {
-      if (child.userData.ignorePointer === true) {
+    root.traverse(child => {
+      if (child.userData.ignorePointer === true)
         return
-      }
 
-      if ((child.visible === false || child.userData.helper === true) && child.userData.pointerArea !== true) {
+      if ((child.visible === false || child.userData.helper === true) && child.userData.pointerArea !== true)
         return
-      }
 
-      if (isMesh(child)) {
+      if (isMesh(child))
         this.raycaster.intersectObject(child, false, intersections)
-      }
     })
 
     intersections.sort((a, b) => a.distance - b.distance)
 
-    const [first] = intersections
-    if (first) {
-      type OnPointerTap = () => void
-      const onPointerTap: OnPointerTap | undefined =
-        first.object.userData.onPointerTap
-        ?? (first.object.userData.pointerArea && first.object.parent?.userData.onPointerTap)
-      if (onPointerTap && this.buttonTap()) {
-        onPointerTap()
-      }
-    }
+    return intersections
   }
 
-  update(scene: Object3D) {
+  /**
+   * @deprecated Use `raycast()` instead.  
+   */
+  raycastScene(scene: Object3D) {
+    return this.raycast(scene)
+  }
+
+  updateStart(scene: Object3D) {
     // calculate the difference in pointer state
     this.diffState.diff(this.state, this.stateOld)
-    this.raycastScene(scene)
+    this.intersections = this.raycast(scene)
+
+    this.#updatePointerEvents()
+  }
+
+  #updatePointerEvents() {
+    const [first] = this.intersections
+    if (first) {
+      if (this.buttonTap()) {
+        type OnPointerTap = (info: { intersection: Intersection }) => void
+        const onPointerTap: OnPointerTap | undefined =
+          first.object.userData.onPointerTap
+          ?? (first.object.userData.pointerArea && first.object.parent?.userData.onPointerTap)
+        onPointerTap?.({ intersection: first })
+      }
+    }
   }
 
   updateEnd() {

@@ -1,4 +1,4 @@
-import { Camera, Euler, Matrix4, Quaternion, Vector2, Vector3 } from 'three'
+import { Camera, Euler, Matrix4, OrthographicCamera, PerspectiveCamera, Quaternion, Vector2, Vector3 } from 'three'
 
 import { deepFreeze } from 'some-utils-ts/object/deep'
 
@@ -281,9 +281,12 @@ export class Vertigo {
       const mHeight = realHeight * near / distance / 2
       const mWidth = mHeight * aspect
 
-      // @ts-ignore
-      camera.fov = fov * 180 / Math.PI
-      camera.projectionMatrix.makePerspective(-mWidth, mWidth, mHeight, -mHeight, near, far)
+      const pcam = camera as PerspectiveCamera
+      pcam.fov = fov * 180 / Math.PI
+      pcam.near = near
+      pcam.far = far
+
+      pcam.projectionMatrix.makePerspective(-mWidth, mWidth, mHeight, -mHeight, near, far)
     }
 
     // Orthographic
@@ -298,9 +301,13 @@ export class Vertigo {
       const mHeight = realHeight / 2
       const mWidth = mHeight * aspect
 
+      const ocam = camera as OrthographicCamera
       // @ts-ignore
-      camera.fov = 0
-      camera.projectionMatrix.makeOrthographic(-mWidth, mWidth, mHeight, -mHeight, near, far)
+      ocam.fov = 0
+      ocam.near = near
+      ocam.far = far
+
+      ocam.projectionMatrix.makeOrthographic(-mWidth, mWidth, mHeight, -mHeight, near, far)
     }
 
     // Don't forget to update the inverse matrix (for raycasting) (i forgot it).

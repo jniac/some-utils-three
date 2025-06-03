@@ -203,7 +203,7 @@ export class ThreeWebGLContext implements ThreeBaseContext {
 
     this.internal.orbitControls?.update(tick.deltaTime)
 
-    pointer.update(scene)
+    pointer.updateStart(scene)
 
     scene.traverse(child => {
       if ('onTick' in child) {
