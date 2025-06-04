@@ -49,6 +49,25 @@ class PointerState {
   }
 }
 
+enum ThreePointerEventType {
+  Tap,
+}
+
+export class ThreePointerEvent {
+  static get Type() { return ThreePointerEventType }
+
+  constructor(
+    public readonly type: ThreePointerEventType,
+    public readonly intersection: Intersection | null,
+  ) { }
+
+  consumed = false
+
+  consume() {
+    this.consumed = true
+  }
+}
+
 export class Pointer {
   get buttons() { return this.state.buttons }
 
@@ -226,18 +245,23 @@ export class Pointer {
     this.diffState.diff(this.state, this.stateOld)
     this.intersections = this.raycast(scene)
 
-    this.#updatePointerEvents()
+    this.#updatePointerEvents(scene)
   }
 
-  #updatePointerEvents() {
+  #updatePointerEvents(scene: Object3D) {
     const [first] = this.intersections
-    if (first) {
-      if (this.buttonTap()) {
-        type OnPointerTap = (info: { intersection: Intersection }) => void
-        const onPointerTap: OnPointerTap | undefined =
-          first.object.userData.onPointerTap
-          ?? (first.object.userData.pointerArea && first.object.parent?.userData.onPointerTap)
-        onPointerTap?.({ intersection: first })
+    if (this.buttonTap()) {
+      const event = new ThreePointerEvent(ThreePointerEventType.Tap, first ?? null)
+      const originalScope = first?.object ?? scene
+      let scope: Object3D | null = originalScope
+      type OnPointerTap = (event: ThreePointerEvent) => void
+      while (scope && event.consumed === false) {
+        if (scope.userData.onPointerTap) {
+          const onPointerTap = scope.userData.onPointerTap as OnPointerTap
+          onPointerTap(event)
+          event.consume()
+        }
+        scope = scope.parent
       }
     }
   }
