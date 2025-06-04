@@ -1,4 +1,4 @@
-import { Color, ColorRepresentation, MeshBasicMaterial, MeshBasicMaterialParameters, Vector3 } from 'three'
+import { Color, ColorRepresentation, MeshBasicMaterial, MeshBasicMaterialParameters, Vector3, WebGLProgramParametersWithUniforms } from 'three'
 
 import { ShaderForge } from '../shader-forge'
 
@@ -6,6 +6,7 @@ const defaultOptions = {
   shadowColor: <ColorRepresentation>'#808080',
   luminosity: 1,
   rampPower: 1,
+  onBeforeCompile: <((shader: WebGLProgramParametersWithUniforms) => void) | undefined>undefined,
 }
 
 // type Options = Partial<Omit<ShaderMaterialParameters, 'fragmentShader' | 'vertexShader'> & typeof defaultOptions>
@@ -22,6 +23,7 @@ export class AutoLitMaterial extends MeshBasicMaterial {
       rampPower,
       shadowColor,
       luminosity,
+      onBeforeCompile,
       ...rest
     } = { ...defaultOptions, ...options }
     const uniforms = {
@@ -39,13 +41,15 @@ export class AutoLitMaterial extends MeshBasicMaterial {
         })
         .vertex.mainAfterAll(/* glsl */`
           vWorldNormal = mat3(modelMatrix) * normal;
-      `)
+        `)
         .fragment.after('map_fragment', /* glsl */`
-        vec3 lightDirection = normalize(uSunPosition);
-        float light = dot(vWorldNormal, lightDirection) * 0.5 + 0.5;
-        light = pow(light, uRampPower);
-        diffuseColor.rgb *= mix(uShadowColor * uLuminosity, vec3(1.0), light);
-      `)
+          vec3 lightDirection = normalize(uSunPosition);
+          float light = dot(vWorldNormal, lightDirection) * 0.5 + 0.5;
+          light = pow(light, uRampPower);
+          diffuseColor.rgb *= mix(uShadowColor * uLuminosity, vec3(1.0), light);
+        `)
+
+      onBeforeCompile?.(shader)
     }
 
     this.sunPosition = uniforms.uSunPosition.value
