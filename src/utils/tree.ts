@@ -4,7 +4,7 @@ import { isObject3D } from '../is'
 import { applyTransform, TransformProps } from './transform'
 
 type SetupParentOrTransformProps = Object3D | TransformProps | null
-type SetupCallback<T extends Object3D> = (instance: T) => void
+type SetupCallback<T> = (instance: T) => void
 
 /**
  * Convenient method to setup an Object3D instance. Apply transform props and 
@@ -18,11 +18,14 @@ type SetupCallback<T extends Object3D> = (instance: T) => void
  * }
  * ```
  */
-export function setup<T extends Object3D>(
+export function setup<T>(
   child: T,
   transformProps?: SetupParentOrTransformProps,
   callback?: SetupCallback<T>,
 ): T {
+  if (isObject3D(child) === false)
+    throw new Error('Child must be an instance of Object3D')
+
   if (transformProps) {
     if (isObject3D(transformProps)) {
       transformProps.add(child)
