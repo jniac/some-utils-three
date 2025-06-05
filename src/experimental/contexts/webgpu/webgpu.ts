@@ -1,39 +1,21 @@
 import { pass } from 'three/tsl'
-import { Camera, OrthographicCamera, PerspectiveCamera, PostProcessing, Scene, WebGPURenderer } from 'three/webgpu'
+import { OrthographicCamera, PerspectiveCamera, PostProcessing, WebGPURenderer } from 'three/webgpu'
 
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
-import { Ticker } from 'some-utils-ts/ticker'
 
-import { Pointer } from '../pointer'
 import { ThreeBaseContext, ThreeContextType } from '../types'
 
-export class ThreeWebGPUContext implements ThreeBaseContext {
-  type = ThreeContextType.WebGPU
-
-  width = 300
-  height = 150
-  pixelRatio = 1
-
-  ticker = Ticker.get('three').set({ minActiveDuration: 8 })
-
-  pointer = new Pointer()
-
+export class ThreeWebGPUContext extends ThreeBaseContext {
   renderer = new WebGPURenderer({
     antialias: true,
   })
+
   perspectiveCamera = new PerspectiveCamera()
-  orhtographicCamera = new OrthographicCamera()
-  scene = new Scene()
+  orthographicCamera = new OrthographicCamera()
+  camera = this.perspectiveCamera
 
   postProcessing = new PostProcessing(this.renderer)
   scenePass = pass(this.scene, this.perspectiveCamera)
-
-  camera: Camera = this.perspectiveCamera
-
-  domContainer!: HTMLElement
-  domElement!: HTMLElement
-
-  skipRender = false
 
   private internal = {
     observer: null as ResizeObserver | null,
@@ -42,9 +24,8 @@ export class ThreeWebGPUContext implements ThreeBaseContext {
     cancelPointer: null as (() => void) | null,
   }
 
-  get aspect() { return this.width / this.height }
-
   constructor() {
+    super(ThreeContextType.WebGPU)
     this.camera.position.set(0, 1, 10)
     this.camera.lookAt(0, 0, 0)
     this.pointer.updatePosition(this.camera, { x: 0, y: 0 }, this.renderer.domElement.getBoundingClientRect())
@@ -65,7 +46,7 @@ export class ThreeWebGPUContext implements ThreeBaseContext {
     this.height = newHeight
     this.pixelRatio = newPixelRatio
 
-    const { renderer, perspectiveCamera, orhtographicCamera } = this
+    const { renderer, perspectiveCamera, orthographicCamera } = this
     renderer.setSize(newWidth, newHeight)
     renderer.setPixelRatio(newPixelRatio)
 
@@ -76,11 +57,11 @@ export class ThreeWebGPUContext implements ThreeBaseContext {
     perspectiveCamera.aspect = aspect
     perspectiveCamera.updateProjectionMatrix()
 
-    orhtographicCamera.left = -aspect
-    orhtographicCamera.right = aspect
-    orhtographicCamera.top = 1
-    orhtographicCamera.bottom = -1
-    orhtographicCamera.updateProjectionMatrix()
+    orthographicCamera.left = -aspect
+    orthographicCamera.right = aspect
+    orthographicCamera.top = 1
+    orthographicCamera.bottom = -1
+    orthographicCamera.updateProjectionMatrix()
 
     return this
   }

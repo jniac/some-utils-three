@@ -1,53 +1,34 @@
-import { Object3D, PerspectiveCamera, Scene, Vector2, WebGLRenderer } from 'three'
+import { Object3D, OrthographicCamera, PerspectiveCamera, Scene, Vector2, WebGLRenderer } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
 import { destroy } from 'some-utils-ts/misc/destroy'
-import { Tick, Ticker } from 'some-utils-ts/ticker'
+import { Tick } from 'some-utils-ts/ticker'
 import { Destroyable } from 'some-utils-ts/types'
 
 import { fromVector3Declaration, Vector3Declaration } from '../../../declaration'
 import { UnifiedLoader } from '../../../loaders/unified-loader'
-import { Pointer } from '../pointer'
+import { queryDescendantsOf } from '../../../utils/tree'
 import { ThreeBaseContext, ThreeContextType } from '../types'
 import { BasicPipeline } from './pipelines/BasicPipeline'
 
 /**
  * A context that provides a WebGLRenderer, a Scene, a Camera, and a Ticker.
  */
-export class ThreeWebGLContext implements ThreeBaseContext {
+export class ThreeWebGLContext extends ThreeBaseContext {
   private static instances: ThreeWebGLContext[] = []
   static current() {
     return this.instances[this.instances.length - 1]
   }
 
-  type = ThreeContextType.WebGL
-
-  width = 300
-  height = 150
-  pixelRatio = 1
-
   renderer = new WebGLRenderer()
   perspectiveCamera = new PerspectiveCamera()
-  orhtographicCamera = new PerspectiveCamera()
-  scene = new Scene()
-  gizmoScene = new Scene()
-  pointer = new Pointer()
-
-  skipRender = false
-
-  // NOTE: The ticker is not explicitly created, but rather is require through a
-  // name ("three"). This is to allow the user to use the same ticker, even before
-  // it is eventually created here.
-  ticker = Ticker.get('three').set({ minActiveDuration: 8 })
-
-  pipeline = new BasicPipeline(this.renderer, this.scene, this.gizmoScene, this.perspectiveCamera)
-
-  /** The current camera (perspective or ortho). */
+  orthographicCamera = new OrthographicCamera()
   camera = this.perspectiveCamera
 
-  domContainer!: HTMLElement
-  domElement!: HTMLElement
+  gizmoScene = new Scene()
+
+  pipeline = new BasicPipeline(this.renderer, this.scene, this.gizmoScene, this.perspectiveCamera)
 
   private internal = {
     size: new Vector2(),
@@ -57,15 +38,6 @@ export class ThreeWebGLContext implements ThreeBaseContext {
   }
 
   // Accessors:
-  get aspect() {
-    return this.width / this.height
-  }
-  get size() {
-    return this.internal.size.set(this.width, this.height)
-  }
-  get fullSize() {
-    return this.internal.fullSize.set(this.width * this.pixelRatio, this.height * this.pixelRatio)
-  }
 
   onTick = this.ticker.onTick.bind(this.ticker)
 
@@ -77,6 +49,7 @@ export class ThreeWebGLContext implements ThreeBaseContext {
   loader = UnifiedLoader.get('three')
 
   constructor() {
+    super(ThreeContextType.WebGL)
     this.camera.position.set(0, 1, 10)
     this.camera.lookAt(0, 0, 0)
     ThreeWebGLContext.instances.push(this)
@@ -219,20 +192,13 @@ export class ThreeWebGLContext implements ThreeBaseContext {
     pointer.updateEnd()
   };
 
-  *findAll(query: string | RegExp | ((object: any) => boolean)) {
+  *findAll(query: string | RegExp | ((object: any) => boolean), options?: Parameters<typeof queryDescendantsOf>[2]) {
     const findDelegate =
       typeof query === 'string' ? (object: any) => object.name === query :
         query instanceof RegExp ? (object: any) => query.test(object.name) :
           query
 
-    const queue = [this.scene] as Object3D[]
-    while (queue.length > 0) {
-      const object = queue.shift()!
-      if (findDelegate(object)) {
-        yield object
-      }
-      queue.push(...object.children)
-    }
+    yield* queryDescendantsOf(this.scene, findDelegate, options)
   }
 
   find(query: string | RegExp | ((object: any) => boolean)) {
