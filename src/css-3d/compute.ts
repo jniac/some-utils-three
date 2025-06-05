@@ -229,7 +229,7 @@ export function computeMatrix3d(
   return `translate(-50%, -50%) matrix3d(${_matrix1.elements.join(',')})`
 }
 
-export function updatePosition3d(container: HTMLDivElement, div: HTMLDivElement, camera: Camera, target: Object3D | Matrix4 | Vector3, {
+export function updatePosition3d(container: HTMLElement, div: HTMLElement, camera: Camera, target: Object3D | Matrix4 | Vector3, {
   pixelPerUnit = 100,
   resetRotation = 0,
   resetScale = 0,
@@ -243,3 +243,9 @@ export function updatePosition3d(container: HTMLDivElement, div: HTMLDivElement,
   div.style.transform = computeMatrix3d(camera, target, container, pixelPerUnit, resetRotation, resetScale, leftHanded)
   div.style.zIndex = computeZIndex(camera, target)
 }
+
+export {
+  /** @deprecated Use `updatePosition3d` instead. */
+  updatePosition3d as update3d
+}
+
