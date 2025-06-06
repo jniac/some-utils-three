@@ -2,6 +2,7 @@ import { Camera, Intersection, Line3, Object3D, Plane, Raycaster, Vector2, Vecto
 
 import { Ticker } from 'some-utils-ts/ticker'
 
+import { allDescendantsOf } from 'some-utils-ts/iteration/tree'
 import { isMesh } from '../../is'
 
 /**
@@ -217,16 +218,19 @@ export class Pointer {
   raycast(root: Object3D): Intersection[] {
     const intersections: Intersection[] = []
 
-    root.traverse(child => {
-      if (child.userData.ignorePointer === true)
-        return
+    /**
+     * Prune children that should be ignored by the pointer.
+     */
+    const prune = (child: Object3D) => child.userData.ignorePointer === true
 
-      if ((child.visible === false || child.userData.helper === true) && child.userData.pointerArea !== true)
-        return
+    /**
+     * Skip children that are not meshes or should be ignored by the pointer.
+     */
+    const skip = (child: Object3D) => isMesh(child) === false || ((child.userData.helper === true || child.visible === false) && child.userData.pointerArea !== true)
 
-      if (isMesh(child))
-        this.raycaster.intersectObject(child, false, intersections)
-    })
+    for (const { node } of allDescendantsOf(root, { skip, prune })) {
+      this.raycaster.intersectObject(node, false, intersections)
+    }
 
     intersections.sort((a, b) => a.distance - b.distance)
 
