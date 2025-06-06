@@ -14,11 +14,6 @@ import {
   Vector3Declaration
 } from '../declaration'
 
-const _matrix = new Matrix4()
-const _vector = new Vector3()
-const _qa = new Quaternion()
-const _qb = new Quaternion()
-
 const defaultRotationOrder = <EulerOrder>'YXZ' // Default rotation order for Vertigo
 
 const defaultProps = {
@@ -43,6 +38,11 @@ const defaultProps = {
    * The position of the focus point (where the camera is looking at).
    */
   focus: <Vector3Declaration>[0, 0, 0],
+  /**
+   * The offset of the focus point from the camera position. When the subject is
+   * not at the center...
+   */
+  screenOffset: <Vector3Declaration>[0, 0, 0],
   /**
    * The size of the focus area. Camera will fit this area into the screen (according to the `frame` property).
    */
@@ -88,12 +88,20 @@ type Props = Partial<typeof defaultProps>
 export class Vertigo {
   static get defaultRotationOrder() { return defaultRotationOrder }
   static get default() { return defaultVertigo }
+  static shared = {
+    _matrix: new Matrix4(),
+    _v0: new Vector3(),
+    _v1: new Vector3(),
+    _qa: new Quaternion(),
+    _qb: new Quaternion(),
+  }
 
   // General settings:
   perspective!: number
   fov!: number // radians
   zoom!: number
   focus = new Vector3()
+  screenOffset = new Vector3()
   size = new Vector2()
   before!: number
   after!: number
@@ -126,6 +134,7 @@ export class Vertigo {
       fov,
       zoom,
       focus,
+      screenOffset,
       size,
       before,
       after,
@@ -147,6 +156,9 @@ export class Vertigo {
 
     if (focus !== undefined)
       fromVector3Declaration(focus, this.focus)
+
+    if (screenOffset !== undefined)
+      fromVector3Declaration(screenOffset, this.screenOffset)
 
     if (size !== undefined)
       fromVector2Declaration(size, this.size)
@@ -180,6 +192,7 @@ export class Vertigo {
     this.fov = other.fov
     this.zoom = other.zoom
     this.focus.copy(other.focus)
+    this.screenOffset.copy(other.screenOffset)
     this.size.copy(other.size)
     this.before = other.before
     this.after = other.after
@@ -216,11 +229,13 @@ export class Vertigo {
     // this.zoom = a.zoom + (b.zoom - a.zoom) * t
 
     this.focus.lerpVectors(a.focus, b.focus, t)
+    this.screenOffset.lerpVectors(a.screenOffset, b.screenOffset, t)
     this.size.lerpVectors(a.size, b.size, t)
     this.before = a.before + (b.before - a.before) * t
     this.after = a.after + (b.after - a.after) * t
 
     // Rotation interpolation:
+    const { _qa, _qb } = Vertigo.shared
     _qa.setFromEuler(a.rotation)
     _qb.setFromEuler(b.rotation)
     this.rotation.setFromQuaternion(_qa.slerp(_qb, t))
@@ -238,6 +253,7 @@ export class Vertigo {
   }
 
   apply(camera: Camera, aspect: number): this {
+    const { _matrix, _v0, _v1, _qa, _qb } = Vertigo.shared
     const sizeAspect = this.size.x / this.size.y
     const aspectAspect = sizeAspect / aspect
 
@@ -257,14 +273,19 @@ export class Vertigo {
     const isPerspective = fov >= fovEpsilon
 
     const backward = isPerspective ? distance : this.before + this.nearMin
+    const me = _matrix.elements
     _matrix.makeRotationFromEuler(this.rotation)
-    _vector
-      .set(_matrix.elements[8], _matrix.elements[9], _matrix.elements[10])
+    _v0
+      .set(me[8], me[9], me[10])
       .multiplyScalar(backward)
       .add(this.focus)
 
+    _v0.addScaledVector(_v1.set(me[0], me[1], me[2]), -this.screenOffset.x / this.zoom)
+    _v0.addScaledVector(_v1.set(me[4], me[5], me[6]), -this.screenOffset.y / this.zoom)
+    _v0.addScaledVector(_v1.set(me[8], me[9], me[10]), -this.screenOffset.z / this.zoom)
+
     // camera.matrixAutoUpdate = false // Not cancelled because of OrbitControls
-    camera.position.copy(_vector)
+    camera.position.copy(_v0)
     camera.rotation.copy(this.rotation)
     camera.updateMatrix()
     camera.updateMatrixWorld(true)
