@@ -26,6 +26,7 @@ const defaultProps = {
    */
   fov: <AngleDeclaration>'45deg',
   /**
+   * The "perspectiveness" of the camera.
    * - 0: orthographic (if `allowOrthographic` is `true`, otherwise the fovEpislon is used)
    * - 1: perspective (0.8 radians (Vertical FOV) ≈ 45 degrees)
    */
@@ -64,6 +65,7 @@ const defaultProps = {
    */
   rotation: <EulerDeclaration>[0, 0, 0, defaultRotationOrder],
   /**
+   * Controls how the size of camera is seen in the screen:
    * - 0: cover
    * - 1: contain
    * Intermediates are linearly interpolated.
@@ -97,15 +99,59 @@ export class Vertigo {
   }
 
   // General settings:
+  /**
+   * The "perspectiveness" of the camera.
+   * - 0: orthographic (if `allowOrthographic` is `true`, otherwise the fovEpislon is used)
+   * - 1: perspective (0.8 radians (Vertical FOV) ≈ 45 degrees)
+   */
   perspective!: number
+  /**
+   * The base of the perspective (in degrees). If `perspective` is 1, this will 
+   * be the field of view (horizontal or vertical depends on the aspect ratios of
+   * the current focus size and the screen).
+   * 
+   * Defaults to 45 degrees.
+   */
   fov!: number // radians
+  /**
+   * The zoom of the camera.
+   */
   zoom!: number
+  /**
+   * The position of the focus point (where the camera is looking at).
+   */
   focus = new Vector3()
+  /**
+   * The offset of the focus point from the camera position. When the subject is
+   * not at the center...
+   */
   screenOffset = new Vector3()
+  /**
+   * The size of the focus area. Camera will fit this area into the screen (according to the `frame` property).
+   */
   size = new Vector2()
+  /**
+   * The distance before the focus point that will be visible.
+   * 
+   * Determines the `near` property of the camera.
+   */
   before!: number
+  /**
+   * The distance between the focus point and the far plane.
+   * 
+   * Determines the `far` property of the camera.
+   */
   after!: number
+  /**
+   * The rotation of the camera.
+   */
   rotation = new Euler()
+  /**
+   * Controls how the size of camera is seen in the screen:
+   * - 0: cover
+   * - 1: contain
+   * Intermediates are linearly interpolated.
+   */
   frame!: number
 
   // Deep settings:
