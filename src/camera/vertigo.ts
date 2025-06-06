@@ -1,4 +1,4 @@
-import { Camera, Euler, Matrix4, OrthographicCamera, PerspectiveCamera, Quaternion, Vector2, Vector3 } from 'three'
+import { Camera, Euler, EulerOrder, Matrix4, OrthographicCamera, PerspectiveCamera, Quaternion, Vector2, Vector3 } from 'three'
 
 import { deepFreeze } from 'some-utils-ts/object/deep'
 
@@ -18,6 +18,8 @@ const _matrix = new Matrix4()
 const _vector = new Vector3()
 const _qa = new Quaternion()
 const _qb = new Quaternion()
+
+const defaultRotationOrder = <EulerOrder>'YXZ' // Default rotation order for Vertigo
 
 const defaultProps = {
   /**
@@ -60,7 +62,7 @@ const defaultProps = {
   /**
    * The rotation of the camera.
    */
-  rotation: <EulerDeclaration>[0, 0, 0, 'YXZ'],
+  rotation: <EulerDeclaration>[0, 0, 0, defaultRotationOrder],
   /**
    * - 0: cover
    * - 1: contain
@@ -84,9 +86,8 @@ const defaultProps = {
 type Props = Partial<typeof defaultProps>
 
 export class Vertigo {
-  static get default() {
-    return defaultVertigo
-  }
+  static get defaultRotationOrder() { return defaultRotationOrder }
+  static get default() { return defaultVertigo }
 
   // General settings:
   perspective!: number
