@@ -160,16 +160,19 @@ export class Vertigo {
   nearMin!: number
   fovEpsilon!: number // radians
 
-  // Internal:
   /**
-   * The scalar that can be applied to convert "screen" NDC coordinates to "camera" 
-   * NDC coordinates.
+   * The state contains the computed values based on the current settings and the 
+   * aspect ratio.
+   * 
+   * It is updated when the `update()` method is called.
    */
-  computedNdcScalar = new Vector2()
-  /**
-   * The computed size of the focus area in the screen (once the `zoom` and the `frame` are applied).
-   */
-  computedSize = new Vector2()
+  state = {
+    aspect: 0,
+    isPerspective: true,
+    distance: 0,
+    fov: 0,
+    realSize: new Vector2(),
+  }
 
   constructor(props?: Props) {
     this.set({ ...defaultProps, ...props })
@@ -248,6 +251,7 @@ export class Vertigo {
     this.allowOrthographic = other.allowOrthographic
     this.fovEpsilon = other.fovEpsilon
     this.nearMin = other.nearMin
+    this.update()
     return this
   }
 
@@ -292,6 +296,8 @@ export class Vertigo {
     this.fovEpsilon = a.fovEpsilon + (b.fovEpsilon - a.fovEpsilon) * t
     this.nearMin = a.nearMin + (b.nearMin - a.nearMin) * t
 
+    this.update()
+
     return this
   }
 
@@ -300,18 +306,14 @@ export class Vertigo {
   }
 
   ndcToScreen<T extends Vector2Like>(ndc: Vector2Like, out: T = ndc as T): T {
-    out.x = ndc.x * this.computedNdcScalar.x * this.computedSize.x * .5
-    out.y = ndc.y * this.computedNdcScalar.y * this.computedSize.y * .5
+    out.x = ndc.x * this.state.realSize.x * .5
+    out.y = ndc.y * this.state.realSize.y * .5
     return out
   }
 
-  /**
-   * Apply the Vertigo settings to the camera.
-   */
-  apply(camera: Camera, aspect: number): this {
-    const { _matrix, _v0, _v1, _qa, _qb } = Vertigo.shared
+  update(newAspect = this.state.aspect): this {
     const sizeAspect = this.size.x / this.size.y
-    const aspectAspect = sizeAspect / aspect
+    const aspectAspect = sizeAspect / newAspect
 
     // Critical part of the algorithm (how to fit the focus area into the screen):
     const lerpT = aspectAspect > 1 ? this.frame : 1 - this.frame
@@ -327,6 +329,28 @@ export class Vertigo {
 
     const distance = desiredHeight / 2 / Math.tan(fov / 2) // Important! Distance should be computed from the desired height, not the real height
     const isPerspective = fov >= fovEpsilon
+
+    // this.computedNdcScalar.set(heightScalar * aspect, heightScalar)
+    // this.computedSize.set(realHeight * aspect, realHeight)
+
+    this.state.aspect = newAspect
+    this.state.isPerspective = isPerspective
+    this.state.distance = distance
+    this.state.fov = fov
+    this.state.realSize.set(realHeight * newAspect, realHeight)
+
+    return this
+  }
+
+  /**
+   * Apply the Vertigo settings to the camera.
+   */
+  apply(camera: Camera, aspect: number): this {
+    this.update(aspect)
+
+    const { _matrix, _v0, _v1 } = Vertigo.shared
+
+    const { isPerspective, distance, fov, realSize: { height: realHeight } } = this.state
 
     const backward = isPerspective ? distance : this.before + this.nearMin
     const me = _matrix.elements
@@ -393,9 +417,6 @@ export class Vertigo {
       .copy(camera.projectionMatrix)
       .invert()
 
-    this.computedNdcScalar.set(heightScalar * aspect, heightScalar)
-    this.computedSize.set(realHeight * aspect, realHeight)
-
     return this
   }
 
@@ -424,6 +445,18 @@ export class Vertigo {
       fovEpsilon: toAngleDeclarationString(this.fovEpsilon, 'deg'),
       nearMin: this.nearMin,
     }
+  }
+
+  /** @deprecated Deprecated. What's the usage? */
+  get computedNdcScalar() {
+    console.warn('Vertigo.computedNdcScalar is deprecated. Deprecated. What\'s the usage?')
+    return new Vector2(this.state.realSize.x / this.size.x * this.zoom, this.state.realSize.y / this.size.y * this.zoom)
+  }
+
+  /** @deprecated Use `state.realSize` instead. */
+  get computedSize() {
+    console.warn('Vertigo.computedSize is deprecated, use state.realSize instead.')
+    return this.state.realSize
   }
 }
 

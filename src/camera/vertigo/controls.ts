@@ -196,19 +196,20 @@ export class VertigoControls extends DestroyableInstance {
     this.orbit(...args)
   }
 
-  zoomAt(newZoom: number, vertigoRelativePointer: Vector2Like) {
-    const currentWidth = this.vertigo.size.x / this.vertigo.zoom
-    const currentHeight = this.vertigo.size.y / this.vertigo.zoom
-    const newWidth = this.vertigo.size.x / newZoom
-    const newHeight = this.vertigo.size.y / newZoom
+  zoomAt(newZoom: number, ndc: Vector2Like) {
+    this.vertigo.update(this.dampedVertigo.state.aspect)
+    const currentWidth = this.vertigo.state.realSize.x
+    const currentHeight = this.vertigo.state.realSize.y
+    const newWidth = this.vertigo.state.realSize.x / (newZoom / this.vertigo.zoom)
+    const newHeight = this.vertigo.state.realSize.y / (newZoom / this.vertigo.zoom)
     const diffWidth = newWidth - currentWidth
     const diffHeight = newHeight - currentHeight
 
     _updateVectorXYZ(this.vertigo.rotation)
-    const { x, y } = vertigoRelativePointer
+    const { x, y } = ndc
     this.vertigo.focus
-      .addScaledVector(_vectorX, diffWidth * -x)
-      .addScaledVector(_vectorY, diffHeight * -y)
+      .addScaledVector(_vectorX, .5 * diffWidth * -x)
+      .addScaledVector(_vectorY, .5 * diffHeight * -y)
 
     this.vertigo.zoom = newZoom
   }
@@ -240,7 +241,7 @@ export class VertigoControls extends DestroyableInstance {
         const rect = element.getBoundingClientRect()
         const x = (info.localPosition.x - rect.x) / rect.width * 2 - 1
         const y = -((info.localPosition.y - rect.y) / rect.height * 2 - 1)
-        pointer.set(x / 2, y / 2).multiply(this.dampedVertigo.computedNdcScalar)
+        pointer.set(x, y)
       },
       dragButton: ~0,
       onDrag: info => {
