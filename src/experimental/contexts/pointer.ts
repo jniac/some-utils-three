@@ -1,8 +1,8 @@
 import { Camera, Intersection, Line3, Object3D, Plane, Raycaster, Vector2, Vector3 } from 'three'
 
+import { allDescendantsOf } from 'some-utils-ts/iteration/tree'
 import { Ticker } from 'some-utils-ts/ticker'
 
-import { allDescendantsOf } from 'some-utils-ts/iteration/tree'
 import { isMesh } from '../../is'
 
 /**

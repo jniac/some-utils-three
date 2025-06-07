@@ -1,6 +1,7 @@
 import { Camera, Euler, EulerOrder, Matrix4, OrthographicCamera, PerspectiveCamera, Quaternion, Vector2, Vector3 } from 'three'
 
 import { deepFreeze } from 'some-utils-ts/object/deep'
+import { Vector2Like } from 'some-utils-ts/types'
 
 import {
   AngleDeclaration,
@@ -298,6 +299,15 @@ export class Vertigo {
     return this.lerpVertigos(this, other, t)
   }
 
+  ndcToScreen<T extends Vector2Like>(ndc: Vector2Like, out: T = ndc as T): T {
+    out.x = ndc.x * this.computedNdcScalar.x * this.computedSize.x * .5
+    out.y = ndc.y * this.computedNdcScalar.y * this.computedSize.y * .5
+    return out
+  }
+
+  /**
+   * Apply the Vertigo settings to the camera.
+   */
   apply(camera: Camera, aspect: number): this {
     const { _matrix, _v0, _v1, _qa, _qb } = Vertigo.shared
     const sizeAspect = this.size.x / this.size.y
