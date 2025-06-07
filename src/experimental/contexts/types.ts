@@ -52,8 +52,8 @@ export class ThreeBaseContext {
   // it is eventually created here.
   ticker = Ticker.get('three').set({ minActiveDuration: 8 })
 
-  width = 300
-  height = 150
+  size = new Vector2()
+  fullSize = new Vector2()
   pixelRatio = 1
   pointer = new Pointer()
   scene = new Scene()
@@ -66,34 +66,53 @@ export class ThreeBaseContext {
   domContainer!: HTMLElement
 
   get aspect() {
-    return this.width / this.height
+    return this.size.x / this.size.y
   }
 
-  /**
-   * Returns the size of the context as a Vector2.
-   * 
-   * Note: 
-   * - This is not the full size, but rather the size in pixels.
-   * - The returned value is shared and should be cloned if needed to be stored.
-   */
-  get size() {
-    return ThreeBaseContext.shared.vector2.set(this.width, this.height)
+  get width() {
+    return this.size.x
   }
 
-  /**
-   * Returns the size of the context as a Vector2.
-   * 
-   * Note: 
-   * - The full size is the size in pixels multiplied by the pixel ratio.
-   * - The returned value is shared and should be cloned if needed to be stored.
-   */
-  get fullSize() {
-    return this.size.multiplyScalar(this.pixelRatio)
+  get height() {
+    return this.size.y
+  }
+
+  get fullWidth() {
+    return this.fullSize.x
+  }
+
+  get fullHeight() {
+    return this.fullSize.y
   }
 
   constructor(type: ThreeContextType) {
     this.type = type
   }
+
+  setSize(newSize: Partial<{
+    width: number,
+    height: number,
+    pixelRatio: number
+  }>): this {
+    const {
+      width: newWidth = this.width,
+      height: newHeight = this.height,
+      pixelRatio: newPixelRatio = this.pixelRatio,
+    } = newSize
+
+    if (newWidth === this.width && newHeight === this.height && newPixelRatio === this.pixelRatio)
+      return this
+
+    this.size.set(newWidth, newHeight)
+    this.fullSize.set(newWidth * newPixelRatio, newHeight * newPixelRatio)
+    this.pixelRatio = newPixelRatio
+
+    this.onSetSize()
+
+    return this
+  }
+
+  protected onSetSize() { }
 
   initialize(domContainer: HTMLElement, pointerScope: HTMLElement): Destroyable {
     throw new Error('Not implemented')

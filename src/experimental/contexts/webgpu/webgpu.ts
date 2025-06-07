@@ -31,20 +31,14 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
     this.pointer.updatePosition(this.camera, { x: 0, y: 0 }, this.renderer.domElement.getBoundingClientRect())
   }
 
-  setSize(size: Partial<{
-    width: number,
-    height: number,
-    pixelRatio: number
-  }>): this {
-    const { width: newWidth, height: newHeight, pixelRatio: newPixelRatio } = { ...this, ...size }
-
-    if (newWidth === this.width && newHeight === this.height && newPixelRatio === this.pixelRatio) {
-      return this
-    }
-
-    this.width = newWidth
-    this.height = newHeight
-    this.pixelRatio = newPixelRatio
+  /**
+   * Called from the parent class when the size of the context changes.
+   */
+  override onSetSize(): void {
+    const {
+      size: { x: newWidth, y: newHeight },
+      pixelRatio: newPixelRatio,
+    } = this
 
     const { renderer, perspectiveCamera, orthographicCamera } = this
     renderer.setSize(newWidth, newHeight)
@@ -62,8 +56,6 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
     orthographicCamera.top = 1
     orthographicCamera.bottom = -1
     orthographicCamera.updateProjectionMatrix()
-
-    return this
   }
 
   initialized = false

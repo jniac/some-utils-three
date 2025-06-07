@@ -143,21 +143,14 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     this.renderer.dispose()
   }
 
-  setSize(size: Partial<{
-    width: number,
-    height: number,
-    pixelRatio: number
-  }>): this {
-    const { width: newWidth, height: newHeight, pixelRatio: newPixelRatio } = { ...this, ...size }
-
-    if (newWidth === this.width && newHeight === this.height && newPixelRatio === this.pixelRatio) {
-      return this
-    }
-
-    this.width = newWidth
-    this.height = newHeight
-    this.pixelRatio = newPixelRatio
-
+  /**
+   * Called from the parent class when the size of the context changes.
+   */
+  override onSetSize(): void {
+    const {
+      size: { x: newWidth, y: newHeight },
+      pixelRatio: newPixelRatio,
+    } = this
     const { renderer, perspectiveCamera, pipeline } = this
     renderer.setSize(newWidth, newHeight)
     renderer.setPixelRatio(newPixelRatio)
@@ -167,8 +160,6 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     const aspect = newWidth / newHeight
     perspectiveCamera.aspect = aspect
     perspectiveCamera.updateProjectionMatrix()
-
-    return this
   }
 
   renderFrame = (tick: Tick) => {
