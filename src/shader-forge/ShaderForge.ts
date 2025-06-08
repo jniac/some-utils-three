@@ -204,6 +204,28 @@ function varying(varying: string | Record<string, VaryingType>) {
   return ShaderForge
 }
 
+const createVaryingOptions = {
+  sf_vObjectPosition: () => {
+    top(/* glsl */`varying vec3 sf_vObjectPosition;`)
+    vertex.mainAfterAll(/* glsl */`sf_vObjectPosition = transformed;`)
+  },
+  sf_vWorldPosition: () => {
+    top(/* glsl */`varying vec3 sf_vWorldPosition;`)
+    vertex.mainAfterAll(/* glsl */`sf_vWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;`)
+  },
+}
+function createVarying(...args: (keyof typeof createVaryingOptions)[]) {
+  for (const key of args) {
+    const fn = createVaryingOptions[key]
+    if (fn) {
+      fn()
+    } else {
+      console.warn(`No createVarying function found for "${key}"`)
+    }
+  }
+  return ShaderForge
+}
+
 /**
  * Added code to the top of the vertex and fragment shaders
  */
@@ -243,6 +265,7 @@ type ShaderForgeType = {
   defines: typeof defines
   uniforms: typeof uniforms
   varying: typeof varying
+  createVarying: typeof createVarying
   top: typeof top
   vertex: typeof vertex
   fragment: typeof fragment
@@ -264,14 +287,14 @@ type ShaderForgeType = {
  * 
  * Usage:
  * ```
- * material.onBeforeCompile = shader => ShaderForge(shader)
- *   .uniforms({
- *     uScalar: { value: 1 },
- *   })
- *   .vertex.before('project_vertex', `
+      * material.onBeforeCompile = shader => ShaderForge(shader)
+        *   .uniforms({
+          *     uScalar: { value: 1 },
+          *   })
+        *   .vertex.before('project_vertex', `
  *     transformed.xyz *= uScalar;
  *   `)
- * ```
+        * ```
  */
 export const ShaderForge: ShaderForgeType = Object.assign(function (shader?: WebGLProgramParametersWithUniforms) {
   if (shader) {
@@ -283,6 +306,7 @@ export const ShaderForge: ShaderForgeType = Object.assign(function (shader?: Web
   defines,
   uniforms,
   varying,
+  createVarying,
   top,
   vertex,
   fragment,
