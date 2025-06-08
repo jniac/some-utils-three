@@ -151,7 +151,11 @@ function shaderName(name: string) {
   return ShaderForge
 }
 
-function defines(defines: Record<string, string | number>) {
+function defines(...args: [defines: Record<string, string | number>] | string[]) {
+  let defines = args[0]
+  if (typeof defines === 'string') {
+    defines = Object.fromEntries(args.map(d => [d, ''])) as Record<string, string | number>
+  }
   if ((current as any).defines) {
     Object.assign((current as any).defines, defines)
   } else {
