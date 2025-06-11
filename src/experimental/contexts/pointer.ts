@@ -15,6 +15,7 @@ export enum PointerButton {
 }
 
 class PointerState {
+  downEvent: PointerEvent | null = null
   /**
    * The state of the pointer buttons (bitmask).
    */
@@ -60,7 +61,16 @@ export class ThreePointerEvent {
   constructor(
     public readonly type: ThreePointerEventType,
     public readonly intersection: Intersection | null,
+    private readonly state: PointerState,
   ) { }
+
+  get downEvent() {
+    return this.state.downEvent!
+  }
+
+  get downTarget() {
+    return this.downEvent.target as HTMLElement
+  }
 
   consumed = false
 
@@ -78,6 +88,31 @@ export class Pointer {
   downTimes = new Map<PointerButton, number>()
   upTimes = new Map<PointerButton, number>()
 
+  domElement: HTMLElement | null = null
+  scope: HTMLElement | null = null
+
+  #eventIgnore = new Map<ThreePointerEventType, (event: ThreePointerEvent) => boolean>()
+  /**
+   * Set a function to ignore pointer events of a specific type.
+   * 
+   * This allows to filter out pointer events based on custom logic.
+   * 
+   * Eg. to ignore "tap" events because of the presence of UI elements, but still
+   * allow pointer position update, or even dragging:
+   * ```ts
+   * three.pointer.setEventIgnore(ThreePointerEvent.Type.Tap, event => {
+   *   const { downTarget } = event
+   *   return canvasWrapper === downTarget || canvasWrapper.contains(downTarget)
+   * })
+   * ```
+   */
+  setEventIgnore(type: ThreePointerEventType, ignore: (event: ThreePointerEvent) => boolean) {
+    this.#eventIgnore.set(type, ignore)
+  }
+
+  /**
+   * @deprecated Highly deprecated, use `ThreePointerEvent` instead.
+   */
   event = new class PointerEvent {
     consumed = false
     consume() {
@@ -254,8 +289,14 @@ export class Pointer {
 
   #updatePointerEvents(scene: Object3D) {
     const [first] = this.intersections
+
     if (this.buttonTap()) {
-      const event = new ThreePointerEvent(ThreePointerEventType.Tap, first ?? null)
+      const event = new ThreePointerEvent(ThreePointerEventType.Tap, first ?? null, this.state)
+
+      const ignore = this.#eventIgnore.get(event.type)
+      if (ignore?.(event))
+        return
+
       const originalScope = first?.object ?? scene
       let scope: Object3D | null = originalScope
       type OnPointerTap = (event: ThreePointerEvent) => void
@@ -277,6 +318,9 @@ export class Pointer {
   }
 
   initialize(domElement: HTMLElement, scope: HTMLElement, camera: Camera, ticker: Ticker) {
+    this.domElement = domElement
+    this.scope = scope
+
     const updatePointerPosition = (event: PointerEvent) => {
       const rect = domElement.getBoundingClientRect()
       const { clientX: x, clientY: y } = event
@@ -291,6 +335,7 @@ export class Pointer {
       // NOTE: Update the pointer position on "down" too (because of touch events)
       updatePointerPosition(event)
 
+      this.state.downEvent = event
       this.state.buttons |= (1 << event.button)
       this.downTimes.set(event.button, ticker.time)
     }
