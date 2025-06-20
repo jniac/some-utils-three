@@ -49,8 +49,8 @@ function fromEulerDeclarationString(str: string, options: FromEulerDeclarationOp
   return out.set(x, y, z, order)
 }
 
-function fromEulerDeclaration(arg: EulerDeclaration, out?: Euler): Euler
-function fromEulerDeclaration(arg: EulerDeclaration, options: FromEulerDeclarationOptions, out?: Euler): Euler
+function fromEulerDeclaration(arg: Partial<EulerDeclaration>, out?: Euler): Euler
+function fromEulerDeclaration(arg: Partial<EulerDeclaration>, options: FromEulerDeclarationOptions, out?: Euler): Euler
 function fromEulerDeclaration(...args: any[]): Euler {
   const parseArgs = () => {
     if (args.length === 1)

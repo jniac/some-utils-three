@@ -63,9 +63,9 @@ const defaultTransformProps = {
 }
 
 export type TransformProps = Partial<typeof defaultTransformProps & {
-  position: Vector3 | Vector3Declaration
-  rotation: Euler | EulerDeclaration
-  scale: Vector3 | Vector3Declaration
+  position: Vector3 | Partial<Vector3Declaration>
+  rotation: Euler | Partial<EulerDeclaration>
+  scale: Vector3 | Partial<Vector3Declaration>
 }>
 
 const _matrix3 = new Matrix3()
