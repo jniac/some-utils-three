@@ -1,18 +1,21 @@
-import { Camera, Euler, Quaternion, Vector2, Vector2Like, Vector3 } from 'three'
+import { Camera, Euler, Plane, Quaternion, Ray, Vector2, Vector2Like, Vector3 } from 'three'
 
 import { handleHtmlElementEvent } from 'some-utils-dom/handle/element-event'
 import { handlePointer, PointerButton } from 'some-utils-dom/handle/pointer'
 import { Animation } from 'some-utils-ts/animation'
+import { intersectLineWithPlane } from 'some-utils-ts/math/geom/geom3'
 import { calculateExponentialDecayLerpRatio } from 'some-utils-ts/math/misc/exponential-decay'
 import { DestroyableInstance } from 'some-utils-ts/misc/destroy'
 
-import { fromVector3Declaration, Vector3Declaration } from '../../declaration'
+import { fromPlaneDeclaration, fromVector3Declaration, PlaneDeclaration, Vector3Declaration } from '../../declaration'
 import { Vertigo, VertigoProps } from '../vertigo'
 
 const _quaternion = new Quaternion()
 const _vectorX = new Vector3()
 const _vectorY = new Vector3()
 const _vectorZ = new Vector3()
+const _plane = new Plane()
+const _ray = new Ray()
 
 function _updateVectorXYZ(rotation: Euler) {
   _quaternion.setFromEuler(rotation)
@@ -90,6 +93,13 @@ export class VertigoControls extends DestroyableInstance {
    * The damped vertigo controls (used for smooth camera movement).
    */
   dampedVertigo = new Vertigo()
+
+  /**
+   * If set, the focus plane will be used to constrain the focus point.
+   * 
+   * Useful for example to limit the focus point to a ground plane.
+   */
+  focusPlane = <PlaneDeclaration | null>null
 
   /**
    * The element to attach the pointer events to. Must be set through `initialize()`.
@@ -176,6 +186,15 @@ export class VertigoControls extends DestroyableInstance {
     this.vertigo.focus
       .addScaledVector(_vectorX, x * z)
       .addScaledVector(_vectorY, y * z)
+
+    if (this.focusPlane) {
+      fromPlaneDeclaration(this.focusPlane, _plane)
+      _ray.origin.copy(this.vertigo.focus)
+      _ray.direction.copy(_vectorZ)
+      if (intersectLineWithPlane(_ray, _plane, _vectorZ)) {
+        this.vertigo.focus.copy(_vectorZ)
+      }
+    }
   }
 
   dolly(delta: number) {

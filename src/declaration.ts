@@ -12,6 +12,7 @@ import { EulerDeclaration, fromEulerDeclaration } from './declaration/euler'
 import { isMatrix4, isObject3D } from './is'
 
 export * from './declaration/euler'
+export * from './declaration/plane'
 export * from './declaration/vector'
 export * from './is'
 

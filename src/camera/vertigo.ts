@@ -371,9 +371,9 @@ export class Vertigo {
     camera.updateMatrixWorld(true)
 
     // Let's pretend we're a PerspectiveCamera or an OrthographicCamera
-    // @ts-ignore
+    // @ts-expect-error Javascript here! We add the properties to the camera.
     camera.isPerspectiveCamera = isPerspective
-    // @ts-ignore
+    // @ts-expect-error Javascript here! We add the properties to the camera.
     camera.isOrthographicCamera = !isPerspective
 
     if (isPerspective) {
@@ -404,7 +404,7 @@ export class Vertigo {
       const mWidth = mHeight * aspect
 
       const ocam = camera as OrthographicCamera
-      // @ts-ignore
+      // @ts-expect-error Javascript here! We create the "fov" property even if it doesn't exist on OrthographicCamera.
       ocam.fov = 0
       ocam.near = near
       ocam.far = far

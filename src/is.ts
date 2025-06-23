@@ -1,4 +1,4 @@
-import { ColorRepresentation, Euler, Matrix4, Mesh, Object3D, Sprite, Vector2, Vector3, Vector4 } from 'three'
+import { ColorRepresentation, Euler, Matrix4, Mesh, Object3D, Plane, Sprite, Vector2, Vector3, Vector4 } from 'three'
 
 /**
  * Safe type check for Vector3 (safer than `instanceof` which may fail with different versions of Three.js).
@@ -33,6 +33,13 @@ export function isEuler(value: any): value is Euler {
  */
 export function isMatrix4(value: any): value is Matrix4 {
   return !!value?.isMatrix4
+}
+
+/**
+ * Safe type check for Plane (safer than `instanceof` which may fail with different versions of Three.js).
+ */
+export function isPlane(value: any): value is Plane {
+  return !!value?.isPlane
 }
 
 /**
