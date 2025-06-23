@@ -145,6 +145,11 @@ class DebugHelper extends Group {
     return this
   }
 
+  axes(...args: Parameters<LinesManager['axes']>): this {
+    this.parts.linesManager.axes(...args)
+    return this
+  }
+
   polyline(
     data: Parameters<LinesManager['polyline']>[0],
     options?: Parameters<LinesManager['polyline']>[1] & LinePointsOptions,

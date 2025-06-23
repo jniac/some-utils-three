@@ -415,6 +415,14 @@ export class LinesManager extends BaseManager {
     return this.segments([p0, p1], options)
   }
 
+  axes(p: Vector3Declaration, { size = 1 } = {}) {
+    const { x, y, z } = fromVector3Declaration(p, _v0)
+    return this
+      .segmentsArray(new Float32Array([x, y, z, x + size, y, z]), { color: '#ff0033' })
+      .segmentsArray(new Float32Array([x, y, z, x, y + size, z]), { color: '#00ff33' })
+      .segmentsArray(new Float32Array([x, y, z, x, y, z + size]), { color: '#0033ff' })
+  }
+
   polyline(p: Vector3Declaration[], options?: LineOptions) {
     if (p.length < 2)
       return this
