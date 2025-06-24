@@ -264,17 +264,20 @@ export class VertigoControls extends DestroyableInstance {
       },
       dragButton: ~0,
       onDrag: info => {
-        const s = info.altKey ? .2 : info.shiftKey ? 5 : 1
-        switch (info.button) {
-          case PointerButton.Left: {
+        const scalar = info.altKey ? .2 : info.shiftKey ? 5 : 1
+        const type = info.button === PointerButton.Left && info.touchCount <= 1
+          ? 'orbit'
+          : 'pan'
+        switch (type) {
+          case 'orbit': {
             if (matchControlInput(info, this.orbitInputs)) {
-              this.orbit(info.delta.y * -.01 * s, info.delta.x * -.01 * s)
+              this.orbit(info.delta.y * -.01 * scalar, info.delta.x * -.01 * scalar)
             }
             break
           }
-          case PointerButton.Right: {
+          case 'pan': {
             if (matchControlInput(info, this.panInputs)) {
-              this.pan(info.delta.x * -.025 * s, info.delta.y * .025 * s)
+              this.pan(info.delta.x * -.025 * scalar, info.delta.y * .025 * scalar)
             }
             break
           }
