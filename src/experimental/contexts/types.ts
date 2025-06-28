@@ -11,9 +11,9 @@ export enum ThreeContextType {
   WebGPU = 'webgpu',
 }
 
-export type QuerySelector = string | RegExp | ((object: any) => boolean)
+export type QuerySelector<T> = string | RegExp | ((object: any) => boolean) | (new (...args: any) => T)
 
-function solveQuerySelector(selector?: QuerySelector): (object: any) => boolean {
+function solveQuerySelector<T>(selector?: QuerySelector<T>): (object: any) => boolean {
   if (selector === undefined)
     return () => true
 
@@ -26,8 +26,12 @@ function solveQuerySelector(selector?: QuerySelector): (object: any) => boolean 
   if (selector instanceof RegExp)
     return (object: any) => selector.test(object?.name) || selector.test(object?.constructor?.name)
 
-  if (typeof selector === 'function')
-    return selector
+  if (typeof selector === 'function') {
+    if (Object3D.prototype.isPrototypeOf(selector.prototype))
+      return (object: any) => object instanceof selector
+
+    return (object: any) => (selector as (object: any) => boolean)(object)
+  }
 
   throw new Error('Invalid query selector')
 }
@@ -118,7 +122,7 @@ export class ThreeBaseContext {
     throw new Error('Not implemented')
   }
 
-  *queryAll<T extends Object3D>(selector?: QuerySelector, options?: QuerySelectorOptions): Generator<T> {
+  *queryAll<T extends Object3D>(selector?: QuerySelector<T>, options?: QuerySelectorOptions): Generator<T> {
     const filter = solveQuerySelector(selector)
 
     const {
@@ -137,7 +141,7 @@ export class ThreeBaseContext {
     }
   }
 
-  queryFirst<T extends Object3D>(selector?: QuerySelector, options?: QuerySelectorOptions): T | null {
+  queryFirst<T extends Object3D>(selector?: QuerySelector<T>, options?: QuerySelectorOptions): T | null {
     for (const object of this.queryAll<T>(selector, options))
       return object
 
