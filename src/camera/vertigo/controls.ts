@@ -180,6 +180,12 @@ export class VertigoControls extends DestroyableInstance {
     this.dampedVertigo.set(props)
   }
 
+  set(props: VertigoProps) {
+    this.vertigo.set(props)
+    this.dampedVertigo.set(props)
+    return this
+  }
+
   pan(x: number, y: number) {
     _updateVectorXYZ(this.vertigo.rotation)
     const z = 1 / this.vertigo.zoom

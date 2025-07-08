@@ -67,9 +67,11 @@ const defaultProps = {
   rotation: <EulerDeclaration>[0, 0, 0, defaultRotationOrder],
   /**
    * Controls how the size of camera is seen in the screen:
+   * 
    * - 0: cover
    * - 1: contain
-   * Intermediates are linearly interpolated.
+   * 
+   * Intermediates are supported (linear interpolation).
    */
   frame: <number | 'cover' | 'contain'>'contain',
   /**
@@ -149,9 +151,11 @@ export class Vertigo {
   rotation = new Euler()
   /**
    * Controls how the size of camera is seen in the screen:
+   * 
    * - 0: cover
    * - 1: contain
-   * Intermediates are linearly interpolated.
+   * 
+   * Intermediates are supported (linear interpolation).
    */
   frame!: number
 
