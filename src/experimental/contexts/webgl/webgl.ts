@@ -116,7 +116,7 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     // Tick
     onDestroy(
       handleAnyUserInteraction(this.ticker.requestActivation),
-      this.ticker.onTick(this.renderFrame),
+      this.ticker.onTick(tick => this.renderFrame(tick)),
     )
 
     // Orbit controls
@@ -162,25 +162,14 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     perspectiveCamera.updateProjectionMatrix()
   }
 
-  renderFrame = (tick: Tick) => {
-    const { scene, pipeline, pointer } = this
-
+  override renderFrame(tick: Tick): void {
     this.internal.orbitControls?.update(tick.deltaTime)
 
-    pointer.updateStart(scene)
-
-    scene.traverse(child => {
-      if ('onTick' in child) {
-        // call onTick on every child that has it
-        (child as any).onTick(this.ticker, this)
-      }
-    })
+    super.renderFrame(tick)
 
     if (this.skipRender === false) {
-      pipeline.render(tick)
+      this.pipeline.render(tick)
     }
-
-    pointer.updateEnd()
   };
 
   *findAll(query: string | RegExp | ((object: any) => boolean), options?: Parameters<typeof queryDescendantsOf>[2]) {

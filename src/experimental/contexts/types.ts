@@ -1,6 +1,6 @@
 import { Camera, Object3D, Scene, Vector2, Vector3 } from 'three'
 
-import { Ticker } from 'some-utils-ts/ticker'
+import { Tick, Ticker } from 'some-utils-ts/ticker'
 import { Destroyable } from 'some-utils-ts/types'
 
 import { allDescendantsOf } from 'some-utils-ts/iteration/tree'
@@ -43,6 +43,42 @@ const defaultQueryOptions = {
 
 type QuerySelectorOptions = Partial<typeof defaultQueryOptions>
 
+class RollingSum {
+  #size: number
+  #buffer: Float32Array
+  #index = 0
+  #sum = 0
+
+  constructor(size: number) {
+    this.#size = size
+    this.#buffer = new Float32Array(size)
+  }
+
+  add(value: number): number {
+    const oldValue = this.#buffer[this.#index]
+    this.#sum += value - oldValue
+    this.#buffer[this.#index] = value
+    this.#index = (this.#index + 1) % this.#size
+    return this.#sum
+  }
+
+  get current(): number {
+    return this.#buffer[this.#index]
+  }
+
+  get sum(): number {
+    return this.#sum
+  }
+
+  get size(): number {
+    return this.#size
+  }
+
+  get average(): number {
+    return this.#sum / this.#size
+  }
+}
+
 export class ThreeBaseContext {
   static shared = {
     vector2: new Vector2(),
@@ -69,6 +105,11 @@ export class ThreeBaseContext {
   domElement!: HTMLElement
   domContainer!: HTMLElement
 
+  #internal = {
+    now: 0,
+    deltaTimes: new RollingSum(30),
+  }
+
   get aspect() {
     return this.size.x / this.size.y
   }
@@ -89,8 +130,13 @@ export class ThreeBaseContext {
     return this.fullSize.y
   }
 
+  get averageFps() {
+    return 1 / this.#internal.deltaTimes.average
+  }
+
   constructor(type: ThreeContextType) {
     this.type = type
+    this.#internal.now = performance.now()
   }
 
   setSize(newSize: Partial<{
@@ -120,6 +166,32 @@ export class ThreeBaseContext {
 
   initialize(domContainer: HTMLElement, pointerScope: HTMLElement): Destroyable {
     throw new Error('Not implemented')
+  }
+
+  /**
+   * Base render function that is called on every tick.
+   * 
+   * It updates the pointer, traverses the scene and calls `onTick` on each
+   * child that has it.
+   */
+  renderFrame(tick: Tick): void {
+    const now = performance.now()
+
+    this.#internal.deltaTimes.add((now - this.#internal.now) / 1e3)
+    this.#internal.now = now
+
+    const { scene, pointer } = this
+
+    pointer.updateStart(scene)
+
+    scene.traverse(child => {
+      if ('onTick' in child) {
+        // call onTick on every child that has it
+        (child as any).onTick(this.ticker, this)
+      }
+    })
+
+    pointer.updateEnd()
   }
 
   *queryAll<T extends Object3D>(selector?: QuerySelector<T>, options?: QuerySelectorOptions): Generator<T> {

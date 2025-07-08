@@ -3,6 +3,7 @@ import { OrthographicCamera, PerspectiveCamera, PostProcessing, WebGPURenderer }
 
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
 
+import { Tick } from 'some-utils-ts/ticker'
 import { ThreeBaseContext, ThreeContextType } from '../types'
 
 export class ThreeWebGPUContext extends ThreeBaseContext {
@@ -96,8 +97,8 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
       pixelRatio: window.devicePixelRatio,
     })
 
-    this.internal.cancelTick = this.ticker.onTick(() => {
-      this.renderFrame()
+    this.internal.cancelTick = this.ticker.onTick(tick => {
+      this.renderFrame(tick)
     }).destroy
 
     this.internal.cancelRequestActivation = handleAnyUserInteraction(document.body, this.ticker.requestActivation).destroy
@@ -110,24 +111,13 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
     return this
   }
 
-  renderFrame() {
-    const { scene, postProcessing, pointer } = this
-
-    pointer.updateStart(scene)
-
-    scene.traverse(child => {
-      if ('onTick' in child) {
-        // call onTick on every child that has it
-        (child as any).onTick(this.ticker, this)
-      }
-    })
+  override renderFrame(tick: Tick) {
+    super.renderFrame(tick)
 
     if (this.skipRender === false) {
       // renderer.renderAsync(scene, camera)
-      postProcessing.renderAsync()
+      this.postProcessing.renderAsync()
     }
-
-    pointer.updateEnd()
   }
 
   destroyed = false
