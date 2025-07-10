@@ -11,7 +11,11 @@ export enum ThreeContextType {
   WebGPU = 'webgpu',
 }
 
-export type QuerySelector<T> = string | RegExp | ((object: any) => boolean) | (new (...args: any) => T)
+export type QuerySelector<T> =
+  | string
+  | RegExp
+  | ((object: any) => boolean)
+  | (new (...args: any) => T)
 
 function solveQuerySelector<T>(selector?: QuerySelector<T>): (object: any) => boolean {
   if (selector === undefined)
@@ -21,7 +25,7 @@ function solveQuerySelector<T>(selector?: QuerySelector<T>): (object: any) => bo
     return () => false
 
   if (typeof selector === 'string')
-    return (object: any) => object?.name === selector || object?.uuid === selector
+    return (object: any) => object?.uuid === selector || object?.name === selector || object?.constructor?.name === selector
 
   if (selector instanceof RegExp)
     return (object: any) => selector.test(object?.name) || selector.test(object?.constructor?.name)
@@ -194,6 +198,13 @@ export class ThreeBaseContext {
     pointer.updateEnd()
   }
 
+  /**
+   * `selector` can be a string, a RegExp, a function or a class:
+   * - `string` - matches the name, the constructor name or the uuid of the object
+   * - `RegExp` - matches the name or constructor name of the object
+   * - `function` - a predicate function that takes an object and returns true if it matches
+   * - `class` - matches the object if it is an instance of the class
+   */
   *queryAll<T extends Object3D>(selector?: QuerySelector<T>, options?: QuerySelectorOptions): Generator<T> {
     const filter = solveQuerySelector(selector)
 
@@ -213,6 +224,13 @@ export class ThreeBaseContext {
     }
   }
 
+  /**
+   * `selector` can be a string, a RegExp, a function or a class:
+   * - `string` - matches the name, the constructor name or the uuid of the object
+   * - `RegExp` - matches the name or constructor name of the object
+   * - `function` - a predicate function that takes an object and returns true if it matches
+   * - `class` - matches the object if it is an instance of the class
+   */
   queryFirst<T extends Object3D>(selector?: QuerySelector<T>, options?: QuerySelectorOptions): T | null {
     for (const object of this.queryAll<T>(selector, options))
       return object
