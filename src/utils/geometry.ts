@@ -1,6 +1,16 @@
 import { BufferAttribute, BufferGeometry, Color, ColorRepresentation } from 'three'
 
-export function setvertexColors(geometry: BufferGeometry, colorsArg: ColorRepresentation | ColorRepresentation[], startIndex = 0, endIndex = -1) {
+/**
+ * Sets vertex colors for a BufferGeometry.
+ * 
+ * If the geometry already has a 'color' attribute, it will be updated, otherwise a new one will be created.
+ */
+export function setVertexColors(
+  geometry: BufferGeometry,
+  colorsArg: ColorRepresentation | ColorRepresentation[],
+  startIndex = 0,
+  endIndex = -1,
+): BufferGeometry {
   const colors = Array.isArray(colorsArg)
     ? colorsArg.map(c => new Color(c))
     : [new Color(colorsArg)]
@@ -29,5 +39,11 @@ export function setvertexColors(geometry: BufferGeometry, colorsArg: ColorRepres
   }
 
   colorsAttribute.needsUpdate = true
+
+  return geometry
 }
 
+/**
+ * @deprecated Use `setVertexColors` instead.
+ */
+export const setvertexColor = setVertexColors
