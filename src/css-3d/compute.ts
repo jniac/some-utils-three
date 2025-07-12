@@ -123,8 +123,18 @@ function toMatrix4(source: Object3D | Matrix4 | Vector3, optionalTarget: Matrix4
 }
 
 export function computeFrontFacing(camera: Camera, target: Object3D | Matrix4 | Vector3) {
-  _vector1.set(camera.matrixWorld.elements[8], camera.matrixWorld.elements[9], camera.matrixWorld.elements[10])
-  toVector3(target, _vector2)
+  _vector1.setFromMatrixColumn(camera.matrixWorld, 2)
+
+  if (isObject3D(target)) {
+    _vector2.setFromMatrixColumn(target.matrixWorld, 2) // Forward vector
+  } else if (isMatrix4(target)) {
+    _vector2.setFromMatrixColumn(target, 2) // Forward vector
+  } else if (isVector3(target)) {
+    _vector2.copy(target)
+  } else {
+    throw new Error('Invalid object type.')
+  }
+
   return _vector1.dot(_vector2) > 0
 }
 
