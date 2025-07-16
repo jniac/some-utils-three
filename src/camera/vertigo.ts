@@ -23,46 +23,64 @@ const defaultProps = {
    * be the field of view (horizontal or vertical depends on the aspect ratios of
    * the current focus size and the screen).
    * 
-   * Defaults to 45 degrees.
+   * Note: The value is a "angle declaration" (e.g. '45deg', '1.5rad', etc.). Raw number is in radians.
+   * 
+   * @default '45deg' (45 degrees)
    */
   fov: <AngleDeclaration>'45deg',
   /**
    * The "perspectiveness" of the camera.
    * - 0: orthographic (if `allowOrthographic` is `true`, otherwise the fovEpislon is used)
    * - 1: perspective (0.8 radians (Vertical FOV) ≈ 45 degrees)
+   * 
+   * @default 1
    */
   perspective: <number>1,
   /**
    * The zoom of the camera.
+   * 
+   * @default 1
    */
   zoom: <number>1,
   /**
    * The position of the focus point (where the camera is looking at).
+   * 
+   * @default [0, 0, 0]
    */
   focus: <Vector3Declaration>[0, 0, 0],
   /**
    * The offset of the focus point from the camera position. When the subject is
    * not at the center...
+   * 
+   * @default [0, 0, 0]
    */
   screenOffset: <Vector3Declaration>[0, 0, 0],
   /**
    * The size of the focus area. Camera will fit this area into the screen (according to the `frame` property).
+   * 
+   * @default [4, 4]
    */
   size: <Vector2Declaration>[4, 4],
   /**
    * The distance before the focus point that will be visible.
    * 
    * Determines the `near` property of the camera.
+   * 
+   * @default 1000
    */
   before: <number>1000,
   /**
    * The distance between the focus point and the far plane.
    * 
    * Determines the `far` property of the camera.
+   * 
+   * @default 1000
    */
   after: <number>1000,
   /**
    * The rotation of the camera.
+   * 
+   * @default [0, 0, 0, 'YXZ'] (Euler declaration)
    */
   rotation: <EulerDeclaration>[0, 0, 0, defaultRotationOrder],
   /**
@@ -72,18 +90,28 @@ const defaultProps = {
    * - 1: contain
    * 
    * Intermediates are supported (linear interpolation).
+   * 
+   * @default 'contain' (1)
    */
   frame: <number | 'cover' | 'contain'>'contain',
   /**
    * Whether to allow orthographic camera (when the perspective is close to 0).
+   * 
+   * @default true
    */
   allowOrthographic: <boolean>true,
   /**
    * Whether to switch to orthographic (if allowed) when the perspective is close to 0.
+   * 
+   * @default '1.5deg' (1.5 degrees)
    */
   fovEpsilon: <AngleDeclaration>'1.5deg',
   /**
    * The minimum value for the `near` property of the camera.
+   * 
+   * This is used to prevent the camera from being too close to the focus point.
+   * 
+   * @default .1
    */
   nearMin: <number>.1,
 }
@@ -103,19 +131,20 @@ export class Vertigo {
 
   // General settings:
   /**
+   * The base of the perspective (in degrees). If `perspective` is 1, this will 
+   * be the field of view (horizontal or vertical depends on the aspect ratios of
+   * the current focus size and the screen).
+   * 
+   * Note:
+   * - Value is in radians here, but can be set as an "angle declaration" (e.g. '45deg', '1.5rad', etc.). cf vertigo props.
+   */
+  fov!: number // radians
+  /**
    * The "perspectiveness" of the camera.
    * - 0: orthographic (if `allowOrthographic` is `true`, otherwise the fovEpislon is used)
    * - 1: perspective (0.8 radians (Vertical FOV) ≈ 45 degrees)
    */
   perspective!: number
-  /**
-   * The base of the perspective (in degrees). If `perspective` is 1, this will 
-   * be the field of view (horizontal or vertical depends on the aspect ratios of
-   * the current focus size and the screen).
-   * 
-   * Defaults to 45 degrees.
-   */
-  fov!: number // radians
   /**
    * The zoom of the camera.
    */
