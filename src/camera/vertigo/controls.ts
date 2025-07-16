@@ -6,6 +6,7 @@ import { Animation } from 'some-utils-ts/animation'
 import { intersectLineWithPlane } from 'some-utils-ts/math/geom/geom3'
 import { calculateExponentialDecayLerpRatio } from 'some-utils-ts/math/misc/exponential-decay'
 import { DestroyableInstance } from 'some-utils-ts/misc/destroy'
+import { DestroyableObject } from 'some-utils-ts/types'
 
 import { fromPlaneDeclaration, fromVector3Declaration, PlaneDeclaration, Vector3Declaration } from '../../declaration'
 import { Vertigo, VertigoProps } from '../vertigo'
@@ -73,7 +74,7 @@ function parseInputs(inputs: string) {
  * controls.initialize('canvas')
  * controls.start()
  */
-export class VertigoControls extends DestroyableInstance {
+export class VertigoControls implements DestroyableObject {
   /**
    * The decay factor for the vertigo controls (expresses the missing part after 1 second).
    * 
@@ -105,6 +106,10 @@ export class VertigoControls extends DestroyableInstance {
    * The element to attach the pointer events to. Must be set through `initialize()`.
    */
   element!: HTMLElement
+
+  #state = {
+    startDestroyableInstance: new DestroyableInstance(),
+  }
 
   inputConfig = {
     wheel: 'zoom' as 'zoom' | 'dolly',
@@ -175,9 +180,17 @@ export class VertigoControls extends DestroyableInstance {
   }
 
   constructor(props: VertigoProps = {}) {
-    super()
     this.vertigo.set(props)
     this.dampedVertigo.set(props)
+  }
+
+  #destroyed = false
+  get destroyed() { return this.#destroyed }
+  destroy = () => {
+    if (this.#destroyed)
+      return
+    this.#destroyed = true
+    this.#state.startDestroyableInstance.destroy()
   }
 
   set(props: VertigoProps) {
@@ -315,7 +328,7 @@ export class VertigoControls extends DestroyableInstance {
   start(...args: Parameters<typeof this.doStart>): this {
     if (this.started === false) {
       this.started = true
-      this.collect(this.doStart(...args))
+      this.#state.startDestroyableInstance.collect(this.doStart(...args))
     }
     return this
   }
@@ -323,7 +336,10 @@ export class VertigoControls extends DestroyableInstance {
   stop() {
     if (this.started) {
       this.started = false
-      this.destroy()
+      // Destroy the start destroyable instance to clean up the event listeners
+      // and recreate it for the next start.
+      this.#state.startDestroyableInstance.destroy()
+      this.#state.startDestroyableInstance = new DestroyableInstance()
     }
   }
 
