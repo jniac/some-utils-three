@@ -117,6 +117,14 @@ export function* allAncestorsOf(child: Object3D, options?: Partial<typeof defaul
   }
 }
 
+export function lastAncestorOf<T extends Object3D = Object3D>(target: Object3D): T | null {
+  let last: Object3D | null = null
+  for (const parent of allAncestorsOf(target)) {
+    last = parent ?? last
+  }
+  return last as T | null
+}
+
 export function* queryDescendantsOf(parent: Object3D, query: (child: Object3D) => boolean, options?: Parameters<typeof allAncestorsOf>[1]): Generator<Object3D> {
   for (const child of allDescendantsOf(parent, options)) {
     if (query(child)) {
