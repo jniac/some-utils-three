@@ -191,7 +191,7 @@ export class ThreeBaseContext {
     scene.traverse(child => {
       if ('onTick' in child) {
         // call onTick on every child that has it
-        (child as any).onTick(this.ticker, this)
+        (child as any).onTick(tick, this)
       }
     })
 
