@@ -308,7 +308,11 @@ export class VertigoControls implements DestroyableObject {
           case 'zoom': {
             const newZoom = this.vertigo.zoom * (1 - info.delta.y * .001)
             if (info.event.altKey) {
-              this.zoomAt(newZoom, pointer)
+              if (info.event.shiftKey) {
+                this.vertigo.perspective *= 1 - info.delta.y * .001
+              } else {
+                this.zoomAt(newZoom, pointer)
+              }
             } else {
               this.zoomAt(newZoom, { x: 0, y: 0 })
             }
