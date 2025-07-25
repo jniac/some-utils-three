@@ -1,9 +1,9 @@
 import { Camera, Object3D, Scene, Vector2, Vector3 } from 'three'
 
+import { allDescendantsOf } from 'some-utils-ts/iteration/tree'
 import { Tick, Ticker } from 'some-utils-ts/ticker'
 import { Destroyable } from 'some-utils-ts/types'
 
-import { allDescendantsOf } from 'some-utils-ts/iteration/tree'
 import { Pointer } from './pointer'
 
 export enum ThreeContextType {

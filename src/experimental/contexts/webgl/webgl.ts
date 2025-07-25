@@ -8,7 +8,7 @@ import { Destroyable } from 'some-utils-ts/types'
 
 import { fromVector3Declaration, Vector3Declaration } from '../../../declaration'
 import { UnifiedLoader } from '../../../loaders/unified-loader'
-import { queryDescendantsOf } from '../../../utils/tree'
+import { queryDescendantsOf, QueryPredicate } from '../../../utils/tree'
 import { ThreeBaseContext, ThreeContextType } from '../types'
 import { BasicPipeline } from './pipelines/BasicPipeline'
 
@@ -172,13 +172,8 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     }
   };
 
-  *findAll(query: string | RegExp | ((object: any) => boolean), options?: Parameters<typeof queryDescendantsOf>[2]) {
-    const findDelegate =
-      typeof query === 'string' ? (object: any) => object.name === query :
-        query instanceof RegExp ? (object: any) => query.test(object.name) :
-          query
-
-    yield* queryDescendantsOf(this.scene, findDelegate, options)
+  *findAll<T extends Object3D = Object3D>(query: QueryPredicate<T>, options?: Parameters<typeof queryDescendantsOf>[2]) {
+    yield* queryDescendantsOf(this.scene, query, options)
   }
 
   find(query: string | RegExp | ((object: any) => boolean)) {

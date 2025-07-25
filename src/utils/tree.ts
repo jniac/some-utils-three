@@ -6,6 +6,36 @@ import { applyTransform, TransformProps } from './transform'
 type SetupParentOrTransformProps = Object3D | TransformProps | null
 type SetupCallback<T> = (instance: T) => void
 
+export type QueryPredicate<T extends Object3D = Object3D> =
+  | string
+  | RegExp
+  | ((instance: T) => boolean)
+  | (new (...args: any) => T)
+
+function solveQueryPredicate<T extends Object3D>(query: QueryPredicate<T>): (instance: T) => boolean {
+  if (query === undefined)
+    return () => true
+
+  if (query === null)
+    return () => false
+
+  if (typeof query === 'string')
+    return (instance: T) => instance.name === query || instance.uuid === query
+
+  if (query instanceof RegExp)
+    return (instance: T) => query.test(instance.name)
+
+  if (query.prototype && query.prototype instanceof Object3D)
+    return (instance: T) => instance instanceof query
+
+  return (instance: T) => {
+    if ((query as (instance: T) => boolean)(instance))
+      return true
+
+    return false
+  }
+}
+
 /**
  * Convenient method to setup an Object3D instance. Apply transform props and 
  * add to parent if needed. For further customization, a callback can be provided.
@@ -125,10 +155,13 @@ export function lastAncestorOf<T extends Object3D = Object3D>(target: Object3D):
   return last as T | null
 }
 
-export function* queryDescendantsOf(parent: Object3D, query: (child: Object3D) => boolean, options?: Parameters<typeof allAncestorsOf>[1]): Generator<Object3D> {
+export function queryDescendantsOf<T extends Object3D = Object3D>(parent: Object3D, type: new (...args: any) => T, options?: Parameters<typeof allAncestorsOf>[1]): Generator<T>
+export function queryDescendantsOf<T extends Object3D = Object3D>(parent: Object3D, query: QueryPredicate<T>, options?: Parameters<typeof allAncestorsOf>[1]): Generator<T>
+export function* queryDescendantsOf<T extends Object3D = Object3D>(parent: Object3D, query: QueryPredicate<T>, options?: Parameters<typeof allAncestorsOf>[1]): Generator<T> {
+  const predicate = solveQueryPredicate(query)
   for (const child of allDescendantsOf(parent, options)) {
-    if (query(child)) {
-      yield child
+    if (predicate(child as T)) {
+      yield child as T
     }
   }
 }
