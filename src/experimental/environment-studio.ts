@@ -1,4 +1,4 @@
-import { BackSide, BoxGeometry, Color, ColorRepresentation, CubeCamera, FloatType, Group, IcosahedronGeometry, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, PlaneGeometry, PointLight, Scene, ShaderMaterial, SphereGeometry, TorusGeometry, Vector3Tuple, WebGLCubeRenderTarget, WebGLRenderer } from 'three'
+import { BackSide, BoxGeometry, Color, ColorRepresentation, CubeCamera, FloatType, Group, HalfFloatType, IcosahedronGeometry, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, PlaneGeometry, PointLight, Scene, ShaderMaterial, SphereGeometry, TextureDataType, TorusGeometry, Vector3Tuple, WebGLCubeRenderTarget, WebGLRenderer } from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/Addons.js'
 
 import { ShaderForge } from '../shader-forge'
@@ -16,6 +16,15 @@ function hashString(str: string): number {
 
 function array<T>(length: number, value: (i: number) => T) {
   return Array.from({ length }, (_, i) => value(i))
+}
+
+function isWebGL2Supported() {
+  try {
+    const canvas = document.createElement('canvas')
+    return !!(window.WebGL2RenderingContext && canvas.getContext('webgl2'))
+  } catch (e) {
+    return false
+  }
 }
 
 /**
@@ -81,9 +90,9 @@ class Random {
 export class EnvironmentStudio {
   static displayName = 'Environment Studio'
 
-  static createParts(textureSize: number) {
+  static createParts(textureSize: number, type: TextureDataType) {
     const scene = new Scene()
-    const rt = new WebGLCubeRenderTarget(textureSize, { generateMipmaps: true, type: FloatType })
+    const rt = new WebGLCubeRenderTarget(textureSize, { generateMipmaps: true, type })
     const cubeCamera = new CubeCamera(.1, 100, rt)
     return {
       rt,
@@ -104,7 +113,8 @@ export class EnvironmentStudio {
   get scene() { return this.parts.scene }
 
   constructor({ textureSize = 512 } = {}) {
-    this.parts = EnvironmentStudio.createParts(textureSize)
+    const type = isWebGL2Supported() ? FloatType : HalfFloatType
+    this.parts = EnvironmentStudio.createParts(textureSize, type)
   }
 
   render(renderer: WebGLRenderer, deltaTime = 1 / 60) {
