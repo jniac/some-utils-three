@@ -19,6 +19,8 @@ const _vectorY = new Vector3()
 const _vectorZ = new Vector3()
 const _plane = new Plane()
 const _ray = new Ray()
+const _v0 = new Vector3()
+const _v1 = new Vector3()
 
 function _updateVectorXYZ(rotation: Euler) {
   _quaternion.setFromEuler(rotation)
@@ -124,6 +126,11 @@ export class VertigoControls implements DestroyableObject {
      */
     secondaryVertigo: new Vertigo(),
     secondaryDampedVertigo: new Vertigo(),
+    /**
+     * If true, we are currently in the secondary vertigo controls, but going back
+     * to the primary vertigo controls.
+     */
+    secondaryExiting: false,
     helper: null as VertigoHelper | null,
 
     startDestroyableInstance: new DestroyableInstance(),
@@ -180,6 +187,8 @@ export class VertigoControls implements DestroyableObject {
         })
     },
     enterSecondary: () => {
+      this.#state.secondaryExiting = false
+
       if (!this.#state.secondaryIsActive) {
         this.#state.secondaryIsActive = true
         this.#state.secondaryDampedVertigo.copy(this.dampedVertigo)
@@ -197,19 +206,12 @@ export class VertigoControls implements DestroyableObject {
       }
     },
     exitSecondary: () => {
-      if (this.#state.secondaryIsActive) {
-        this.#state.secondaryIsActive = false
-        this.dampedVertigo.copy(this.#state.secondaryDampedVertigo)
-
-        // Remove the helper if it exists.
-        if (this.#state.helper) {
-          // this.group.remove(this.#state.helper)
-          // this.#state.helper = null
-        }
-      }
+      this.#state.secondaryExiting = true
     },
     toggleSecondary: () => {
-      if (this.#state.secondaryIsActive) {
+      // Has the secondary vertigo been activated and is it not exiting?
+      const activeAndNotExiting = this.#state.secondaryIsActive && this.#state.secondaryExiting === false
+      if (activeAndNotExiting) {
         this.actions.exitSecondary()
       } else {
         this.actions.enterSecondary()
@@ -345,7 +347,6 @@ export class VertigoControls implements DestroyableObject {
       [{ code: 'Tab', modifiers: 'alt' }, (info) => {
         info.event.preventDefault()
         this.actions.toggleSecondary()
-        console.log('Toggled secondary vertigo controls:', this.#state.secondaryIsActive)
       }]
     ])
 
@@ -431,11 +432,37 @@ export class VertigoControls implements DestroyableObject {
     }
   }
 
+  #doExitSecondary() {
+    this.#state.secondaryIsActive = false
+    this.#state.secondaryExiting = false
+    if (this.#state.helper) {
+      this.group.remove(this.#state.helper)
+      this.#state.helper = null
+    }
+  }
+
   update(camera: Camera, aspect: number, deltaTime = 1 / 60) {
     const t = calculateExponentialDecayLerpRatio(this.dampingDecayFactor, deltaTime)
     this.vertigo.update(aspect)
+
+    if (this.#state.secondaryExiting) {
+      this.dampedVertigo
+        .lerp(this.vertigo, t)
+      this.#state.secondaryDampedVertigo
+        .lerp(this.vertigo, t)
+      _v0.setFromMatrixPosition(this.#state.secondaryDampedVertigo.state.matrix)
+      _v1.setFromMatrixPosition(this.dampedVertigo.state.matrix)
+      const sqDistance = _v0.distanceToSquared(_v1)
+      if (sqDistance < 0.0001)
+        this.#doExitSecondary()
+    }
+
+    else {
+      this.currentDampedVertigo
+        .lerp(this.currentVertigo, t)
+    }
+
     this.currentDampedVertigo
-      .lerp(this.currentVertigo, t)
       .apply(camera, aspect)
   }
 }
