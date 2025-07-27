@@ -117,6 +117,11 @@ export class VertigoControls implements DestroyableObject {
   #state = {
     secondaryActivationCount: 0,
     secondaryIsActive: false,
+    /**
+     * The secondary vertigo controls is for exploring the scene without affecting
+     * the main vertigo controls. The movement of the secondary vertigo controls
+     * are free (eg: not constrained by the focus plane).
+     */
     secondaryVertigo: new Vertigo(),
     secondaryDampedVertigo: new Vertigo(),
     helper: null as VertigoHelper | null,
