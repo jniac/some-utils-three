@@ -1,6 +1,7 @@
-import { BackSide, BoxGeometry, Color, ColorRepresentation, CubeCamera, FloatType, Group, HalfFloatType, IcosahedronGeometry, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, PlaneGeometry, PointLight, Scene, ShaderMaterial, SphereGeometry, TextureDataType, TorusGeometry, Vector3Tuple, WebGLCubeRenderTarget, WebGLRenderer } from 'three'
+import { BackSide, BoxGeometry, Color, ColorRepresentation, CubeCamera, FloatType, Group, IcosahedronGeometry, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, PlaneGeometry, PointLight, RGBAFormat, Scene, ShaderMaterial, SphereGeometry, TorusGeometry, UnsignedByteType, Vector3Tuple, WebGLCubeRenderTarget, WebGLRenderer } from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/Addons.js'
 
+import { lazy } from 'some-utils-ts/lazy'
 import { ShaderForge } from '../shader-forge'
 import { flipNormals } from '../utils/geometry/normals'
 import { setup } from '../utils/tree'
@@ -87,12 +88,36 @@ class Random {
   }
 }
 
+const capabilities = lazy(() => {
+  const canvas = document.createElement('canvas')
+  const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
+
+  if (!gl)
+    return {}
+
+  const isWebGL2 = gl instanceof WebGL2RenderingContext
+  const isFloatTextureSupported = gl.getExtension('OES_texture_float_linear')
+
+  return {
+    isWebGL2,
+    isFloatTextureSupported,
+  }
+})
+
 export class EnvironmentStudio {
   static displayName = 'Environment Studio'
 
-  static createParts(textureSize: number, type: TextureDataType) {
+  static createParts(textureSize: number) {
     const scene = new Scene()
-    const rt = new WebGLCubeRenderTarget(textureSize, { generateMipmaps: true, type })
+
+    const cap = capabilities()
+    const type = cap.isFloatTextureSupported ? FloatType : UnsignedByteType
+
+    const rt = new WebGLCubeRenderTarget(textureSize, {
+      generateMipmaps: true,
+      type,
+      format: RGBAFormat,
+    })
     const cubeCamera = new CubeCamera(.1, 100, rt)
     return {
       rt,
@@ -113,8 +138,7 @@ export class EnvironmentStudio {
   get scene() { return this.parts.scene }
 
   constructor({ textureSize = 512 } = {}) {
-    const type = isWebGL2Supported() ? FloatType : HalfFloatType
-    this.parts = EnvironmentStudio.createParts(textureSize, type)
+    this.parts = EnvironmentStudio.createParts(textureSize)
   }
 
   render(renderer: WebGLRenderer, deltaTime = 1 / 60) {
