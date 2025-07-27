@@ -267,7 +267,9 @@ export class VertigoControls implements DestroyableObject {
       .addScaledVector(_vectorX, x * z)
       .addScaledVector(_vectorY, y * z)
 
-    if (this.focusPlane) {
+    // If a focus plane, and only if the current vertigo is the main one,
+    // (secondary vertigo is free) constrain the focus point to the plane.
+    if (this.focusPlane && this.currentVertigo === this.vertigo) {
       fromPlaneDeclaration(this.focusPlane, _plane)
       _ray.origin.copy(this.currentVertigo.focus)
       _ray.direction.copy(_vectorZ)
