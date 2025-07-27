@@ -1,4 +1,4 @@
-import { Camera, Euler, Plane, Quaternion, Ray, Vector2, Vector2Like, Vector3 } from 'three'
+import { Camera, Euler, Group, Plane, Quaternion, Ray, Vector2, Vector2Like, Vector3 } from 'three'
 
 import { handleHtmlElementEvent } from 'some-utils-dom/handle/element-event'
 import { handlePointer, PointerButton } from 'some-utils-dom/handle/pointer'
@@ -8,8 +8,10 @@ import { calculateExponentialDecayLerpRatio } from 'some-utils-ts/math/misc/expo
 import { DestroyableInstance } from 'some-utils-ts/misc/destroy'
 import { DestroyableObject } from 'some-utils-ts/types'
 
+import { handleKeyboard } from 'some-utils-dom/handle/keyboard'
 import { fromPlaneDeclaration, fromVector3Declaration, PlaneDeclaration, Vector3Declaration } from '../../declaration'
 import { Vertigo, VertigoProps } from '../vertigo'
+import { VertigoHelper } from './helper'
 
 const _quaternion = new Quaternion()
 const _vectorX = new Vector3()
@@ -107,8 +109,31 @@ export class VertigoControls implements DestroyableObject {
    */
   element!: HTMLElement
 
+  /**
+   * A group to hold helpers or other objects related to the vertigo controls.
+   */
+  group = new Group()
+
   #state = {
+    secondaryActivationCount: 0,
+    secondaryIsActive: false,
+    secondaryVertigo: new Vertigo(),
+    secondaryDampedVertigo: new Vertigo(),
+    helper: null as VertigoHelper | null,
+
     startDestroyableInstance: new DestroyableInstance(),
+  }
+
+  get currentVertigo() {
+    return this.#state.secondaryIsActive
+      ? this.#state.secondaryVertigo
+      : this.vertigo
+  }
+
+  get currentDampedVertigo() {
+    return this.#state.secondaryIsActive
+      ? this.#state.secondaryDampedVertigo
+      : this.dampedVertigo
   }
 
   inputConfig = {
@@ -117,10 +142,10 @@ export class VertigoControls implements DestroyableObject {
 
   actions = {
     togglePerspective: () => {
-      const perspective = this.vertigo.perspective > .5 ? 0 : 1
+      const perspective = this.currentVertigo.perspective > .5 ? 0 : 1
       Animation
         .tween({
-          target: [this.vertigo, 'perspective'],
+          target: [this.currentVertigo, 'perspective'],
           to: { perspective },
           duration: 1,
           ease: 'inOut3',
@@ -129,25 +154,61 @@ export class VertigoControls implements DestroyableObject {
     focus: (focusPosition: Vector3Declaration) => {
       Animation
         .tween({
-          target: this.vertigo.focus,
+          target: this.currentVertigo.focus,
           to: fromVector3Declaration(focusPosition),
           duration: 1,
           ease: 'inOut3',
         })
     },
     rotate: (pitch: number, yaw: number, roll: number) => {
-      const qStart = new Quaternion().setFromEuler(this.vertigo.rotation)
+      const qStart = new Quaternion().setFromEuler(this.currentVertigo.rotation)
       const qEnd = new Quaternion().setFromEuler(new Euler(pitch, yaw, roll, 'YXZ'))
       const q = new Quaternion()
       Animation
         .during({
-          target: [this.vertigo, 'rotation'],
+          target: [this.currentVertigo, 'rotation'],
           duration: 1,
         })
         .onUpdate(({ progress }) => {
           q.slerpQuaternions(qStart, qEnd, Animation.ease('inOut3')(progress))
-          this.vertigo.rotation.setFromQuaternion(q)
+          this.currentVertigo.rotation.setFromQuaternion(q)
         })
+    },
+    enterSecondary: () => {
+      if (!this.#state.secondaryIsActive) {
+        this.#state.secondaryIsActive = true
+        this.#state.secondaryDampedVertigo.copy(this.dampedVertigo)
+
+        const helper = new VertigoHelper(this.vertigo, { color: 'red' })
+        this.group.add(helper)
+        this.#state.helper = helper
+
+        // If this is the first time entering secondary, copy the vertigo state.
+        if (this.#state.secondaryActivationCount === 0) {
+          this.#state.secondaryVertigo.copy(this.vertigo)
+          this.#state.secondaryDampedVertigo.copy(this.dampedVertigo)
+        }
+        this.#state.secondaryActivationCount++
+      }
+    },
+    exitSecondary: () => {
+      if (this.#state.secondaryIsActive) {
+        this.#state.secondaryIsActive = false
+        this.dampedVertigo.copy(this.#state.secondaryDampedVertigo)
+
+        // Remove the helper if it exists.
+        if (this.#state.helper) {
+          // this.group.remove(this.#state.helper)
+          // this.#state.helper = null
+        }
+      }
+    },
+    toggleSecondary: () => {
+      if (this.#state.secondaryIsActive) {
+        this.actions.exitSecondary()
+      } else {
+        this.actions.enterSecondary()
+      }
     },
     positiveXAlign: () => {
       this.actions.rotate(0, Math.PI / 2, 0)
@@ -180,8 +241,8 @@ export class VertigoControls implements DestroyableObject {
   }
 
   constructor(props: VertigoProps = {}) {
-    this.vertigo.set(props)
-    this.dampedVertigo.set(props)
+    this.currentVertigo.set(props)
+    this.currentDampedVertigo.set(props)
   }
 
   #destroyed = false
@@ -194,37 +255,37 @@ export class VertigoControls implements DestroyableObject {
   }
 
   set(props: VertigoProps) {
-    this.vertigo.set(props)
-    this.dampedVertigo.set(props)
+    this.currentVertigo.set(props)
+    this.currentDampedVertigo.set(props)
     return this
   }
 
   pan(x: number, y: number) {
-    _updateVectorXYZ(this.vertigo.rotation)
-    const z = 1 / this.vertigo.zoom
-    this.vertigo.focus
+    _updateVectorXYZ(this.currentVertigo.rotation)
+    const z = 1 / this.currentVertigo.zoom
+    this.currentVertigo.focus
       .addScaledVector(_vectorX, x * z)
       .addScaledVector(_vectorY, y * z)
 
     if (this.focusPlane) {
       fromPlaneDeclaration(this.focusPlane, _plane)
-      _ray.origin.copy(this.vertigo.focus)
+      _ray.origin.copy(this.currentVertigo.focus)
       _ray.direction.copy(_vectorZ)
       if (intersectLineWithPlane(_ray, _plane, _vectorZ)) {
-        this.vertigo.focus.copy(_vectorZ)
+        this.currentVertigo.focus.copy(_vectorZ)
       }
     }
   }
 
   dolly(delta: number) {
-    _updateVectorXYZ(this.vertigo.rotation)
-    const zoomFactor = 1 / this.vertigo.zoom
-    this.vertigo.focus.addScaledVector(_vectorZ, delta * zoomFactor)
+    _updateVectorXYZ(this.currentVertigo.rotation)
+    const zoomFactor = 1 / this.currentVertigo.zoom
+    this.currentVertigo.focus.addScaledVector(_vectorZ, delta * zoomFactor)
   }
 
   orbit(pitch: number, yaw: number) {
-    this.vertigo.rotation.x += pitch
-    this.vertigo.rotation.y += yaw
+    this.currentVertigo.rotation.x += pitch
+    this.currentVertigo.rotation.y += yaw
   }
 
   /**
@@ -235,21 +296,21 @@ export class VertigoControls implements DestroyableObject {
   }
 
   zoomAt(newZoom: number, ndc: Vector2Like) {
-    this.vertigo.update(this.dampedVertigo.state.aspect)
-    const currentWidth = this.vertigo.state.realSize.x
-    const currentHeight = this.vertigo.state.realSize.y
-    const newWidth = this.vertigo.state.realSize.x / (newZoom / this.vertigo.zoom)
-    const newHeight = this.vertigo.state.realSize.y / (newZoom / this.vertigo.zoom)
+    this.currentVertigo.update(this.currentDampedVertigo.state.aspect)
+    const currentWidth = this.currentVertigo.state.realSize.x
+    const currentHeight = this.currentVertigo.state.realSize.y
+    const newWidth = this.currentVertigo.state.realSize.x / (newZoom / this.currentVertigo.zoom)
+    const newHeight = this.currentVertigo.state.realSize.y / (newZoom / this.currentVertigo.zoom)
     const diffWidth = newWidth - currentWidth
     const diffHeight = newHeight - currentHeight
 
-    _updateVectorXYZ(this.vertigo.rotation)
+    _updateVectorXYZ(this.currentVertigo.rotation)
     const { x, y } = ndc
-    this.vertigo.focus
+    this.currentVertigo.focus
       .addScaledVector(_vectorX, .5 * diffWidth * -x)
       .addScaledVector(_vectorY, .5 * diffHeight * -y)
 
-    this.vertigo.zoom = newZoom
+    this.currentVertigo.zoom = newZoom
   }
 
   initialize(element: HTMLElement | string = document.body): this {
@@ -272,6 +333,14 @@ export class VertigoControls implements DestroyableObject {
         event.preventDefault()
       },
     })
+
+    yield handleKeyboard([
+      [{ code: 'Tab', modifiers: 'alt' }, (info) => {
+        info.event.preventDefault()
+        this.actions.toggleSecondary()
+        console.log('Toggled secondary vertigo controls:', this.#state.secondaryIsActive)
+      }]
+    ])
 
     const pointer = new Vector2()
     yield handlePointer(element, {
@@ -306,10 +375,10 @@ export class VertigoControls implements DestroyableObject {
       onWheel: info => {
         switch (this.inputConfig.wheel) {
           case 'zoom': {
-            const newZoom = this.vertigo.zoom * (1 - info.delta.y * .001)
+            const newZoom = this.currentVertigo.zoom * (1 - info.delta.y * .001)
             if (info.event.altKey) {
               if (info.event.shiftKey) {
-                this.vertigo.perspective *= 1 - info.delta.y * .001
+                this.currentVertigo.perspective *= 1 - info.delta.y * .001
               } else {
                 this.zoomAt(newZoom, pointer)
               }
@@ -332,7 +401,7 @@ export class VertigoControls implements DestroyableObject {
   start(...args: Parameters<typeof this.doStart>): this {
     if (this.started === false) {
       this.started = true
-      this.#state.startDestroyableInstance.collect(this.doStart(...args))
+      this.#state.startDestroyableInstance.onDestroy(this.doStart(...args))
     }
     return this
   }
@@ -357,8 +426,9 @@ export class VertigoControls implements DestroyableObject {
 
   update(camera: Camera, aspect: number, deltaTime = 1 / 60) {
     const t = calculateExponentialDecayLerpRatio(this.dampingDecayFactor, deltaTime)
-    this.dampedVertigo
-      .lerp(this.vertigo, t)
+    this.vertigo.update(aspect)
+    this.currentDampedVertigo
+      .lerp(this.currentVertigo, t)
       .apply(camera, aspect)
   }
 }

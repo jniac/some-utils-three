@@ -205,6 +205,7 @@ export class Vertigo {
     distance: 0,
     fov: 0,
     realSize: new Vector2(),
+    matrix: new Matrix4(),
   }
 
   constructor(props?: Props) {
@@ -366,6 +367,28 @@ export class Vertigo {
     // this.computedNdcScalar.set(heightScalar * aspect, heightScalar)
     // this.computedSize.set(realHeight * aspect, realHeight)
 
+    const { matrix } = this.state
+    matrix.makeRotationFromEuler(this.rotation)
+
+    const me = matrix.elements
+    const backward = isPerspective ? distance : this.before + this.nearMin
+
+    const { _v0, _v1 } = Vertigo.shared
+    _v0
+      .set(me[8], me[9], me[10]) // The forward vector
+      .multiplyScalar(backward)
+      .add(this.focus)
+
+    // Apply the screen offset:
+    _v0.addScaledVector(_v1.set(me[0], me[1], me[2]), -this.screenOffset.x / this.zoom)
+    _v0.addScaledVector(_v1.set(me[4], me[5], me[6]), -this.screenOffset.y / this.zoom)
+    _v0.addScaledVector(_v1.set(me[8], me[9], me[10]), -this.screenOffset.z / this.zoom)
+
+    // Apply the position:
+    me[12] = _v0.x
+    me[13] = _v0.y
+    me[14] = _v0.z
+
     this.state.aspect = newAspect
     this.state.isPerspective = isPerspective
     this.state.distance = distance
@@ -377,31 +400,29 @@ export class Vertigo {
 
   /**
    * Apply the Vertigo settings to the camera.
+   * 
+   * Internally calls `update()` to compute the state based on the current settings and the aspect ratio.
    */
   apply(camera: Camera, aspect: number): this {
     this.update(aspect)
 
-    const { _matrix, _v0, _v1 } = Vertigo.shared
+    const {
+      isPerspective,
+      distance,
+      fov,
+      realSize: { height: realHeight },
+    } = this.state
 
-    const { isPerspective, distance, fov, realSize: { height: realHeight } } = this.state
-
-    const backward = isPerspective ? distance : this.before + this.nearMin
-    const me = _matrix.elements
-    _matrix.makeRotationFromEuler(this.rotation)
-    _v0
-      .set(me[8], me[9], me[10])
-      .multiplyScalar(backward)
-      .add(this.focus)
-
-    _v0.addScaledVector(_v1.set(me[0], me[1], me[2]), -this.screenOffset.x / this.zoom)
-    _v0.addScaledVector(_v1.set(me[4], me[5], me[6]), -this.screenOffset.y / this.zoom)
-    _v0.addScaledVector(_v1.set(me[8], me[9], me[10]), -this.screenOffset.z / this.zoom)
-
-    // camera.matrixAutoUpdate = false // Not cancelled because of OrbitControls
-    camera.position.copy(_v0)
-    camera.rotation.copy(this.rotation)
-    camera.updateMatrix()
+    camera.matrixAutoUpdate = false
+    camera.matrix.copy(this.state.matrix)
     camera.updateMatrixWorld(true)
+    camera.matrixAutoUpdate = true // Re-enable auto-update because OrbitControls might need it (?).
+
+    // Update camera properties (for coherence)
+    camera.position.setFromMatrixPosition(this.state.matrix)
+    camera.quaternion.setFromRotationMatrix(this.state.matrix)
+    camera.rotation.setFromQuaternion(camera.quaternion, defaultRotationOrder)
+    camera.scale.set(1, 1, 1)
 
     // Let's pretend we're a PerspectiveCamera or an OrthographicCamera
     // @ts-expect-error Javascript here! We add the properties to the camera.

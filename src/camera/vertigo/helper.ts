@@ -1,5 +1,6 @@
-import { ColorRepresentation, DoubleSide, LineBasicMaterial, Mesh, MeshBasicMaterial, PlaneGeometry, Texture } from 'three'
-import { LineHelper } from '../../helpers/line'
+import { ColorRepresentation, DoubleSide, Group, Mesh, MeshBasicMaterial, PlaneGeometry, Texture } from 'three'
+import { DebugHelper } from '../../helpers/debug'
+import { setup } from '../../utils/tree'
 import { Vertigo } from '../vertigo'
 
 function texture() {
@@ -23,39 +24,63 @@ function texture() {
   return texture ??= create()
 }
 
-export class VertigoHelper extends LineHelper {
-  constructor(vertigo: Vertigo, { color = <ColorRepresentation>'#ffff00' } = {}) {
-    super(undefined, new LineBasicMaterial({ color }))
-
-    this.position.copy(vertigo.focus)
-    this.rotation.copy(vertigo.rotation)
-
-    let { x: sx, y: sy } = vertigo.size
-
-    if (vertigo.zoom !== 1) {
-      this.rectangle([-sx / 2, -sy / 2, sx, sy])
-    }
-
-    sx /= vertigo.zoom
-    sy /= vertigo.zoom
-
-    this
-      .rectangle([-sx / 2, -sy / 2, sx, sy])
-      .plus([0, 0], .5)
-      .draw()
-
-    const plane = new Mesh(
+export class VertigoHelper extends Group {
+  static createParts(instance: VertigoHelper) {
+    const plane = setup(new Mesh(
       new PlaneGeometry(1, .25),
       new MeshBasicMaterial({
-        color,
+        color: instance.color,
         alphaMap: texture(),
         transparent: true,
         side: DoubleSide,
       }),
-    )
+    ), instance)
+
+    return {
+      plane,
+      debugHelper: setup(new DebugHelper(), instance),
+    }
+  }
+
+  parts: ReturnType<typeof VertigoHelper.createParts>
+
+  color: ColorRepresentation
+  vertigo: Vertigo
+
+  constructor(vertigo: Vertigo, { color = <ColorRepresentation>'#ffff00' } = {}) {
+    super()
+    this.color = color
+    this.vertigo = vertigo
+    this.parts = VertigoHelper.createParts(this)
+  }
+
+  onTick() {
+    const { vertigo, color } = this
+    const { x: sx, y: sy } = vertigo.size
+
+    const { debugHelper, plane } = this.parts
+
+    this.position.copy(vertigo.focus)
+    this.rotation.copy(vertigo.rotation)
+
     const padding = .1
     plane.position.set(-sx / 2 + .5 + padding, sy / 2 - .125 - padding, 0)
 
-    this.add(plane)
+    debugHelper.clear()
+
+    // Draw the "ideal" point (not zoomed).
+    debugHelper.rect([-sx / 2, -sy / 2, sx, sy], { color })
+
+    // Draw the zoomed "ideal" rectangle if zoom is not 1.
+    if (vertigo.zoom !== 1) {
+      const sx2 = sx / vertigo.zoom
+      const sy2 = sy / vertigo.zoom
+      debugHelper.rect([-sx2 / 2, -sy2 / 2, sx2, sy2], { color })
+    }
+
+    // Draw the real size rectangle.
+    const { realSize: rs } = this.vertigo.state
+    debugHelper
+      .rect([-rs.x / 2, -rs.y / 2, rs.x, rs.y], { color })
   }
 }
