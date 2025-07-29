@@ -13,10 +13,6 @@ import { DestroyableObject } from 'some-utils-ts/types'
 
 import { PassMetadata, PassType, PipelineBase } from './types'
 
-function isRenderPass(pass: any): pass is RenderPass {
-  return pass.isRenderPass
-}
-
 /**
  * A basic rendering pipeline that still allows for some customization. Already includes:
  * - Main render pass
@@ -170,7 +166,7 @@ export class BasicPipeline implements PipelineBase {
   setScene(scene: Scene): void {
     const previousScene = this.basicPasses.mainRender.scene
     for (const pass of this.composer.passes) {
-      if (isRenderPass(pass)) {
+      if (pass instanceof RenderPass) {
         if (pass.scene === previousScene) {
           pass.scene = scene
         }
@@ -179,16 +175,6 @@ export class BasicPipeline implements PipelineBase {
   }
 
   render(tick: Tick): void {
-    for (const pass of this.composer.passes) {
-      if (isRenderPass(pass)) {
-        pass.scene.traverseVisible(object => {
-          if ('onTick' in object) {
-            (object as any).onTick(tick)
-          }
-        })
-      }
-    }
-
     this.composer.render(tick.deltaTime)
   }
 
