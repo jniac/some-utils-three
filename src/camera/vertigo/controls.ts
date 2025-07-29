@@ -1,4 +1,4 @@
-import { Camera, Euler, Group, Plane, Quaternion, Ray, Vector2, Vector2Like, Vector3 } from 'three'
+import { Camera, ColorRepresentation, Euler, Group, Plane, Quaternion, Ray, Vector2, Vector2Like, Vector3 } from 'three'
 
 import { handleHtmlElementEvent } from 'some-utils-dom/handle/element-event'
 import { handlePointer, PointerButton } from 'some-utils-dom/handle/pointer'
@@ -117,47 +117,56 @@ export class VertigoControls implements DestroyableObject {
   group = new Group()
 
   #state = {
-    secondaryActivationCount: 0,
-    secondaryIsActive: false,
+    alternativeActivationCount: 0,
+    alternativeIsActive: false,
     /**
-     * The secondary vertigo controls is for exploring the scene without affecting
-     * the main vertigo controls. The movement of the secondary vertigo controls
+     * The alternative vertigo controls is for exploring the scene without affecting
+     * the main vertigo controls. The movement of the alternative vertigo controls
      * are free (eg: not constrained by the focus plane).
      */
-    secondaryVertigo: new Vertigo(),
-    secondaryDampedVertigo: new Vertigo(),
+    alternativeVertigo: new Vertigo(),
+    alternativeDampedVertigo: new Vertigo(),
     /**
-     * If true, we are currently in the secondary vertigo controls, but going back
+     * If true, we are currently in the alternative vertigo controls, but going back
      * to the primary vertigo controls.
      */
-    secondaryExiting: false,
-    helper: null as VertigoHelper | null,
+    alternativeExiting: false,
+    alternativeHelperColor: 'red' as ColorRepresentation,
+    alternativeHelper: null as VertigoHelper | null,
 
     startDestroyableInstance: new DestroyableInstance(),
   }
 
   get currentVertigo() {
-    return this.#state.secondaryIsActive
-      ? this.#state.secondaryVertigo
+    return this.#state.alternativeIsActive
+      ? this.#state.alternativeVertigo
       : this.vertigo
   }
 
   get currentDampedVertigo() {
-    return this.#state.secondaryIsActive
-      ? this.#state.secondaryDampedVertigo
+    return this.#state.alternativeIsActive
+      ? this.#state.alternativeDampedVertigo
       : this.dampedVertigo
   }
 
-  get secondaryIsActive() {
-    return this.#secondaryIsActiveAndNotExiting()
+  get alternativeIsActive() {
+    return this.#alternativeIsActiveAndNotExiting()
   }
 
-  set secondaryIsActive(value: boolean) {
+  set alternativeIsActive(value: boolean) {
     if (value) {
-      this.#doEnterSecondary()
+      this.#doEnterAlternative()
     } else {
-      this.#doExitSecondary()
+      this.#doExitAlternative()
     }
+  }
+
+  get alternativeHelperColor() {
+    return this.#state.alternativeHelperColor
+  }
+
+  set alternativeHelperColor(color: ColorRepresentation) {
+    this.#state.alternativeHelperColor = color
   }
 
   inputConfig = {
@@ -198,18 +207,18 @@ export class VertigoControls implements DestroyableObject {
           this.currentVertigo.rotation.setFromQuaternion(q)
         })
     },
-    enterSecondary: () => {
-      this.#doEnterSecondary()
+    enterAlternative: () => {
+      this.#doEnterAlternative()
     },
-    exitSecondary: () => {
-      this.#state.secondaryExiting = true
+    exitAlternative: () => {
+      this.#state.alternativeExiting = true
     },
-    toggleSecondary: (active?: boolean) => {
-      active ??= !this.#secondaryIsActiveAndNotExiting()
+    toggleAlternative: (active?: boolean) => {
+      active ??= !this.#alternativeIsActiveAndNotExiting()
       if (active) {
-        this.actions.enterSecondary()
+        this.actions.enterAlternative()
       } else {
-        this.actions.exitSecondary()
+        this.actions.exitAlternative()
       }
     },
     positiveXAlign: () => {
@@ -270,7 +279,7 @@ export class VertigoControls implements DestroyableObject {
       .addScaledVector(_vectorY, y * z)
 
     // If a focus plane, and only if the current vertigo is the main one,
-    // (secondary vertigo is free) constrain the focus point to the plane.
+    // (alternative vertigo is free) constrain the focus point to the plane.
     if (this.focusPlane && this.currentVertigo === this.vertigo) {
       fromPlaneDeclaration(this.focusPlane, _plane)
       _ray.origin.copy(this.currentVertigo.focus)
@@ -341,7 +350,7 @@ export class VertigoControls implements DestroyableObject {
     yield handleKeyboard([
       [{ code: 'Tab', modifiers: 'alt' }, (info) => {
         info.event.preventDefault()
-        this.actions.toggleSecondary()
+        this.actions.toggleAlternative()
       }]
     ])
 
@@ -428,38 +437,38 @@ export class VertigoControls implements DestroyableObject {
   }
 
   /**
-   * Is the secondary vertigo active and is it not exiting?
+   * Is the alternative vertigo active and is it not exiting?
    */
-  #secondaryIsActiveAndNotExiting(): boolean {
-    return this.#state.secondaryIsActive && this.#state.secondaryExiting === false
+  #alternativeIsActiveAndNotExiting(): boolean {
+    return this.#state.alternativeIsActive && this.#state.alternativeExiting === false
   }
 
-  #doEnterSecondary() {
-    this.#state.secondaryExiting = false
+  #doEnterAlternative() {
+    this.#state.alternativeExiting = false
 
-    if (!this.#state.secondaryIsActive) {
-      this.#state.secondaryIsActive = true
-      this.#state.secondaryDampedVertigo.copy(this.dampedVertigo)
+    if (!this.#state.alternativeIsActive) {
+      this.#state.alternativeIsActive = true
+      this.#state.alternativeDampedVertigo.copy(this.dampedVertigo)
 
-      const helper = new VertigoHelper(this.vertigo, { color: 'red' })
+      const helper = new VertigoHelper(this.vertigo, { color: this.#state.alternativeHelperColor })
       this.group.add(helper)
-      this.#state.helper = helper
+      this.#state.alternativeHelper = helper
 
-      // If this is the first time entering secondary, copy the vertigo state.
-      if (this.#state.secondaryActivationCount === 0) {
-        this.#state.secondaryVertigo.copy(this.vertigo)
-        this.#state.secondaryDampedVertigo.copy(this.dampedVertigo)
+      // If this is the first time entering alternative, copy the vertigo state.
+      if (this.#state.alternativeActivationCount === 0) {
+        this.#state.alternativeVertigo.copy(this.vertigo)
+        this.#state.alternativeDampedVertigo.copy(this.dampedVertigo)
       }
-      this.#state.secondaryActivationCount++
+      this.#state.alternativeActivationCount++
     }
   }
 
-  #doExitSecondary() {
-    this.#state.secondaryIsActive = false
-    this.#state.secondaryExiting = false
-    if (this.#state.helper) {
-      this.group.remove(this.#state.helper)
-      this.#state.helper = null
+  #doExitAlternative() {
+    this.#state.alternativeIsActive = false
+    this.#state.alternativeExiting = false
+    if (this.#state.alternativeHelper) {
+      this.group.remove(this.#state.alternativeHelper)
+      this.#state.alternativeHelper = null
     }
   }
 
@@ -467,16 +476,16 @@ export class VertigoControls implements DestroyableObject {
     const t = calculateExponentialDecayLerpRatio(this.dampingDecayFactor, deltaTime)
     this.vertigo.update(aspect)
 
-    if (this.#state.secondaryExiting) {
+    if (this.#state.alternativeExiting) {
       this.dampedVertigo
         .lerp(this.vertigo, t)
-      this.#state.secondaryDampedVertigo
+      this.#state.alternativeDampedVertigo
         .lerp(this.vertigo, t)
-      _v0.setFromMatrixPosition(this.#state.secondaryDampedVertigo.state.matrix)
+      _v0.setFromMatrixPosition(this.#state.alternativeDampedVertigo.state.matrix)
       _v1.setFromMatrixPosition(this.dampedVertigo.state.matrix)
       const sqDistance = _v0.distanceToSquared(_v1)
       if (sqDistance < 0.0001)
-        this.#doExitSecondary()
+        this.#doExitAlternative()
     }
 
     else {
