@@ -4,7 +4,8 @@ import { OrthographicCamera, PerspectiveCamera, PostProcessing, WebGPURenderer }
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
 
 import { Tick } from 'some-utils-ts/ticker'
-import { ThreeBaseContext, ThreeContextType } from '../types'
+import { ThreeBaseContext } from '../base'
+import { ThreeContextType } from '../types'
 
 export class ThreeWebGPUContext extends ThreeBaseContext {
   renderer = new WebGPURenderer({

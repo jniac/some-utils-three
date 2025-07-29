@@ -9,7 +9,8 @@ import { Destroyable } from 'some-utils-ts/types'
 import { fromVector3Declaration, Vector3Declaration } from '../../../declaration'
 import { UnifiedLoader } from '../../../loaders/unified-loader'
 import { queryDescendantsOf, QueryPredicate } from '../../../utils/tree'
-import { ThreeBaseContext, ThreeContextType } from '../types'
+import { ThreeBaseContext } from '../base'
+import { ThreeContextType } from '../types'
 import { BasicPipeline } from './pipelines/BasicPipeline'
 
 /**

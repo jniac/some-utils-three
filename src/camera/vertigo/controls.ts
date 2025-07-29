@@ -336,7 +336,7 @@ export class VertigoControls implements DestroyableObject {
   /**
    * @param element The element to attach the pointer events to is the one provided by `initialize()` by default. But you can provide a different one here.
    */
-  private *doStart(element: HTMLElement = this.element ?? document.body) {
+  *#doStart(element: HTMLElement = this.element ?? document.body) {
     yield handleHtmlElementEvent(element, {
       contextmenu: event => {
         event.preventDefault()
@@ -406,10 +406,10 @@ export class VertigoControls implements DestroyableObject {
 
   started = false
 
-  start(...args: Parameters<typeof this.doStart>): this {
+  start(element: HTMLElement = this.element ?? document.body): this {
     if (this.started === false) {
       this.started = true
-      this.#state.startDestroyableInstance.onDestroy(this.doStart(...args))
+      this.#state.startDestroyableInstance.onDestroy(this.#doStart(element))
     }
     return this
   }
