@@ -148,6 +148,18 @@ export class VertigoControls implements DestroyableObject {
       : this.dampedVertigo
   }
 
+  get secondaryIsActive() {
+    return this.#secondaryIsActiveAndNotExiting()
+  }
+
+  set secondaryIsActive(value: boolean) {
+    if (value) {
+      this.#doEnterSecondary()
+    } else {
+      this.#doExitSecondary()
+    }
+  }
+
   inputConfig = {
     wheel: 'zoom' as 'zoom' | 'dolly',
   }
@@ -187,34 +199,17 @@ export class VertigoControls implements DestroyableObject {
         })
     },
     enterSecondary: () => {
-      this.#state.secondaryExiting = false
-
-      if (!this.#state.secondaryIsActive) {
-        this.#state.secondaryIsActive = true
-        this.#state.secondaryDampedVertigo.copy(this.dampedVertigo)
-
-        const helper = new VertigoHelper(this.vertigo, { color: 'red' })
-        this.group.add(helper)
-        this.#state.helper = helper
-
-        // If this is the first time entering secondary, copy the vertigo state.
-        if (this.#state.secondaryActivationCount === 0) {
-          this.#state.secondaryVertigo.copy(this.vertigo)
-          this.#state.secondaryDampedVertigo.copy(this.dampedVertigo)
-        }
-        this.#state.secondaryActivationCount++
-      }
+      this.#doEnterSecondary()
     },
     exitSecondary: () => {
       this.#state.secondaryExiting = true
     },
-    toggleSecondary: () => {
-      // Has the secondary vertigo been activated and is it not exiting?
-      const activeAndNotExiting = this.#state.secondaryIsActive && this.#state.secondaryExiting === false
-      if (activeAndNotExiting) {
-        this.actions.exitSecondary()
-      } else {
+    toggleSecondary: (active?: boolean) => {
+      active ??= !this.#secondaryIsActiveAndNotExiting()
+      if (active) {
         this.actions.enterSecondary()
+      } else {
+        this.actions.exitSecondary()
       }
     },
     positiveXAlign: () => {
@@ -429,6 +424,33 @@ export class VertigoControls implements DestroyableObject {
       this.start()
     } else {
       this.stop()
+    }
+  }
+
+  /**
+   * Is the secondary vertigo active and is it not exiting?
+   */
+  #secondaryIsActiveAndNotExiting(): boolean {
+    return this.#state.secondaryIsActive && this.#state.secondaryExiting === false
+  }
+
+  #doEnterSecondary() {
+    this.#state.secondaryExiting = false
+
+    if (!this.#state.secondaryIsActive) {
+      this.#state.secondaryIsActive = true
+      this.#state.secondaryDampedVertigo.copy(this.dampedVertigo)
+
+      const helper = new VertigoHelper(this.vertigo, { color: 'red' })
+      this.group.add(helper)
+      this.#state.helper = helper
+
+      // If this is the first time entering secondary, copy the vertigo state.
+      if (this.#state.secondaryActivationCount === 0) {
+        this.#state.secondaryVertigo.copy(this.vertigo)
+        this.#state.secondaryDampedVertigo.copy(this.dampedVertigo)
+      }
+      this.#state.secondaryActivationCount++
     }
   }
 
