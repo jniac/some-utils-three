@@ -1,7 +1,11 @@
 import { Texture, TextureLoader } from 'three'
 import { RGBELoader } from 'three/examples/jsm/Addons.js'
 
+import { DisposableVideoTexture } from '../utils/texture/disposable-video-texture'
+
 const extensions = {
+  video:
+    ['mp4', 'webm'] as const,
   srgb:
     ['jpg', 'jpeg', 'png', 'webp'] as const,
   linear:
@@ -18,7 +22,11 @@ type LinearExtension = typeof extensions.linear[number]
 const isLinearExtension = (ext: string): ext is LinearExtension =>
   extensions.linear.includes(ext as LinearExtension)
 
-type TextureExtension = SRGBExtension | LinearExtension
+type VideoExtension = typeof extensions.video[number]
+const isVideoExtension = (ext: string): ext is VideoExtension =>
+  extensions.video.includes(ext as VideoExtension)
+
+type TextureExtension = SRGBExtension | LinearExtension | VideoExtension
 const isTextureExtension = (ext: string): ext is TextureExtension =>
   isSRGBExtension(ext) || isLinearExtension(ext)
 
@@ -33,6 +41,14 @@ class AnyLoader {
 
     if (extension === undefined)
       throw new Error(`No extension found in url: ${url}`)
+
+    if (isVideoExtension(extension)) {
+      const videoTexture = DisposableVideoTexture.fromUrl(url)
+      videoTexture.name = url
+      return new Promise<Texture>((resolve, reject) => {
+        resolve(videoTexture)
+      }) as any
+    }
 
     const loader =
       isLinearExtension(extension)
