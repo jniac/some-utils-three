@@ -11,3 +11,8 @@ export enum ThreeContextType {
   WebGL = 'webgl',
   WebGPU = 'webgpu'
 }
+
+export type { ThreeBaseContext } from './base'
+export type { ThreeWebGLContext } from './webgl'
+export type { ThreeWebGPUContext } from './webgpu'
+
