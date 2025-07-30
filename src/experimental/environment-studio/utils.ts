@@ -1,4 +1,13 @@
 import { lazy } from 'some-utils-ts/lazy'
+import { CubeTexture } from 'three'
+
+export function array<T>(length: number, value: (i: number) => T) {
+  return Array.from({ length }, (_, i) => value(i))
+}
+
+export function isCubeTexture(texture: any): texture is CubeTexture {
+  return !!(texture && texture.isTexture && texture.isCubeTexture)
+}
 
 function hashString(str: string): number {
   let hash = 0
@@ -7,10 +16,6 @@ function hashString(str: string): number {
     hash = ((hash << 5) - hash + char) | 0 // hash * 31 + char
   }
   return hash
-}
-
-export function array<T>(length: number, value: (i: number) => T) {
-  return Array.from({ length }, (_, i) => value(i))
 }
 
 /**

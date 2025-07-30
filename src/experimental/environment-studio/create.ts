@@ -1,12 +1,14 @@
-import { BackSide, BoxGeometry, Color, ColorRepresentation, Group, IcosahedronGeometry, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, PlaneGeometry, PointLight, ShaderMaterial, SphereGeometry, Texture, TorusGeometry, Vector3Tuple } from 'three'
+import { BackSide, BoxGeometry, Color, ColorRepresentation, Group, IcosahedronGeometry, Material, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, PlaneGeometry, PointLight, ShaderMaterial, SphereGeometry, Texture, TorusGeometry, Vector3Tuple } from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/Addons.js'
 
 import { ShaderForge } from '../../shader-forge'
 import { flipNormals } from '../../utils/geometry/normals'
 import { setup } from '../../utils/tree'
 
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { setVertexColors } from '../../utils/geometry'
 import { EnvironmentStudio, EnvironmentStudioState } from './environment-studio'
-import { array, Random } from './utils'
+import { array, isCubeTexture, Random } from './utils'
 
 /**
  * Return a set of utility functions to create various 3D objects in the environment studio.
@@ -18,7 +20,7 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
   /**
    * Set of utility functions to create various 3D objects in the environment studio.
    */
-  const create = new class Create {
+  const create = {
     solidCube({
       size = 10,
       color = '#eeeeee',
@@ -30,7 +32,7 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
         cube: setup(new Mesh(geometry, material),
           { parent: scene })
       }
-    }
+    },
 
     cube({
       size = 10,
@@ -42,28 +44,29 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
         '#eeeeee',
         '#eeeeee',
       ],
+      MaterialClass = MeshPhysicalMaterial as new (...args: any[]) => Material,
     } = {}) {
       const { scene } = instance.parts
       const planeGeometry = new PlaneGeometry(size, size)
       const d = size / 2
       const faces = {
-        R: setup(new Mesh(planeGeometry, new MeshPhysicalMaterial({ color: faceColors[0] })),
+        R: setup(new Mesh(planeGeometry, new MaterialClass({ color: faceColors[0] })),
           { parent: scene, position: [d, 0, 0], rotation: [0, -Math.PI / 2, 0] }),
-        L: setup(new Mesh(planeGeometry, new MeshPhysicalMaterial({ color: faceColors[1] })),
+        L: setup(new Mesh(planeGeometry, new MaterialClass({ color: faceColors[1] })),
           { parent: scene, position: [-d, 0, 0], rotation: [0, Math.PI / 2, 0] }),
-        U: setup(new Mesh(planeGeometry, new MeshPhysicalMaterial({ color: faceColors[2] })),
+        U: setup(new Mesh(planeGeometry, new MaterialClass({ color: faceColors[2] })),
           { parent: scene, position: [0, d, 0], rotation: [Math.PI / 2, 0, 0] }),
-        D: setup(new Mesh(planeGeometry, new MeshPhysicalMaterial({ color: faceColors[3] })),
+        D: setup(new Mesh(planeGeometry, new MaterialClass({ color: faceColors[3] })),
           { parent: scene, position: [0, -d, 0], rotation: [-Math.PI / 2, 0, 0] }),
-        B: setup(new Mesh(planeGeometry, new MeshPhysicalMaterial({ color: faceColors[4] })),
-          { parent: scene, position: [0, 0, -d] }),
-        F: setup(new Mesh(planeGeometry, new MeshPhysicalMaterial({ color: faceColors[5] })),
+        F: setup(new Mesh(planeGeometry, new MaterialClass({ color: faceColors[5] })),
           { parent: scene, position: [0, 0, d], rotation: [0, Math.PI, 0] }),
+        B: setup(new Mesh(planeGeometry, new MaterialClass({ color: faceColors[4] })),
+          { parent: scene, position: [0, 0, -d] }),
       }
       return {
         faces,
       }
-    }
+    },
 
     roundedCube({
       size = 10,
@@ -78,7 +81,7 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
         roundedCube: setup(new Mesh(geometry, material),
           { parent: scene })
       }
-    }
+    },
 
     sphere({
       color = '#eeeeee',
@@ -89,7 +92,7 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
       return {
         sphere: setup(new Mesh(geometry, material), instance.parts.scene),
       }
-    }
+    },
 
     gradientSphere({
       colors = <ColorRepresentation[]>['#eeeeee', '#dddddd'],
@@ -144,7 +147,7 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
       return {
         sphere: setup(new Mesh(geometry, material), instance.parts.scene),
       }
-    }
+    },
 
     /**
      * Create a sphere that can be used as an environment map.
@@ -162,9 +165,9 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
         side: BackSide,
         depthWrite: false,
       })
-      const environmentMesh = setup(new Mesh(geometry, material), instance.parts.scene)
-      return { environmentMesh }
-    }
+      const sphere = setup(new Mesh(geometry, material), instance.parts.scene)
+      return { sphere }
+    },
 
     /**
      * Create a cube that can be used as an environment map.
@@ -175,16 +178,55 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
     environmentCube({
       size = 10,
       map = null as null | Texture,
+      colorFallback = '#808080' as ColorRepresentation,
     }) {
+      const { scene } = instance.parts
+      const depthWrite = false
+
+      if (map === null) {
+        const geometry = new BoxGeometry(size, size, size)
+        const material = new MeshBasicMaterial({ color: colorFallback, depthWrite, side: BackSide })
+        const cube = setup(new Mesh(geometry, material), scene)
+        return { cube }
+      }
+
+      if (isCubeTexture(map)) {
+        const material = new ShaderMaterial({
+          uniforms: {
+            uMap: { value: map },
+          },
+          vertexShader: /* glsl */`
+            varying vec3 vWorldNormal;
+
+            void main() {
+              vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+              vWorldNormal = normalize(mat3(modelMatrix) * worldPosition.xyz);
+              gl_Position = projectionMatrix * viewMatrix * worldPosition;
+            }          
+          `,
+          fragmentShader: /* glsl */`
+            uniform samplerCube uMap;
+            varying vec3 vWorldNormal;
+
+            void main() {
+              vec4 color = textureCube(uMap, vWorldNormal);
+              gl_FragColor = color;
+            }
+          `,
+          side: BackSide,
+          depthWrite,
+        })
+        const geometry = new BoxGeometry(size, size, size)
+        const cube = setup(new Mesh(geometry, material), scene)
+        return { cube }
+      }
+
+      const material = new MeshBasicMaterial({ map, depthWrite })
       const geometry = new BoxGeometry(size, size, size)
-      const material = new MeshBasicMaterial({
-        map,
-        side: BackSide,
-        depthWrite: false,
-      })
-      const environmentMesh = setup(new Mesh(geometry, material), instance.parts.scene)
-      return { environmentMesh }
-    }
+        .scale(1, 1, -1) // Mirror the z-axis to match the cube texture orientation
+      const cube = setup(new Mesh(geometry, material), scene)
+      return { cube }
+    },
 
     ground({
       size = 10,
@@ -200,7 +242,7 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
           rotation: [-Math.PI / 2, 0, 0],
         }),
       }
-    }
+    },
 
     threeLights({
       size = 10,
@@ -232,7 +274,7 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
         backLeftLight2: light(backLeftColor, [-1, -2, 0], 6, { distance: 20 }),
         backRightLight2: light(backRightColor, [1, -1, 0], 6, { distance: 20 }),
       }
-    }
+    },
 
     debugColorCube({
       size = 10,
@@ -276,6 +318,67 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
         })
       })
 
+      const createSymbolGeometry = (symbol: '+' | '-' | 'x' | 'y' | 'z') => {
+        const THICKNESS = 0.2
+        switch (symbol) {
+          case '-': {
+            return new PlaneGeometry(.8, THICKNESS)
+          }
+          case '+': {
+            return mergeGeometries([
+              new PlaneGeometry(.8, THICKNESS),
+              new PlaneGeometry(.8, THICKNESS).rotateZ(Math.PI / 2),
+            ], false)
+          }
+          case 'x': {
+            return mergeGeometries([
+              new PlaneGeometry(THICKNESS, 1.414213).rotateZ(Math.PI / 4),
+              new PlaneGeometry(THICKNESS, 1.414213).rotateZ(-Math.PI / 4),
+            ], false)
+          }
+          case 'y': {
+            return mergeGeometries([
+              new PlaneGeometry(THICKNESS, .5).translate(0, -.25, 0),
+              new PlaneGeometry(THICKNESS, .65).rotateZ(Math.PI / 4).translate(-.2, .25, 0),
+              new PlaneGeometry(THICKNESS, .65).rotateZ(-Math.PI / 4).translate(.2, .25, 0),
+            ], false)
+          }
+          case 'z': {
+            return mergeGeometries([
+              new PlaneGeometry(1, THICKNESS).translate(0, -(0.5 - THICKNESS / 2), 0),
+              new PlaneGeometry(1, THICKNESS).translate(0, (0.5 - THICKNESS / 2), 0),
+              new PlaneGeometry(1.1, THICKNESS).rotateZ(Math.PI * .22),
+            ], false)
+          }
+          default: {
+            return new PlaneGeometry(.1, .1)
+          }
+        }
+      }
+
+      const createSymbols = (arg: string, color: ColorRepresentation, turnQuarters: [y: number, x: number]) => {
+        const SCALE = 0.2
+        const g = mergeGeometries([...arg].map((char, i, array) => {
+          const offset = (i - (array.length - 1) / 2) * 1
+          return createSymbolGeometry(char as any).translate(offset, 0, 0)
+        }), false)
+        setVertexColors(g, color)
+        g.scale(SCALE, SCALE, SCALE)
+        g.translate(0, 0, -1)
+        g.rotateY(turnQuarters[0] * Math.PI / 2)
+        g.rotateX(turnQuarters[1] * Math.PI / 2)
+        return g
+      }
+
+      setup(new Mesh(mergeGeometries([
+        createSymbols('+x', '#ff0000', [3, 0]),
+        createSymbols('-x', '#ff0000', [1, 0]),
+        createSymbols('+y', '#00ff66', [0, 1]),
+        createSymbols('-y', '#00ff66', [0, 3]),
+        createSymbols('+z', '#0033ff', [2, 0]),
+        createSymbols('-z', '#0033ff', [0, 0]),
+      ], false), new MeshBasicMaterial({ vertexColors: true })), scene)
+
       return {
         debugColorSpheres,
         debugGreySpheres,
@@ -284,7 +387,7 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
           faceColors,
         })
       }
-    }
+    },
 
     randomGradientTorus({
       seed = 123456,
@@ -336,7 +439,7 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
           }
         })
       }
-    }
+    },
   }
 
   return create

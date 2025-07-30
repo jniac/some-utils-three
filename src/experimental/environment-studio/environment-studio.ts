@@ -7,36 +7,38 @@ export class EnvironmentStudioState {
   time = 0
   deltaTime = 0
   onRender = new Set<() => void>()
+  onUpdate = new Set<() => void>()
 }
 
 export class EnvironmentStudio {
   static displayName = 'Environment Studio'
 
-  static createParts(textureSize: number) {
-    const scene = new Scene()
-    const altScene = new Scene()
-
+  /**
+   * Create a render target for the environment studio based on the given texture
+   * size AND the current WebGL capabilities (FloatType or not).
+   */
+  static createRenderTarget(textureSize: number) {
     const cap = capabilities()
     const type = cap.isFloatTextureSupported ? FloatType : UnsignedByteType
     const format = RGBAFormat
-
-    const rt = new WebGLCubeRenderTarget(textureSize, {
+    return new WebGLCubeRenderTarget(textureSize, {
       generateMipmaps: true,
       type,
       format,
     })
+  }
 
-    const rt0 = new WebGLCubeRenderTarget(textureSize, {
-      generateMipmaps: false,
-      type,
-      format,
-    })
+  static createParts(textureSize: number) {
+    const scene = new Scene()
+    const altScene = new Scene()
 
-    const rt1 = new WebGLCubeRenderTarget(textureSize, {
-      generateMipmaps: false,
-      type,
-      format,
-    })
+    const rt = EnvironmentStudio.createRenderTarget(textureSize)
+    const rt0 = EnvironmentStudio.createRenderTarget(textureSize)
+    const rt1 = EnvironmentStudio.createRenderTarget(textureSize)
+
+    rt.texture.name = 'environment-studio'
+    rt0.texture.name = 'environment-studio-0'
+    rt1.texture.name = 'environment-studio-1'
 
     const cubeCamera = new CubeCamera(.1, 100, rt)
 
@@ -114,23 +116,38 @@ export class EnvironmentStudio {
     return this
   }
 
+  update(deltaTime: number) {
+    this.#state.deltaTime = deltaTime
+
+    for (const callback of this.#state.onUpdate)
+      callback()
+
+    this.#state.time += deltaTime
+
+    return this
+  }
+
   /**
    * Render the main scene.
    * 
    * For mixing environments, use `renderMix` instead.
    */
-  render(renderer: WebGLRenderer, deltaTime = 1 / 60) {
-    this.#state.deltaTime = deltaTime
-
+  render(renderer: WebGLRenderer, {
+    /**
+     * Alternative render target to use instead of the main target. Useful for 
+     * saving different environments (internal render targets may be updated later).
+     */
+    altRenderTarget = null as WebGLCubeRenderTarget | null,
+  } = {}) {
     for (const callback of this.#state.onRender)
       callback()
 
     const { cubeCamera, scene, rt } = this.parts
+    cubeCamera.renderTarget = altRenderTarget ?? rt
     cubeCamera.update(renderer, scene)
+    cubeCamera.renderTarget = rt
 
-    this.#state.time += deltaTime
-
-    return rt.texture
+    return this
   }
 
   /**
@@ -141,21 +158,25 @@ export class EnvironmentStudio {
    * - If `alpha` is close to 1, it will render the `altScene` directly.
    * - Otherwise, it will render both scenes and mix them based on the `alpha` value.
    */
-  renderMix(renderer: WebGLRenderer, alpha: number, deltaTime = 1 / 60) {
-    this.parts.rt.texture.generateMipmaps = false
-
+  renderMix(renderer: WebGLRenderer, alpha: number, {
+    /**
+     * Alternative render target to use instead of the main target. Useful for 
+     * saving different environments (internal render targets may be updated later).
+     */
+    altRenderTarget = null as WebGLCubeRenderTarget | null,
+  } = {}) {
     // If alpha is close to 0, skip the mix and render the scene directly
     if (alpha < 1e-5) {
-      this.render(renderer, deltaTime)
-      return this.parts.rt.texture
+      this.render(renderer)
+      return this
     }
 
     // If alpha is close to 1, render the mix scene and swap back
     if (alpha > 1 - 1e-5) {
       this.swapScenes()
-      this.render(renderer, deltaTime)
+      this.render(renderer)
       this.swapScenes()
-      return this.parts.rt.texture
+      return this
     }
 
     for (const callback of this.#state.onRender)
@@ -167,15 +188,13 @@ export class EnvironmentStudio {
     cubeCamera.renderTarget = rt1
     cubeCamera.update(renderer, altScene)
 
-    cubeCamera.renderTarget = rt
     mixMaterial.uniforms.uEnv0.value = rt0.texture
     mixMaterial.uniforms.uEnv1.value = rt1.texture
     mixMaterial.uniforms.uAlpha.value = alpha
+    cubeCamera.renderTarget = altRenderTarget ?? rt
     cubeCamera.update(renderer, mixScene)
 
-    this.#state.time += deltaTime
-
-    return rt.texture
+    return this
   }
 
   /**
