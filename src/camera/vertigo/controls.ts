@@ -1,14 +1,15 @@
 import { Camera, ColorRepresentation, Euler, Group, Plane, Quaternion, Ray, Vector2, Vector2Like, Vector3 } from 'three'
 
 import { handleHtmlElementEvent } from 'some-utils-dom/handle/element-event'
+import { handleKeyboard } from 'some-utils-dom/handle/keyboard'
 import { handlePointer, PointerButton } from 'some-utils-dom/handle/pointer'
 import { Animation } from 'some-utils-ts/animation'
+import { clamp } from 'some-utils-ts/math/basic'
 import { intersectLineWithPlane } from 'some-utils-ts/math/geom/geom3'
 import { calculateExponentialDecayLerpRatio } from 'some-utils-ts/math/misc/exponential-decay'
 import { DestroyableInstance } from 'some-utils-ts/misc/destroy'
 import { DestroyableObject } from 'some-utils-ts/types'
 
-import { handleKeyboard } from 'some-utils-dom/handle/keyboard'
 import { fromPlaneDeclaration, fromVector3Declaration, PlaneDeclaration, Vector3Declaration } from '../../declaration'
 import { Vertigo, VertigoProps } from '../vertigo'
 import { VertigoHelper } from './helper'
@@ -390,7 +391,8 @@ export class VertigoControls implements DestroyableObject {
             const newZoom = this.currentVertigo.zoom * (1 - info.delta.y * .001)
             if (info.event.altKey) {
               if (info.event.shiftKey) {
-                this.currentVertigo.perspective *= 1 - info.delta.y * .001
+                const perspective = this.currentVertigo.perspective * (1 - info.delta.y * .001)
+                this.currentVertigo.perspective = clamp(perspective, 0, 10)
               } else {
                 this.zoomAt(newZoom, pointer)
               }
