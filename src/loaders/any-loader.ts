@@ -1,6 +1,8 @@
 import { Texture, TextureLoader } from 'three'
 import { RGBELoader } from 'three/examples/jsm/Addons.js'
 
+import { promisify } from 'some-utils-ts/misc/promisify'
+
 import { DisposableVideoTexture } from '../utils/texture/disposable-video-texture'
 
 const extensions = {
@@ -30,24 +32,27 @@ type TextureExtension = SRGBExtension | LinearExtension | VideoExtension
 const isTextureExtension = (ext: string): ext is TextureExtension =>
   isSRGBExtension(ext) || isLinearExtension(ext)
 
-type Promisified<T> = T & Promise<T>
+type Promisified<T> = T & PromiseLike<T>
+
+function filenameFromUrl(url: string): string {
+  return new URL(url, window.location.href).pathname.split('/').pop() || 'unknown'
+}
 
 class AnyLoader {
   #textureLoader: TextureLoader | null = null
   #rgbeLoader: RGBELoader | null = null
 
   loadTexture(url: string): Promisified<Texture> {
-    const extension = url.match(/[^.]+$/)?.[0]
+    const filename = filenameFromUrl(url)
+    const extension = filename.match(/[^.]+$/)?.[0]
 
     if (extension === undefined)
       throw new Error(`No extension found in url: ${url}`)
 
     if (isVideoExtension(extension)) {
       const videoTexture = DisposableVideoTexture.fromUrl(url)
-      videoTexture.name = url
-      return new Promise<Texture>((resolve, reject) => {
-        resolve(videoTexture)
-      }) as any
+      videoTexture.name = filename
+      return promisify(videoTexture, { resolved: true })
     }
 
     const loader =
@@ -58,6 +63,7 @@ class AnyLoader {
     let resolve: (texture: Texture) => void
     let reject: (error: Error) => void
     const texture = loader.load(url, texture => {
+      texture.name = filename
       unpromisified()
       resolve(texture)
     }, undefined, () => {
