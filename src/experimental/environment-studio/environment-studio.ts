@@ -127,18 +127,22 @@ export class EnvironmentStudio {
     return this
   }
 
+  static renderDefaultOptions = {
+    /**
+     * Alternative render target to use instead of the main target. Useful for 
+     * saving different environments (internal render targets may be updated later).
+     */
+    altRenderTarget: null as WebGLCubeRenderTarget | null,
+  }
+
   /**
    * Render the main scene.
    * 
    * For mixing environments, use `renderMix` instead.
    */
-  render(renderer: WebGLRenderer, {
-    /**
-     * Alternative render target to use instead of the main target. Useful for 
-     * saving different environments (internal render targets may be updated later).
-     */
-    altRenderTarget = null as WebGLCubeRenderTarget | null,
-  } = {}) {
+  render(renderer: WebGLRenderer, options?: Partial<typeof EnvironmentStudio.renderDefaultOptions>) {
+    const { altRenderTarget } = { ...EnvironmentStudio.renderDefaultOptions, ...options }
+
     for (const callback of this.#state.onRender)
       callback()
 
