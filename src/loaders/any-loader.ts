@@ -1,7 +1,7 @@
 import { Texture, TextureLoader } from 'three'
 import { RGBELoader } from 'three/examples/jsm/Addons.js'
 
-import { promisify } from 'some-utils-ts/misc/promisify'
+import { Promisified, promisify } from 'some-utils-ts/misc/promisify'
 
 import { DisposableVideoTexture } from '../utils/texture/disposable-video-texture'
 
@@ -31,8 +31,6 @@ const isVideoExtension = (ext: string): ext is VideoExtension =>
 type TextureExtension = SRGBExtension | LinearExtension | VideoExtension
 const isTextureExtension = (ext: string): ext is TextureExtension =>
   isSRGBExtension(ext) || isLinearExtension(ext)
-
-type Promisified<T> = T & PromiseLike<T>
 
 function filenameFromUrl(url: string): string {
   return new URL(url, window.location.href).pathname.split('/').pop() || 'unknown'
