@@ -6,12 +6,17 @@ const _matrix4 = new Matrix4()
 /**
  * Returns a matrix4 instance from the given transform declaration.
  * 
- * NOTE: 
+ * NOTE:
+ * - If the `props` argument is `null`, it will return a matrix with all elements set to 0.
  * - For performance reasons, by default the same matrix instance is returned. 
  * The value must be used immediately or copied / cloned if it needs to be stored.
  * - To get a new instance, pass a new matrix as the second argument.
  */
-export function makeMatrix4(props: TransformDeclaration, out = _matrix4): Matrix4 {
+export function makeMatrix4(props: TransformDeclaration | null, out = _matrix4): Matrix4 {
+  if (props === null) {
+    out.elements.fill(0)
+    return out
+  }
   return fromTransformDeclaration(props, out)
 }
 

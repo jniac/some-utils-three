@@ -40,6 +40,15 @@ class AnyLoader {
   #textureLoader: TextureLoader | null = null
   #rgbeLoader: RGBELoader | null = null
 
+  /**
+   * Loads a texture from a URL.
+   * 
+   * Features:
+   * - Supports various texture formats (e.g., jpg, png, hdr, exr, webm, mp4).
+   * - Automatically handles video textures with proper cleanup.
+   * - Returns a "promisified" texture that can be used like a Promise AND a Texture.
+   * - When video textures are loaded, it sets the width and height based on the video metadata.
+   */
   loadTexture(url: string): Promisified<Texture> {
     const filename = filenameFromUrl(url)
     const extension = filename.match(/[^.]+$/)?.[0]
@@ -48,9 +57,14 @@ class AnyLoader {
       throw new Error(`No extension found in url: ${url}`)
 
     if (isVideoExtension(extension)) {
-      const videoTexture = DisposableVideoTexture.fromUrl(url)
+      const videoTexture = promisify(DisposableVideoTexture.fromUrl(url))
+      videoTexture.video.onloadedmetadata = () => {
+        videoTexture.image.width = videoTexture.video.videoWidth
+        videoTexture.image.height = videoTexture.video.videoHeight
+        videoTexture.resolve()
+      }
       videoTexture.name = filename
-      return promisify(videoTexture, { resolved: true })
+      return videoTexture
     }
 
     const loader =
