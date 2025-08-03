@@ -1,4 +1,5 @@
-import { ColorRepresentation, DoubleSide, Group, Mesh, MeshBasicMaterial, PlaneGeometry, Texture } from 'three'
+import { ColorRepresentation, DoubleSide, Group, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Texture, Vector3 } from 'three'
+
 import { DebugHelper } from '../../helpers/debug'
 import { setup } from '../../utils/tree'
 import { Vertigo } from '../vertigo'
@@ -23,6 +24,44 @@ function texture() {
   let texture: Texture | undefined
   return texture ??= create()
 }
+
+/**
+ * Returns the corners of the frustum in world space.
+ * 
+ * Note:
+ * - For performance reasons, the returned points are always the same instances, 
+ *   so you should clone them if you want to keep them.
+ */
+const getFrustumCorners = (() => {
+  const ndcCorners = [
+    new Vector3(-1, -1, -1), // near bottom-left
+    new Vector3(1, -1, -1), // near bottom-right
+    new Vector3(1, 1, -1), // near top-right
+    new Vector3(-1, 1, -1), // near top-left
+    new Vector3(-1, -1, 1), // far bottom-left
+    new Vector3(1, -1, 1), // far bottom-right
+    new Vector3(1, 1, 1), // far top-right
+    new Vector3(-1, 1, 1), // far top-left
+  ]
+
+  const corners = ndcCorners.map(v => v.clone())
+
+  const viewProjectionMatrixInverse = new Matrix4()
+
+  return function (matrixWorldInverse: Matrix4, projectionMatrix: Matrix4) {
+    viewProjectionMatrixInverse
+      .multiplyMatrices(projectionMatrix, matrixWorldInverse)
+      .invert()
+
+    for (let i = 0; i < ndcCorners.length; i++) {
+      corners[i]
+        .copy(ndcCorners[i])
+        .applyMatrix4(viewProjectionMatrixInverse)
+    }
+
+    return corners
+  }
+})()
 
 export class VertigoHelper extends Group {
   static createParts(instance: VertigoHelper) {
@@ -82,5 +121,20 @@ export class VertigoHelper extends Group {
     const { realSize: rs } = this.vertigo.state
     debugHelper
       .rect([-rs.x / 2, -rs.y / 2, rs.x, rs.y], { color })
+
+    const [A, B, C, D, E, F, G, H] = getFrustumCorners(vertigo.state.worldMatrixInverse, vertigo.state.projectionMatrix)
+    debugHelper
+      .line(A, B, { color })
+      .line(B, C, { color })
+      .line(C, D, { color })
+      .line(D, A, { color })
+      .line(E, F, { color })
+      .line(F, G, { color })
+      .line(G, H, { color })
+      .line(H, E, { color })
+      .line(A, E, { color })
+      .line(B, F, { color })
+      .line(C, G, { color })
+      .line(D, H, { color })
   }
 }

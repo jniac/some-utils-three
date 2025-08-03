@@ -204,8 +204,25 @@ export class Vertigo {
     isPerspective: true,
     distance: 0,
     fov: 0,
+    near: 0,
+    far: 0,
     realSize: new Vector2(),
-    matrix: new Matrix4(),
+    /**
+     * The camera matrix that represents the position and rotation of the camera in the world.
+     */
+    worldMatrix: new Matrix4(),
+    /**
+     * The inverse of the camera matrix.
+     */
+    worldMatrixInverse: new Matrix4(),
+    /**
+     * The projection matrix of the camera.
+     */
+    projectionMatrix: new Matrix4(),
+    /**
+     * The inverse projection matrix of the camera.
+     */
+    projectionMatrixInverse: new Matrix4(),
   }
 
   constructor(props?: Props) {
@@ -367,10 +384,15 @@ export class Vertigo {
     // this.computedNdcScalar.set(heightScalar * aspect, heightScalar)
     // this.computedSize.set(realHeight * aspect, realHeight)
 
-    const { matrix } = this.state
-    matrix.makeRotationFromEuler(this.rotation)
+    const {
+      worldMatrix,
+      worldMatrixInverse,
+      projectionMatrix,
+      projectionMatrixInverse,
+    } = this.state
+    worldMatrix.makeRotationFromEuler(this.rotation)
 
-    const me = matrix.elements
+    const me = worldMatrix.elements
     const backward = isPerspective ? distance : this.before + this.nearMin
 
     const { _v0, _v1 } = Vertigo.shared
@@ -389,11 +411,49 @@ export class Vertigo {
     me[13] = _v0.y
     me[14] = _v0.z
 
+    // Make the world matrix inverse:
+    worldMatrixInverse.copy(worldMatrix).invert()
+
+    // Make the projection matrix:
+    let near: number, far: number
+
+    // Perspective
+    if (isPerspective) {
+      near = Math.max(this.nearMin / this.zoom, distance - this.before)
+      far = distance + this.after
+
+      const mHeight = realHeight * near / distance / 2
+      const mWidth = mHeight * newAspect
+
+      projectionMatrix.makePerspective(-mWidth, mWidth, mHeight, -mHeight, near, far)
+    }
+
+    // Orthographic
+    else {
+      // NOTE: "near" and "far" calculation are not correct. That kind of works, 
+      // but it has to be fixed one day or another.
+      // const near = this.nearMin / this.zoom
+      // const far = near + this.before + this.after
+      near = -this.before
+      far = this.after + this.before
+
+      const mHeight = realHeight / 2
+      const mWidth = mHeight * newAspect
+
+      projectionMatrix.makeOrthographic(-mWidth, mWidth, mHeight, -mHeight, near, far)
+    }
+
+    // Make the projection matrix inverse:
+    projectionMatrixInverse.copy(projectionMatrix).invert()
+
+    // State update:
     this.state.aspect = newAspect
     this.state.isPerspective = isPerspective
     this.state.distance = distance
     this.state.fov = fov
     this.state.realSize.set(realHeight * newAspect, realHeight)
+    this.state.near = near
+    this.state.far = far
 
     return this
   }
@@ -408,19 +468,22 @@ export class Vertigo {
 
     const {
       isPerspective,
-      distance,
       fov,
-      realSize: { height: realHeight },
+      near,
+      far,
+      worldMatrix,
+      projectionMatrix,
+      projectionMatrixInverse,
     } = this.state
 
     camera.matrixAutoUpdate = false
-    camera.matrix.copy(this.state.matrix)
+    camera.matrix.copy(worldMatrix)
     camera.updateMatrixWorld(true)
     camera.matrixAutoUpdate = true // Re-enable auto-update because OrbitControls might need it (?).
 
     // Update camera properties (for coherence)
-    camera.position.setFromMatrixPosition(this.state.matrix)
-    camera.quaternion.setFromRotationMatrix(this.state.matrix)
+    camera.position.setFromMatrixPosition(worldMatrix)
+    camera.quaternion.setFromRotationMatrix(worldMatrix)
     camera.rotation.setFromQuaternion(camera.quaternion, defaultRotationOrder)
     camera.scale.set(1, 1, 1)
 
@@ -431,45 +494,29 @@ export class Vertigo {
     camera.isOrthographicCamera = !isPerspective
 
     if (isPerspective) {
-      const near = Math.max(this.nearMin / this.zoom, distance - this.before)
-      const far = distance + this.after
-
-      const mHeight = realHeight * near / distance / 2
-      const mWidth = mHeight * aspect
-
       const pcam = camera as PerspectiveCamera
       pcam.fov = fov * 180 / Math.PI
       pcam.near = near
       pcam.far = far
-
-      pcam.projectionMatrix.makePerspective(-mWidth, mWidth, mHeight, -mHeight, near, far)
+      pcam.aspect = aspect
+      pcam.projectionMatrix.copy(projectionMatrix)
     }
 
     // Orthographic
     else {
-      // NOTE: "near" and "far" calculation are not correct. That kind of works, 
-      // but it has to be fixed one day or another.
-      // const near = this.nearMin / this.zoom
-      // const far = near + this.before + this.after
-      const near = -this.before
-      const far = this.after + this.before
-
-      const mHeight = realHeight / 2
-      const mWidth = mHeight * aspect
-
       const ocam = camera as OrthographicCamera
       // @ts-expect-error Javascript here! We create the "fov" property even if it doesn't exist on OrthographicCamera.
       ocam.fov = 0
       ocam.near = near
       ocam.far = far
-
-      ocam.projectionMatrix.makeOrthographic(-mWidth, mWidth, mHeight, -mHeight, near, far)
+      // @ts-expect-error Javascript here! We create the "aspect" property even if it doesn't exist on OrthographicCamera.
+      ocam.aspect = aspect
+      ocam.projectionMatrix.copy(projectionMatrix)
     }
 
     // Don't forget to update the inverse matrix (for raycasting) (i forgot it).
     camera.projectionMatrixInverse
-      .copy(camera.projectionMatrix)
-      .invert()
+      .copy(projectionMatrixInverse)
 
     return this
   }

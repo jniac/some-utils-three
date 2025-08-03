@@ -459,6 +459,7 @@ export class VertigoControls implements DestroyableObject {
       // If this is the first time entering alternative, copy the vertigo state.
       if (this.#state.alternativeActivationCount === 0) {
         this.#state.alternativeVertigo.copy(this.vertigo)
+        this.#state.alternativeVertigo.after *= 1.5 // Make the alternative vertigo render a bit longer.
         this.#state.alternativeDampedVertigo.copy(this.dampedVertigo)
       }
       this.#state.alternativeActivationCount++
@@ -483,8 +484,8 @@ export class VertigoControls implements DestroyableObject {
         .lerp(this.vertigo, t)
       this.#state.alternativeDampedVertigo
         .lerp(this.vertigo, t)
-      _v0.setFromMatrixPosition(this.#state.alternativeDampedVertigo.state.matrix)
-      _v1.setFromMatrixPosition(this.dampedVertigo.state.matrix)
+      _v0.setFromMatrixPosition(this.#state.alternativeDampedVertigo.state.worldMatrix)
+      _v1.setFromMatrixPosition(this.dampedVertigo.state.worldMatrix)
       const sqDistance = _v0.distanceToSquared(_v1)
       if (sqDistance < 0.0001)
         this.#doExitAlternative()
