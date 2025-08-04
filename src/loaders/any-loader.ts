@@ -1,4 +1,4 @@
-import { Texture, TextureLoader } from 'three'
+import { LinearSRGBColorSpace, SRGBColorSpace, Texture, TextureLoader } from 'three'
 import { RGBELoader } from 'three/examples/jsm/Addons.js'
 
 import { Promisified, promisify } from 'some-utils-ts/misc/promisify'
@@ -76,6 +76,9 @@ class AnyLoader {
     let reject: (error: Error) => void
     const texture = loader.load(url, texture => {
       texture.name = filename
+      texture.colorSpace = isLinearExtension(extension)
+        ? LinearSRGBColorSpace
+        : SRGBColorSpace
       unpromisified()
       resolve(texture)
     }, undefined, () => {
