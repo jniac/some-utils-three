@@ -33,6 +33,7 @@ export class AutoLitMaterial extends MeshBasicMaterial {
       uLuminosity: { value: luminosity },
     }
     super(rest)
+    console.log(uniforms)
     this.onBeforeCompile = shader => {
       ShaderForge.with(shader)
         .uniforms(uniforms)
@@ -44,7 +45,7 @@ export class AutoLitMaterial extends MeshBasicMaterial {
         `)
         .fragment.after('map_fragment', /* glsl */`
           vec3 lightDirection = normalize(uSunPosition);
-          float light = dot(vWorldNormal, lightDirection) * 0.5 + 0.5;
+          float light = dot(normalize(vWorldNormal), lightDirection) * 0.5 + 0.5;
           light = pow(light, uRampPower);
           diffuseColor.rgb *= mix(uShadowColor * uLuminosity, vec3(1.0), light);
         `)
