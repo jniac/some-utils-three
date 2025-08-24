@@ -186,7 +186,8 @@ export class BasicPipeline implements PipelineBase {
       if (!metadata) {
         lines.push(`- ${passIndex}: NO METADATA for ${pass.constructor.name}`)
       } else {
-        lines.push(`- ${passIndex}: ${PassType[metadata.type]} (insertOrder: ${metadata.insertOrder}) ${pass.constructor.name}`)
+        const enabled = pass.enabled ? '✅' : '❌'
+        lines.push(`- ${passIndex}: ${enabled} ${PassType[metadata.type]} (insertOrder: ${metadata.insertOrder}) ${pass.constructor.name}`)
       }
     }
     return lines.join('\n')

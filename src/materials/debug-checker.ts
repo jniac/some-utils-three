@@ -1,5 +1,5 @@
 import { Vector2Declaration } from 'some-utils-ts/declaration'
-import { CanvasTexture, Color, LinearSRGBColorSpace, MeshBasicMaterial, SRGBColorSpace, Vector2 } from 'three'
+import { CanvasTexture, Color, LinearSRGBColorSpace, MeshBasicMaterial, MeshBasicMaterialParameters, SRGBColorSpace, Vector2 } from 'three'
 import { fromVector2Declaration } from '../declaration'
 
 class CellHandle {
@@ -57,7 +57,7 @@ const defaultOptions = {
  * DebugCheckerMaterial is a material that displays a debug checkerboard pattern.
  */
 export class DebugCheckerMaterial extends MeshBasicMaterial {
-  constructor(userOptions: Partial<typeof defaultOptions> = {}) {
+  constructor(userOptions: Partial<typeof defaultOptions> & MeshBasicMaterialParameters = {}) {
     const options = { ...defaultOptions, ...userOptions }
 
     const cellResolution = fromVector2Declaration(options.cellResolution)
@@ -96,6 +96,11 @@ export class DebugCheckerMaterial extends MeshBasicMaterial {
     const texture = new CanvasTexture(canvas)
     texture.colorSpace = SRGBColorSpace
 
-    super({ map: texture })
+    const superProps = { map: texture } as MeshBasicMaterialParameters
+    for (const [key, value] of Object.entries(userOptions)) {
+      if (key in defaultOptions === false)
+        superProps[key as keyof MeshBasicMaterialParameters] = value
+    }
+    super(superProps)
   }
 }
