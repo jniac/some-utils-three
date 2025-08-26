@@ -1,16 +1,19 @@
 import { BufferAttribute, BufferGeometry } from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { createExtrusionGeometry } from './extrusion'
 
 const defaultOptions = {
   width: 1,
   height: 1,
+  depth: .1,
   borderWidth: .1,
   borderAlign: .5,
   cornerRadius: 0,
   cornerSegments: 8,
 }
 
-function setupSimpleFrameGeometry(geometry: FrameGeometry) {
-  const { width: w, height: h, borderWidth: bw, borderAlign: ba } = geometry.options
+function setupSimpleFrameGeometry(geometry: BufferGeometry, options: typeof defaultOptions) {
+  const { width: w, height: h, borderWidth: bw, borderAlign: ba } = options
   const w2 = w / 2
   const h2 = h / 2
   const bw_in = bw * (1 - ba)
@@ -21,7 +24,7 @@ function setupSimpleFrameGeometry(geometry: FrameGeometry) {
   const maxX = w2 + bw_out
   const maxY = h2 + bw_out
 
-  const position = new Float32Array([
+  const frontPosition = new Float32Array([
     // Inner rectangle
     -w2 + bw_in, -h2 + bw_in, 0,
     w2 - bw_in, -h2 + bw_in, 0,
@@ -34,9 +37,8 @@ function setupSimpleFrameGeometry(geometry: FrameGeometry) {
     maxX, maxY, 0,
     minX, maxY, 0,
   ])
-  geometry.setAttribute('position', new BufferAttribute(position, 3))
 
-  const normal = new Float32Array([
+  const frontNormal = new Float32Array([
     0, 0, 1,
     0, 0, 1,
     0, 0, 1,
@@ -47,13 +49,14 @@ function setupSimpleFrameGeometry(geometry: FrameGeometry) {
     0, 0, 1,
     0, 0, 1,
   ])
-  geometry.setAttribute('normal', new BufferAttribute(normal, 3))
 
-  const uv = new Float32Array(position.length / 3 * 2)
+  geometry.setAttribute('position', new BufferAttribute(frontPosition, 3))
+
+  const uv = new Float32Array(frontPosition.length / 3 * 2)
   geometry.setAttribute('uv', new BufferAttribute(uv, 2))
-  for (let i = 0; i < position.length / 3; i++) {
-    uv[i * 2 + 0] = (position[i * 3 + 0] - minX) / (maxX - minX)
-    uv[i * 2 + 1] = (position[i * 3 + 1] - minY) / (maxY - minY)
+  for (let i = 0; i < frontPosition.length / 3; i++) {
+    uv[i * 2 + 0] = (frontPosition[i * 3 + 0] - minX) / (maxX - minX)
+    uv[i * 2 + 1] = (frontPosition[i * 3 + 1] - minY) / (maxY - minY)
   }
 
   const index = new Uint16Array([
@@ -63,6 +66,16 @@ function setupSimpleFrameGeometry(geometry: FrameGeometry) {
     3, 7, 0, 0, 7, 4,
   ])
   geometry.setIndex(new BufferAttribute(index, 1))
+
+  geometry.computeVertexNormals()
+
+  if (options.depth > 0) {
+    const extrusionGeometry = createExtrusionGeometry(geometry, {
+      amount: options.depth,
+      direction: [0, 0, -1],
+    })
+    geometry.copy(mergeGeometries([geometry, extrusionGeometry]))
+  }
 }
 
 /**
@@ -75,7 +88,7 @@ export class FrameGeometry extends BufferGeometry {
     super()
     this.options = { ...defaultOptions, ...options }
     if (this.options.cornerRadius === 0) {
-      setupSimpleFrameGeometry(this)
+      setupSimpleFrameGeometry(this, this.options)
     } else {
       throw new Error('Corner radius not implemented')
     }
