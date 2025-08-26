@@ -129,6 +129,16 @@ export class ThreeBaseContext {
 
   protected onSetSize() { }
 
+  setScene(scene: Scene): this {
+    if (this.scene !== scene) {
+      this.scene = scene
+      this.onSetScene()
+    }
+    return this
+  }
+
+  protected onSetScene() { }
+
   initialize(domContainer: HTMLElement, pointerScope: HTMLElement): Destroyable {
     throw new Error('Not implemented')
   }

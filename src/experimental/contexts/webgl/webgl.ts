@@ -56,9 +56,8 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     ThreeWebGLContext.instances.push(this)
   }
 
-  setScene(scene: Scene): void {
-    this.scene = scene
-    // this.pipeline.setScene(scene)
+  protected override onSetScene(): void {
+    this.pipeline.setScene(this.scene)
   }
 
   useOrbitControls({
