@@ -94,6 +94,9 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     const { onDestroy } = this
     const { domElement } = this.renderer
     domContainer.appendChild(domElement)
+    onDestroy(() => {
+      domContainer.removeChild(domElement)
+    })
 
     // Resize
     const resize = () => {
