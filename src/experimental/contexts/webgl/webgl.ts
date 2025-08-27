@@ -1,7 +1,8 @@
-import { Object3D, OrthographicCamera, PerspectiveCamera, Scene, Vector2, WebGLRenderer } from 'three'
+import { DataUtils, HalfFloatType, Object3D, OrthographicCamera, PerspectiveCamera, Scene, WebGLRenderer } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
+import { Color4 } from 'some-utils-ts/math/color'
 import { destroy } from 'some-utils-ts/misc/destroy'
 import { Tick } from 'some-utils-ts/ticker'
 import { Destroyable } from 'some-utils-ts/types'
@@ -32,8 +33,6 @@ export class ThreeWebGLContext extends ThreeBaseContext {
   pipeline = new BasicPipeline(this.renderer, this.scene, this.gizmoScene, this.perspectiveCamera)
 
   private internal = {
-    size: new Vector2(),
-    fullSize: new Vector2(),
     destroyables: [] as Destroyable[],
     orbitControls: null as null | OrbitControls,
   }
@@ -195,5 +194,47 @@ export class ThreeWebGLContext extends ThreeBaseContext {
       current = current.parent
     }
     return false
+  }
+
+  #pixelColorInternal = {
+    uint16: new Uint16Array(4),
+    color: new Color4(),
+  }
+  /**
+   * Reads the pixel color at the buffer position.
+   * 
+   * Note: 
+   * - This only works if the pipeline's composer readBuffer texture type is HalfFloatType.
+   * - This is using the last accessible render target, and misses the last (Antialiasing) pass.
+   */
+  pixelColor(bufferX: number, bufferY: number): Color4 {
+    switch (this.pipeline.composer.readBuffer.texture.type) {
+      case HalfFloatType: {
+        const { uint16: buffer, color } = this.#pixelColorInternal
+        this.renderer.readRenderTargetPixels(this.pipeline.composer.readBuffer, bufferX, bufferY, 1, 1, buffer)
+        color.r = DataUtils.fromHalfFloat(buffer[0])
+        color.g = DataUtils.fromHalfFloat(buffer[1])
+        color.b = DataUtils.fromHalfFloat(buffer[2])
+        color.a = DataUtils.fromHalfFloat(buffer[3])
+        break
+      }
+      default: {
+        throw new Error(`Unsupported texture type: ${this.pipeline.composer.readBuffer.texture.type}`)
+      }
+    }
+
+    return this.#pixelColorInternal.color
+  }
+  /**
+   * Reads the pixel color at the current pointer position.
+   * Note: 
+   * - This only works if the pipeline's composer readBuffer texture type is HalfFloatType.
+   * - This is using the last accessible render target, and misses the last (Antialiasing) pass.
+   */
+  pointerPixelColor(): Color4 {
+    let { x, y } = this.pointer.screenPosition
+    x = Math.floor((x + 1) / 2 * this.fullSize.x)
+    y = Math.floor((y + 1) / 2 * this.fullSize.y)
+    return this.pixelColor(x, y)
   }
 }
