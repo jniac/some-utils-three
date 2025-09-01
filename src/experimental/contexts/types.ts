@@ -3,8 +3,10 @@ export enum TickPhase {
   BeforeUpdate = -1000,
   Update = 0,
   AfterUpdate = 1000,
-  Render = 2000,
-  PostRender = 3000
+
+  BeforeRender = 2000,
+  Render = 3000,
+  AfterRender = 4000
 }
 
 export enum ThreeContextType {
