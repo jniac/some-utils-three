@@ -61,10 +61,25 @@ export class ThreeBaseContext {
   fullSize = new Vector2()
   pixelRatio = 1
   pointer = new Pointer()
+  /**
+   * The main scene for rendering.
+   */
   scene = new Scene()
+  /**
+   * The camera used for rendering.
+   */
   camera!: Camera
 
   skipRender = false
+  skipPointerUpdate = false
+  /**
+   * Whether to skip the tick update.
+   *
+   * Note:
+   * - Indispensable for certain effects that requires double rendering (eg: "foreground" overlay)
+   */
+  skipTickUpdate = false
+
   initialized = false
 
   domElement!: HTMLElement
@@ -157,16 +172,20 @@ export class ThreeBaseContext {
 
     const { scene, pointer } = this
 
-    pointer.updateStart(scene)
+    if (this.skipPointerUpdate === false)
+      pointer.updateStart(scene)
 
-    scene.traverse(child => {
-      if ('onTick' in child) {
-        // call onTick on every child that has it
-        (child as any).onTick(tick, this)
-      }
-    })
+    if (this.skipTickUpdate === false) {
+      scene.traverse(child => {
+        if ('onTick' in child) {
+          // call onTick on every child that has it
+          (child as any).onTick(tick, this)
+        }
+      })
+    }
 
-    pointer.updateEnd()
+    if (this.skipPointerUpdate === false)
+      pointer.updateEnd()
   }
 
   /**

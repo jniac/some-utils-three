@@ -1,4 +1,4 @@
-import { PerspectiveCamera, Scene, Vector2, WebGLRenderer } from 'three'
+import { Object3D, PerspectiveCamera, Scene, Vector2, WebGLRenderer } from 'three'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
@@ -163,11 +163,15 @@ export class BasicPipeline implements PipelineBase {
     this.basicPasses.smaa.setSize(width * pixelRatio, height * pixelRatio) // Required? not sure since it implements "setSize"
   }
 
-  setScene(scene: Scene): void {
+  /**
+   * Update all the passes that are using the previous scene with the new scene.
+   */
+  setScene(scene: Object3D): void {
     const previousScene = this.basicPasses.mainRender.scene
     for (const pass of this.composer.passes) {
       if (pass instanceof RenderPass) {
         if (pass.scene === previousScene) {
+          // @ts-ignore (Object3D is ok)
           pass.scene = scene
         }
       }
