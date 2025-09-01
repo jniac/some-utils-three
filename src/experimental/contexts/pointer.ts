@@ -352,24 +352,31 @@ export class Pointer {
       // NOTE: Update the pointer position on "down" too (because of touch events)
       updatePointerPosition(event)
 
+      // Ignore events that are not from the canvas (but from other injected elements)
+      if (event.target instanceof HTMLCanvasElement === false)
+        return
+
+      document.addEventListener('pointerup', onPointerUp)
+
       this.state.downEvent = event
       this.state.buttons |= (1 << event.button)
       this.downTimes.set(event.button, ticker.time)
     }
 
     const onPointerUp = (event: PointerEvent) => {
+      document.removeEventListener('pointerup', onPointerUp)
+
       this.state.buttons &= ~(1 << event.button)
       this.upTimes.set(event.button, ticker.time)
     }
 
-    scope.addEventListener('pointermove', onPointerMove)
+    document.addEventListener('pointermove', onPointerMove)
     scope.addEventListener('pointerdown', onPointerDown)
-    scope.addEventListener('pointerup', onPointerUp)
 
     this.#enableListenersState.disable = () => {
-      scope.removeEventListener('pointermove', onPointerMove)
+      document.removeEventListener('pointermove', onPointerMove)
+      document.removeEventListener('pointerup', onPointerUp)
       scope.removeEventListener('pointerdown', onPointerDown)
-      scope.removeEventListener('pointerup', onPointerUp)
     }
   }
   #disableListeners() {
