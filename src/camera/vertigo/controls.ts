@@ -255,6 +255,7 @@ export class VertigoControls implements DestroyableObject {
   constructor(props: VertigoProps = {}) {
     this.currentVertigo.set(props)
     this.currentDampedVertigo.set(props)
+    this.group.name = 'VertigoControls-Helper'
   }
 
   #destroyed = false

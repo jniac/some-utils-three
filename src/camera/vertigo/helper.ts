@@ -1,6 +1,7 @@
 import { ColorRepresentation, DoubleSide, Group, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Texture, Vector3 } from 'three'
 
 import { DebugHelper } from '../../helpers/debug'
+import { makeMatrix4 } from '../../utils/make'
 import { setup } from '../../utils/tree'
 import { Vertigo } from '../vertigo'
 
@@ -65,6 +66,7 @@ const getFrustumCorners = (() => {
 
 export class VertigoHelper extends Group {
   static createParts(instance: VertigoHelper) {
+    const planeWrapper = setup(new Group(), instance)
     const plane = setup(new Mesh(
       new PlaneGeometry(1, .25),
       new MeshBasicMaterial({
@@ -73,10 +75,12 @@ export class VertigoHelper extends Group {
         transparent: true,
         side: DoubleSide,
       }),
-    ), instance)
+    ), planeWrapper)
 
     return {
       plane,
+      planeWrapper,
+      matrix: new Matrix4(),
       debugHelper: setup(new DebugHelper(), instance),
     }
   }
@@ -93,36 +97,52 @@ export class VertigoHelper extends Group {
     this.parts = VertigoHelper.createParts(this)
   }
 
+  #rect(width: number, height: number) {
+    const { color } = this
+    const { debugHelper, matrix } = this.parts
+    const points = [
+      new Vector3(width / 2, height / 2, 0),
+      new Vector3(-width / 2, height / 2, 0),
+      new Vector3(-width / 2, -height / 2, 0),
+      new Vector3(width / 2, -height / 2, 0),
+    ]
+    for (const point of points)
+      point.applyMatrix4(matrix)
+    debugHelper.polygon(points, { color })
+  }
+
   onTick() {
     const { vertigo, color } = this
     const { x: sx, y: sy } = vertigo.size
 
-    const { debugHelper, plane } = this.parts
+    const { debugHelper, matrix, plane, planeWrapper } = this.parts
 
-    this.position.copy(vertigo.focus)
-    this.rotation.copy(vertigo.rotation)
-
+    planeWrapper.position.copy(vertigo.focus)
+    planeWrapper.rotation.copy(vertigo.rotation)
     const padding = .1
     plane.position.set(-sx / 2 + .5 + padding, sy / 2 - .125 - padding, 0)
 
+    makeMatrix4({
+      position: vertigo.focus,
+      rotation: vertigo.rotation,
+    }, matrix)
+
     debugHelper.clear()
 
-    // Draw the "ideal" point (not zoomed).
-    debugHelper.rect([-sx / 2, -sy / 2, sx, sy], { color })
+    this.#rect(sx, sy)
 
     // Draw the zoomed "ideal" rectangle if zoom is not 1.
     if (vertigo.zoom !== 1) {
       const sx2 = sx / vertigo.zoom
       const sy2 = sy / vertigo.zoom
-      debugHelper.rect([-sx2 / 2, -sy2 / 2, sx2, sy2], { color })
+      this.#rect(sx2, sy2)
     }
 
     // Draw the real size rectangle.
     const { realSize: rs } = this.vertigo.state
-    debugHelper
-      .rect([-rs.x / 2, -rs.y / 2, rs.x, rs.y], { color })
+    this.#rect(rs.x, rs.y)
 
-    const [A, B, C, D, E, F, G, H] = getFrustumCorners(vertigo.state.worldMatrixInverse, vertigo.state.projectionMatrix)
+    const [A, B, C, D, E, F, G, H] = getFrustumCorners(vertigo.state.worldMatrix.invert(), vertigo.state.projectionMatrix)
     debugHelper
       .line(A, B, { color })
       .line(B, C, { color })
