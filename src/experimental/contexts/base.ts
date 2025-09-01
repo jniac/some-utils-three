@@ -71,12 +71,12 @@ export class ThreeBaseContext {
   camera!: Camera
 
   skipRender = false
-  skipPointerUpdate = false
   /**
    * Whether to skip the tick update.
    *
    * Note:
-   * - Indispensable for certain effects that requires double rendering (eg: "foreground" overlay)
+   * - Indispensable for certain effects that requires double rendering
+   *   (eg: "foreground" overlay) and avoid double ticking
    */
   skipTickUpdate = false
 
@@ -172,8 +172,7 @@ export class ThreeBaseContext {
 
     const { scene, pointer } = this
 
-    if (this.skipPointerUpdate === false)
-      pointer.updateStart(scene)
+    pointer.updateStart(scene)
 
     if (this.skipTickUpdate === false) {
       scene.traverse(child => {
@@ -184,8 +183,7 @@ export class ThreeBaseContext {
       })
     }
 
-    if (this.skipPointerUpdate === false)
-      pointer.updateEnd()
+    pointer.updateEnd()
   }
 
   /**

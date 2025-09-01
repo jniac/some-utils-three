@@ -80,6 +80,8 @@ export class ThreePointerEvent {
 }
 
 export class Pointer {
+  #enabled = true
+
   get buttons() { return this.state.buttons }
 
   state = new PointerState()
@@ -90,6 +92,7 @@ export class Pointer {
 
   domElement: HTMLElement | null = null
   scope: HTMLElement | null = null
+  ticker: Ticker | null = null
 
   #eventIgnore = new Map<ThreePointerEventType, (event: ThreePointerEvent) => boolean>()
   /**
@@ -168,6 +171,9 @@ export class Pointer {
     const delta = this.upTimes.get(button)! - this.downTimes.get(button)!
     return delta < maxDuration
   }
+
+  get enabled() { return this.#enabled }
+  set enabled(value: boolean) { this.setEnabled(value) }
 
   /**
    * The position of the pointer in client space (pixels)
@@ -280,6 +286,9 @@ export class Pointer {
   }
 
   updateStart(scene: Object3D) {
+    if (this.#enabled === false)
+      return
+
     // calculate the difference in pointer state
     this.diffState.diff(this.state, this.stateOld)
     this.intersections = this.raycast(scene)
@@ -312,14 +321,22 @@ export class Pointer {
   }
 
   updateEnd() {
+    if (this.#enabled === false)
+      return
+
     // save the previous state
     this.stateOld.copy(this.state)
     this.event.reset()
   }
 
-  initialize(domElement: HTMLElement, scope: HTMLElement, camera: Camera, ticker: Ticker) {
-    this.domElement = domElement
-    this.scope = scope
+  #enableListenersState = {
+    disable: () => { },
+  }
+  #enableListeners() {
+    const domElement = this.domElement!
+    const scope = this.scope!
+    const camera = this.camera!
+    const ticker = this.ticker!
 
     const updatePointerPosition = (event: PointerEvent) => {
       const rect = domElement.getBoundingClientRect()
@@ -349,12 +366,40 @@ export class Pointer {
     scope.addEventListener('pointerdown', onPointerDown)
     scope.addEventListener('pointerup', onPointerUp)
 
-    const destroy = () => {
+    this.#enableListenersState.disable = () => {
       scope.removeEventListener('pointermove', onPointerMove)
       scope.removeEventListener('pointerdown', onPointerDown)
       scope.removeEventListener('pointerup', onPointerUp)
     }
+  }
+  #disableListeners() {
+    this.#enableListenersState.disable()
+    this.#enableListenersState.disable = () => { }
+  }
 
-    return destroy
+  setEnabled(value: boolean): this {
+    if (this.#enabled === value)
+      return this
+
+    this.#enabled = value
+    if (value) {
+      this.#enableListeners()
+    } else {
+      this.#disableListeners()
+    }
+
+    return this
+  }
+
+  initialize(domElement: HTMLElement, scope: HTMLElement, camera: Camera, ticker: Ticker) {
+    this.domElement = domElement
+    this.scope = scope
+    this.camera = camera
+    this.ticker = ticker
+
+    if (this.#enabled)
+      this.#enableListeners()
+
+    return this.#enableListenersState.disable
   }
 }
