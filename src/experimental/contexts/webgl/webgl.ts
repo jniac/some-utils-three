@@ -5,7 +5,7 @@ import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interac
 import { Color4 } from 'some-utils-ts/math/color'
 import { destroy } from 'some-utils-ts/misc/destroy'
 import { Tick } from 'some-utils-ts/ticker'
-import { Destroyable } from 'some-utils-ts/types'
+import { Destroyable, Vector2Like } from 'some-utils-ts/types'
 
 import { fromVector3Declaration, Vector3Declaration } from '../../../declaration'
 import { UnifiedLoader } from '../../../loaders/unified-loader'
@@ -204,8 +204,9 @@ export class ThreeWebGLContext extends ThreeBaseContext {
    * Reads the pixel color at the buffer position.
    * 
    * Note: 
-   * - This only works if the pipeline's composer readBuffer texture type is HalfFloatType.
+   * - This only works if the pipeline's composer readBuffer texture type is HalfFloatType (for now).
    * - This is using the last accessible render target, and misses the last (Antialiasing) pass.
+   * - The same instance of Color4 is used for all reads. If you need to save the color, make sure to clone it.
    */
   pixelColor(bufferX: number, bufferY: number): Color4 {
     switch (this.pipeline.composer.readBuffer.texture.type) {
@@ -225,16 +226,14 @@ export class ThreeWebGLContext extends ThreeBaseContext {
 
     return this.#pixelColorInternal.color
   }
-  /**
-   * Reads the pixel color at the current pointer position.
-   * Note: 
-   * - This only works if the pipeline's composer readBuffer texture type is HalfFloatType.
-   * - This is using the last accessible render target, and misses the last (Antialiasing) pass.
-   */
-  pointerPixelColor(): Color4 {
-    let { x, y } = this.pointer.screenPosition
+
+  pixelColorNdc({ x, y }: Vector2Like): Color4 {
     x = Math.floor((x + 1) / 2 * this.fullSize.x)
     y = Math.floor((y + 1) / 2 * this.fullSize.y)
     return this.pixelColor(x, y)
+  }
+
+  pointerPixelColor(): Color4 {
+    return this.pixelColorNdc(this.pointer.screenPosition)
   }
 }
