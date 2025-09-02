@@ -236,7 +236,8 @@ export function computeMatrix3d(
     matrixResetScale(_matrix1, leftHanded ? z : -z, resetScale)
   }
 
-  return `translate(-50%, -50%) matrix3d(${_matrix1.elements.join(',')})`
+  const epsilon = 1e-6
+  return `translate(-50%, -50%) matrix3d(${_matrix1.elements.map(e => Math.round(e / epsilon) * epsilon).join(',')})`
 }
 
 export function updatePosition3d(container: HTMLElement, div: HTMLElement, camera: Camera, target: Object3D | Matrix4 | Vector3, {
