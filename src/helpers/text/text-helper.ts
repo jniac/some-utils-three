@@ -28,6 +28,18 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
   atlas: TextHelperAtlas
   data: TextHelperData
 
+  transformMatrix = new Matrix4()
+
+  setTransformMatrix(matrix: Matrix4): this {
+    this.transformMatrix.copy(matrix)
+    return this
+  }
+
+  resetTransformMatrix(): this {
+    this.transformMatrix.identity()
+    return this
+  }
+
   constructor(userOptions?: Partial<typeof optionsDefaults>) {
     const options = { ...optionsDefaults, ...userOptions }
     const atlas = new TextHelperAtlas()
@@ -110,7 +122,7 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
   setTextAt(index: number, text: string, options: SetTextOption = {}) {
     this.data.setTextAt(index, text, { ...this.options.textDefaults, ...options })
 
-    this.setMatrixAt(index, makeMatrix4(options))
+    this.setMatrixAt(index, makeMatrix4(options).premultiply(this.transformMatrix))
     this.instanceMatrix.needsUpdate = true
 
     return this

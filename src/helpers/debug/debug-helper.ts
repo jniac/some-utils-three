@@ -1,4 +1,4 @@
-import { ColorRepresentation, Group, Object3D } from 'three'
+import { ColorRepresentation, Group, Matrix4, Object3D } from 'three'
 
 import { fromVector3Declaration, TransformDeclaration, Vector3Declaration } from '../../declaration'
 import { SetTextOption, TextHelper } from '../text'
@@ -28,6 +28,16 @@ class TextsManager extends BaseManager {
   constructor(options?: Parameters<typeof TextsManager.createParts>[0]) {
     super()
     this.parts = TextsManager.createParts(options)
+  }
+
+  override setTransformMatrix(matrix: Matrix4): this {
+    this.parts.textHelper.setTransformMatrix(matrix)
+    return this
+  }
+
+  override resetTransformMatrix(): this {
+    this.parts.textHelper.resetTransformMatrix()
+    return this
   }
 
   override applyTransform(...transforms: TransformDeclaration[]) {
@@ -230,6 +240,20 @@ class DebugHelper extends Group {
 
   textAt(...args: Parameters<TextsManager['textAt']>): this {
     this.parts.textsManager.textAt(...args)
+    return this
+  }
+
+  setTransformMatrix(matrix: Matrix4): this {
+    this.parts.pointsManager.setTransformMatrix(matrix)
+    this.parts.linesManager.setTransformMatrix(matrix)
+    this.parts.textsManager.setTransformMatrix(matrix)
+    return this
+  }
+
+  resetTransformMatrix(): this {
+    this.parts.pointsManager.resetTransformMatrix()
+    this.parts.linesManager.resetTransformMatrix()
+    this.parts.textsManager.resetTransformMatrix()
     return this
   }
 

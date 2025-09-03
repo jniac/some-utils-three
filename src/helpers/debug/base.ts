@@ -19,6 +19,17 @@ export class BaseManager {
   }
 
   transformMatrix = new Matrix4()
+
+  setTransformMatrix(matrix: Matrix4): this {
+    this.transformMatrix.copy(matrix)
+    return this
+  }
+
+  resetTransformMatrix(): this {
+    this.transformMatrix.identity()
+    return this
+  }
+
   applyTransform(...transforms: TransformDeclaration[]) {
     throw new Error('Not implemented!')
   }

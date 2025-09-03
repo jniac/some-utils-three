@@ -220,7 +220,10 @@ const DEFAULT_LINE_COUNT = 20000
 
 export class LinesManager extends BaseManager {
   static createParts({
-    nodeMaterial = false, lineCount: count = DEFAULT_LINE_COUNT, defaultColor = 'white' as ColorRepresentation, defaultOpacity = 1,
+    nodeMaterial = false,
+    lineCount: count = DEFAULT_LINE_COUNT,
+    defaultColor = <ColorRepresentation>'white',
+    defaultOpacity = 1,
   } = {}) {
     const geometry = new BufferGeometry()
     const attributes = {
@@ -478,14 +481,38 @@ export class LinesManager extends BaseManager {
 
   static rectDefaultOptions = {
     inset: 0,
+    triple: <undefined | number>undefined,
   };
   rect(value: RectangleDeclaration, options?: Partial<typeof LinesManager.rectDefaultOptions> & LineOptions) {
     let { minX, minY, maxX, maxY } = Rectangle.from(value)
-    const { inset } = { ...LinesManager.rectDefaultOptions, ...options }
+    const { inset, triple } = { ...LinesManager.rectDefaultOptions, ...options }
     minX += inset
     minY += inset
     maxX -= inset
     maxY -= inset
+    if (triple) {
+      const t = triple
+      this.segments([
+        { x: minX + t, y: minY + t, z: 0 },
+        { x: maxX - t, y: minY + t, z: 0 },
+        { x: maxX - t, y: minY + t, z: 0 },
+        { x: maxX - t, y: maxY - t, z: 0 },
+        { x: maxX - t, y: maxY - t, z: 0 },
+        { x: minX + t, y: maxY - t, z: 0 },
+        { x: minX + t, y: maxY - t, z: 0 },
+        { x: minX + t, y: minY + t, z: 0 },
+      ], options)
+      this.segments([
+        { x: minX - t, y: minY - t, z: 0 },
+        { x: maxX + t, y: minY - t, z: 0 },
+        { x: maxX + t, y: minY - t, z: 0 },
+        { x: maxX + t, y: maxY + t, z: 0 },
+        { x: maxX + t, y: maxY + t, z: 0 },
+        { x: minX - t, y: maxY + t, z: 0 },
+        { x: minX - t, y: maxY + t, z: 0 },
+        { x: minX - t, y: minY - t, z: 0 },
+      ], options)
+    }
     return this.segments([
       { x: minX, y: minY, z: 0 },
       { x: maxX, y: minY, z: 0 },
