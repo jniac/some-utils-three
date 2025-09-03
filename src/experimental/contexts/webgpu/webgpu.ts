@@ -2,10 +2,10 @@ import { pass } from 'three/tsl'
 import { OrthographicCamera, PerspectiveCamera, PostProcessing, WebGPURenderer } from 'three/webgpu'
 
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
-
 import { Tick } from 'some-utils-ts/ticker'
-import { ThreeBaseContext } from '../base'
-import { ThreeContextType } from '../types'
+
+import { RenderFrameOptions, ThreeBaseContext } from '../base'
+import { ThreeContextType, TickPhase } from '../types'
 
 export class ThreeWebGPUContext extends ThreeBaseContext {
   renderer = new WebGPURenderer({
@@ -36,7 +36,7 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
   /**
    * Called from the parent class when the size of the context changes.
    */
-  override onSetSize(): void {
+  override _onSetSize(): void {
     const {
       size: { x: newWidth, y: newHeight },
       pixelRatio: newPixelRatio,
@@ -98,9 +98,15 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
       pixelRatio: window.devicePixelRatio,
     })
 
-    this.internal.cancelTick = this.ticker.onTick(tick => {
-      this.renderFrame(tick)
-    }).destroy
+    this.internal.cancelTick = this.ticker.onTick(
+      {
+        name: 'WebGPU:Render',
+        phase: TickPhase.Render,
+      },
+      tick => {
+        this.renderFrame(tick)
+      })
+      .destroy
 
     this.internal.cancelRequestActivation = handleAnyUserInteraction(document.body, this.ticker.requestActivation).destroy
 
@@ -112,8 +118,11 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
     return this
   }
 
-  override renderFrame(tick: Tick) {
-    super.renderFrame(tick)
+  renderFrame(tick: Tick, options?: RenderFrameOptions): void {
+    if (this._enabled === false && options?.force !== true)
+      return
+
+    super.renderFrame(tick, options)
 
     if (this.skipRender === false) {
       // renderer.renderAsync(scene, camera)

@@ -44,6 +44,18 @@ const defaultQueryOptions = {
 
 type QuerySelectorOptions = Partial<typeof defaultQueryOptions>
 
+const renderFrameOptions = {
+  /**
+   * Should the frame be rendered even if the context is not enabled?
+   *
+   * Useful for manual control over rendering, such as when implementing
+   * a custom rendering loop.
+   */
+  force: false,
+}
+
+export type RenderFrameOptions = Partial<typeof renderFrameOptions>
+
 export class ThreeBaseContext {
   static shared = {
     vector2: new Vector2(),
@@ -51,6 +63,8 @@ export class ThreeBaseContext {
   }
 
   type: ThreeContextType
+
+  protected _enabled = true
 
   // NOTE: The ticker is not explicitly created, but rather is require through a
   // name ("three"). This is to allow the user to use the same ticker, even before
@@ -89,6 +103,9 @@ export class ThreeBaseContext {
     now: 0,
     deltaTimes: new RollingSum(30),
   }
+
+  get enabled() { return this._enabled }
+  set enabled(value) { this._enabled = value }
 
   get aspect() {
     return this.size.x / this.size.y
@@ -137,22 +154,22 @@ export class ThreeBaseContext {
     this.fullSize.set(newWidth * newPixelRatio, newHeight * newPixelRatio)
     this.pixelRatio = newPixelRatio
 
-    this.onSetSize()
+    this._onSetSize()
 
     return this
   }
 
-  protected onSetSize() { }
+  protected _onSetSize() { }
 
   setScene(scene: Scene): this {
     if (this.scene !== scene) {
       this.scene = scene
-      this.onSetScene()
+      this._onSetScene()
     }
     return this
   }
 
-  protected onSetScene() { }
+  protected _onSetScene() { }
 
   initialize(domContainer: HTMLElement, pointerScope: HTMLElement): Destroyable {
     throw new Error('Not implemented')
@@ -164,7 +181,10 @@ export class ThreeBaseContext {
    * It updates the pointer, traverses the scene and calls `onTick` on each
    * child that has it.
    */
-  renderFrame(tick: Tick): void {
+  renderFrame(tick: Tick, options?: RenderFrameOptions): void {
+    if (this._enabled === false && options?.force !== true)
+      return
+
     const now = performance.now()
 
     this.#internal.deltaTimes.add((now - this.#internal.now) / 1e3)

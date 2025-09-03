@@ -10,8 +10,8 @@ import { Destroyable, Vector2Like } from 'some-utils-ts/types'
 import { fromVector3Declaration, Vector3Declaration } from '../../../declaration'
 import { UnifiedLoader } from '../../../loaders/unified-loader'
 import { queryDescendantsOf, QueryPredicate } from '../../../utils/tree'
-import { ThreeBaseContext } from '../base'
-import { ThreeContextType } from '../types'
+import { RenderFrameOptions, ThreeBaseContext } from '../base'
+import { ThreeContextType, TickPhase } from '../types'
 import { BasicPipeline } from './pipelines/BasicPipeline'
 
 /**
@@ -55,7 +55,7 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     ThreeWebGLContext.instances.push(this)
   }
 
-  protected override onSetScene(): void {
+  protected override _onSetScene(): void {
     this.pipeline.setScene(this.scene)
   }
 
@@ -118,7 +118,12 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     // Tick
     onDestroy(
       handleAnyUserInteraction(this.ticker.requestActivation),
-      this.ticker.onTick(tick => this.renderFrame(tick)),
+      this.ticker.onTick(
+        {
+          phase: TickPhase.Render,
+          name: 'WebGL:Render',
+        },
+        tick => this.renderFrame(tick)),
     )
 
     // Orbit controls
@@ -148,7 +153,7 @@ export class ThreeWebGLContext extends ThreeBaseContext {
   /**
    * Called from the parent class when the size of the context changes.
    */
-  override onSetSize(): void {
+  override _onSetSize(): void {
     const {
       size: { x: newWidth, y: newHeight },
       pixelRatio: newPixelRatio,
@@ -164,10 +169,13 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     perspectiveCamera.updateProjectionMatrix()
   }
 
-  override renderFrame(tick: Tick): void {
+  renderFrame(tick: Tick, options?: RenderFrameOptions): void {
+    if (this._enabled === false && options?.force !== true)
+      return
+
     this.internal.orbitControls?.update(tick.deltaTime)
 
-    super.renderFrame(tick)
+    super.renderFrame(tick, options)
 
     if (this.skipRender === false) {
       this.pipeline.render(tick)
