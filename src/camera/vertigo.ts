@@ -202,10 +202,16 @@ export class Vertigo {
   state = {
     aspect: 0,
     isPerspective: true,
+    /**
+     * The distance from the camera to the focus point.
+     */
     distance: 0,
     fov: 0,
     near: 0,
     far: 0,
+    /**
+     * The size of the focus area (in world units, takes into account the camera's zoom level).
+     */
     realSize: new Vector2(),
     /**
      * The camera matrix that represents the position and rotation of the camera in the world.
