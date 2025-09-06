@@ -8,6 +8,7 @@ import {
   Vector4Declaration
 } from 'some-utils-ts/declaration'
 
+import { Vector4Like } from 'some-utils-ts/types'
 import { EulerDeclaration, fromEulerDeclaration } from './declaration/euler'
 import { isMatrix4, isObject3D } from './is'
 
@@ -62,7 +63,9 @@ export function fromVector3Declaration(arg: Partial<Vector3Declaration>, out: Ve
   return agnostic.fromVector3Declaration(arg, out)
 }
 
-export function fromVector4Declaration(arg: Partial<Vector4Declaration>, out: Vector4 = new Vector4()): Vector4 {
+export function fromVector4Declaration<T extends Vector4Like>(arg: Partial<Vector4Declaration>, out?: T): T {
+  // @ts-ignore
+  out ??= new Vector4() as T
   return agnostic.fromVector4Declaration(arg, out)
 }
 
