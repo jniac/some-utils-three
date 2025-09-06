@@ -2,11 +2,23 @@ import { Euler, Matrix4, Quaternion, Vector3 } from 'three'
 
 import { composeMatrix, decomposeMatrix, fromTransformWithShearDeclaration, lerpTransforms } from './core'
 import { TransformWithShearDeclaration, TransformWithShearLike } from './type'
-import { lerpMatrixes, lerpTransforms as lerpTransformUtils } from './utils'
+import { lerpMatrixes, lerpTransforms as utilsLerpTransform } from './utils'
 
 export class TransformWithShear implements TransformWithShearLike {
-  static lerp = lerpTransformUtils
   static lerpMatrixes = lerpMatrixes
+
+  static #lerpTransforms = new TransformWithShear()
+  /**
+   * Linearly interpolates between two transform declarations.
+   * 
+   * Note:
+   * - The output is a cached instance, so if you want to keep it, make sure to clone it.
+   */
+  static lerp(tA: TransformWithShearDeclaration, tB: TransformWithShearDeclaration, alpha: number, out = TransformWithShear.#lerpTransforms) {
+    utilsLerpTransform(tA, tB, alpha, out)
+    return out
+  }
+
   static from(arg: Matrix4 | TransformWithShearDeclaration) {
     return (new this()).from(arg)
   }
