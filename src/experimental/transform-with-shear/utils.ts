@@ -6,6 +6,7 @@ import { createTransformWithShearLike, TransformWithShearDeclaration, TransformW
 const _m = new Matrix4()
 const _t0 = createTransformWithShearLike()
 const _t1 = createTransformWithShearLike()
+const _t2 = createTransformWithShearLike()
 
 /**
  * Linearly interpolates between two Matrix4 objects using TransformWithShear 
@@ -23,8 +24,8 @@ export function lerpMatrixes(
 ): Matrix4 {
   decomposeMatrix(mA, _t0)
   decomposeMatrix(mB, _t1)
-  coreLerpTransforms(_t0, _t1, alpha, _t1)
-  composeMatrix(_t1, out)
+  coreLerpTransforms(_t0, _t1, alpha, _t2)
+  composeMatrix(_t2, out)
   return out
 }
 

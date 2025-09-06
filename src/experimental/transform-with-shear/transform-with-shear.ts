@@ -75,6 +75,18 @@ export class TransformWithShear implements TransformWithShearLike {
     return this
   }
 
+  /**
+   * Sets the transform from a declaration.
+   *
+   * Note:
+   * - By default, missing properties in the declaration will be ignored (not modified).
+   * - If `partial` is set to `false`, missing properties will be reset to their default values.
+   */
+  setTransform(arg: TransformWithShearDeclaration, { partial = true } = {}): this {
+    fromTransformWithShearDeclaration(arg, this, { resetMissing: !partial })
+    return this
+  }
+
   lerpTransforms(
     transformA: TransformWithShearLike,
     transformB: TransformWithShearLike,
@@ -109,5 +121,10 @@ export class TransformWithShear implements TransformWithShearLike {
       && Math.abs(this.shear.x) <= tolerance
       && Math.abs(this.shear.y) <= tolerance
       && Math.abs(this.shear.z) <= tolerance
+  }
+
+  isDirect(): boolean {
+    const { x, y, z } = this.scale
+    return x * y * z >= 0
   }
 }
