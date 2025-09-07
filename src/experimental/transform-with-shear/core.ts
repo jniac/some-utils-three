@@ -21,6 +21,7 @@ const _m = new Matrix4()
 export function composeMatrix(transform: TransformWithShearLike, out: Matrix4) {
   const {
     scale: { x: sx, y: sy, z: sz },
+    scaleFactor: sf,
     shear: { x: shxy, y: shxz, z: shyz },
   } = transform
 
@@ -36,15 +37,15 @@ export function composeMatrix(transform: TransformWithShearLike, out: Matrix4) {
   ))
 
   // Apply scale
-  out.elements[0] *= sx
-  out.elements[1] *= sx
-  out.elements[2] *= sx
-  out.elements[4] *= sy
-  out.elements[5] *= sy
-  out.elements[6] *= sy
-  out.elements[8] *= sz
-  out.elements[9] *= sz
-  out.elements[10] *= sz
+  out.elements[0] *= sx * sf
+  out.elements[1] *= sx * sf
+  out.elements[2] *= sx * sf
+  out.elements[4] *= sy * sf
+  out.elements[5] *= sy * sf
+  out.elements[6] *= sy * sf
+  out.elements[8] *= sz * sf
+  out.elements[9] *= sz * sf
+  out.elements[10] *= sz * sf
 
   // Apply translation
   out.setPosition(transform.position)
@@ -119,6 +120,7 @@ export function decomposeMatrix(matrix: Matrix4, out: TransformWithShearLike) {
 
   // Scale with reflection
   out.scale.set(sign * scaleX, scaleY, scaleZ)
+  out.scaleFactor = 1 // Reset scale factor to 1 (no uniform scale)
 
   out.shear.set(
     // r01,
@@ -155,6 +157,11 @@ export function fromTransformWithShearDeclaration<T extends TransformWithShearLi
   } else if (resetMissing) {
     out.scale.set(1, 1, 1)
   }
+  if (arg.scaleFactor !== undefined) {
+    out.scaleFactor = arg.scaleFactor
+  } else if (resetMissing) {
+    out.scaleFactor = 1
+  }
   if (arg.shear !== undefined) {
     fromVector3Declaration(arg.shear, out.shear)
   } else if (resetMissing) {
@@ -172,5 +179,6 @@ export function lerpTransforms(
   out.position.lerpVectors(transformA.position, transformB.position, alpha)
   out.quaternion.slerpQuaternions(transformA.quaternion, transformB.quaternion, alpha)
   out.scale.lerpVectors(transformA.scale, transformB.scale, alpha)
+  out.scaleFactor = transformA.scaleFactor + (transformB.scaleFactor - transformA.scaleFactor) * alpha
   out.shear.lerpVectors(transformA.shear, transformB.shear, alpha)
 }

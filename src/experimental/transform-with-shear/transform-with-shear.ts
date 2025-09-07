@@ -25,6 +25,7 @@ export class TransformWithShear implements TransformWithShearLike {
 
   readonly position = new Vector3()
   readonly scale = new Vector3(1, 1, 1)
+  scaleFactor = 1
   readonly quaternion = new Quaternion()
   readonly shear = new Vector3()
 
