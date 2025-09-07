@@ -1,4 +1,4 @@
-import { LinearSRGBColorSpace, SRGBColorSpace, Texture, TextureLoader } from 'three'
+import { ColorSpace, LinearSRGBColorSpace, SRGBColorSpace, Texture, TextureLoader } from 'three'
 import { RGBELoader } from 'three/examples/jsm/Addons.js'
 
 import { Promisified, promisify } from 'some-utils-ts/misc/promisify'
@@ -36,6 +36,10 @@ function filenameFromUrl(url: string): string {
   return new URL(url, window.location.href).pathname.split('/').pop() || 'unknown'
 }
 
+type TextureOptions = Partial<{
+  colorSpace: ColorSpace
+}>
+
 class AnyLoader {
   #textureLoader: TextureLoader | null = null
   #rgbeLoader: RGBELoader | null = null
@@ -49,7 +53,7 @@ class AnyLoader {
    * - Returns a "promisified" texture that can be used like a Promise AND a Texture.
    * - When video textures are loaded, it sets the width and height based on the video metadata.
    */
-  loadTexture(url: string): Promisified<Texture> {
+  loadTexture(url: string, options?: TextureOptions): Promisified<Texture> {
     const filename = filenameFromUrl(url)
     const extension = filename.match(/[^.]+$/)?.[0]
 
@@ -76,9 +80,11 @@ class AnyLoader {
     let reject: (error: Error) => void
     const texture = loader.load(url, texture => {
       texture.name = filename
-      texture.colorSpace = isLinearExtension(extension)
-        ? LinearSRGBColorSpace
-        : SRGBColorSpace
+      texture.colorSpace = options?.colorSpace ?? (
+        isLinearExtension(extension)
+          ? LinearSRGBColorSpace
+          : SRGBColorSpace
+      )
       unpromisified()
       resolve(texture)
     }, undefined, () => {
