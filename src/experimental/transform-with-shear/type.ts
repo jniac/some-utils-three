@@ -2,7 +2,7 @@ import { Quaternion, Vector3 } from 'three'
 
 import { EulerDeclaration, Vector3Declaration, Vector4Declaration } from '../../declaration'
 
-export function createTransformWithShearLike() {
+export function createTransformLike() {
   return {
     position: new Vector3(),
     quaternion: new Quaternion(),
@@ -18,9 +18,9 @@ export function createTransformWithShearLike() {
   }
 }
 
-export type TransformWithShearLike = ReturnType<typeof createTransformWithShearLike>
+export type TransformLike = ReturnType<typeof createTransformLike>
 
-export type TransformWithShearDeclaration = Partial<{
+export type TransformDeclaration = Partial<{
   position: Vector3Declaration
   quaternion: Vector4Declaration
   scale: Vector3Declaration

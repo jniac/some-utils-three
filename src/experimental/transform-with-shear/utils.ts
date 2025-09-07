@@ -1,16 +1,16 @@
 import { Matrix4 } from 'three'
 
-import { composeMatrix, lerpTransforms as coreLerpTransforms, decomposeMatrix, fromTransformWithShearDeclaration } from './core'
-import { createTransformWithShearLike, TransformWithShearDeclaration, TransformWithShearLike } from './type'
+import { composeMatrix, lerpTransforms as coreLerpTransforms, decomposeMatrix, fromTransformDeclaration } from './core'
+import { createTransformLike, TransformDeclaration, TransformLike } from './type'
 
 const _m = new Matrix4()
-const _t0 = createTransformWithShearLike()
-const _t1 = createTransformWithShearLike()
-const _t2 = createTransformWithShearLike()
+const _t0 = createTransformLike()
+const _t1 = createTransformLike()
+const _t2 = createTransformLike()
 
 /**
- * Linearly interpolates between two Matrix4 objects using TransformWithShear 
- * (preserving the rotation during interpolation).
+ * Linearly interpolates between two Matrix4 objects using transform-with-shear 
+ * solution (preserving the rotation during interpolation).
  *
  * Note:
  * - The out parameter is reused between calls, so if you need to keep the value,
@@ -30,20 +30,20 @@ export function lerpMatrixes(
 }
 
 /**
- * Linearly interpolates between two TransformWithShearDeclaration objects.
+ * Linearly interpolates between two TransformDeclaration objects.
  *
  * Note:
  * - The out parameter is reused between calls, so if you need to keep the value,
  *   make sure to clone it immediately (unless you provide your own out).
  */
-export function lerpTransforms<T extends TransformWithShearLike>(
-  tA: TransformWithShearDeclaration,
-  tB: TransformWithShearDeclaration,
+export function lerpTransforms<T extends TransformLike>(
+  tA: TransformDeclaration,
+  tB: TransformDeclaration,
   alpha: number,
   out: T,
 ): T {
-  fromTransformWithShearDeclaration(tA, _t0)
-  fromTransformWithShearDeclaration(tB, _t1)
+  fromTransformDeclaration(tA, _t0)
+  fromTransformDeclaration(tB, _t1)
   coreLerpTransforms(_t0, _t1, alpha, out)
   return out
 }

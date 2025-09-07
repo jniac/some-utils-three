@@ -1,4 +1,4 @@
-# TransformWithShear
+# Transform With Shear
 
 A Three.js utility to represent and interpolate 3D transforms with shear.
 
@@ -10,12 +10,12 @@ Different usage are possible, for example:
 
 - Interpolate between two matrices:
 ```ts
-TransformWithShear.lerpMatrixes(objA.matrix, objB.matrix, t, objC.matrix)
+TransformLike.lerpMatrixes(objA.matrix, objB.matrix, t, objC.matrix)
 ```
 
-- Interpolate between two transforms (see `TransformWithShear.lerp()`).
+- Interpolate between two transforms (see `TransformLike.lerp()`).
 ```ts
-TransformWithShear.lerp({
+TransformLike.lerp({
   position: [1, 2, 3],
   rotation: [0, Math.PI / 2, 0],
   scale: [1, 2, 1],
@@ -31,19 +31,19 @@ TransformWithShear.lerp({
 
 - Or via instances:
 ```ts
-const twsA = new TransformWithShear().setTransform({
+const twsA = new TransformLike().setTransform({
   position: [1, 2, 3],
   rotation: [0, Math.PI / 2, 0],
   scale: [1, 2, 1],
   shear: [0, 1, 0],
 })
-const twsB = new TransformWithShear().setTransform({
+const twsB = new TransformLike().setTransform({
   position: [3, 2, 1],
   rotation: [0, Math.PI, 0],
   scale: [-1, 0.5, -1],
   shear: [1, 0, 0],
 })
-const twsC = new TransformWithShear()
+const twsC = new TransformLike()
   .lerpTransforms(twsA, twsB, t)
   .toMatrix(myObject.matrix)
 ```

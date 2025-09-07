@@ -1,12 +1,12 @@
 import { Matrix4, Vector3 } from 'three'
 
 import { fromEulerDeclaration, fromVector3Declaration, fromVector4Declaration } from '../../declaration'
-import { TransformWithShearDeclaration, TransformWithShearLike } from './type'
+import { TransformDeclaration, TransformLike } from './type'
 
 const _m = new Matrix4()
 
 /**
- * Compose a Matrix4 from a TransformWithShearLike
+ * Compose a Matrix4 from a TransformLike
  * 
  * The order of transformations is: Scale, Shear, Rotation, Translation
  * 
@@ -18,7 +18,7 @@ const _m = new Matrix4()
  * - H is the shear matrix
  * - S is the scale matrix
  */
-export function composeMatrix(transform: TransformWithShearLike, out: Matrix4) {
+export function composeMatrix(transform: TransformLike, out: Matrix4) {
   const {
     scale: { x: sx, y: sy, z: sz },
     scaleFactor: sf,
@@ -69,7 +69,7 @@ const _q2 = new Vector3()
  * @param matrix The 4x4 matrix to decompose.
  * @param out The output object to store the decomposed components.
  */
-export function decomposeMatrix(matrix: Matrix4, out: TransformWithShearLike) {
+export function decomposeMatrix(matrix: Matrix4, out: TransformLike) {
   const m = matrix.elements
 
   // Extract translation
@@ -132,8 +132,8 @@ export function decomposeMatrix(matrix: Matrix4, out: TransformWithShearLike) {
   )
 }
 
-export function fromTransformWithShearDeclaration<T extends TransformWithShearLike>(
-  arg: TransformWithShearDeclaration,
+export function fromTransformDeclaration<T extends TransformLike>(
+  arg: TransformDeclaration,
   out: T,
   {
     resetMissing = true,
@@ -171,10 +171,10 @@ export function fromTransformWithShearDeclaration<T extends TransformWithShearLi
 }
 
 export function lerpTransforms(
-  transformA: TransformWithShearLike,
-  transformB: TransformWithShearLike,
+  transformA: TransformLike,
+  transformB: TransformLike,
   alpha: number,
-  out: TransformWithShearLike,
+  out: TransformLike,
 ): void {
   out.position.lerpVectors(transformA.position, transformB.position, alpha)
   out.quaternion.slerpQuaternions(transformA.quaternion, transformB.quaternion, alpha)
