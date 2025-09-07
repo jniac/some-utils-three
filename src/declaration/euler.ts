@@ -17,7 +17,11 @@ type EulerDeclarationArray =
   | [x: AngleDeclaration, y: AngleDeclaration, z: AngleDeclaration, unit: AngleUnit]
 type EulerDeclarationObject = { x: AngleDeclaration; y: AngleDeclaration; z: AngleDeclaration; unit?: AngleUnit; order?: Euler['order'] }
 // type EulerDeclarationString = `${AngleDeclaration}, ${AngleDeclaration}, ${AngleDeclaration}${'' | `, ${Euler['order']}`}` // Too heavy for TS
-type EulerDeclarationBase = EulerDeclarationArray | EulerDeclarationObject | string
+type EulerDeclarationBase =
+  | number
+  | EulerDeclarationArray
+  | EulerDeclarationObject
+  | string
 
 type EulerDeclaration = ReadonlyOrNot<EulerDeclarationBase>
 
@@ -52,14 +56,14 @@ function fromEulerDeclarationString(str: string, options: FromEulerDeclarationOp
 function fromEulerDeclaration(arg: Partial<EulerDeclaration>, out?: Euler): Euler
 function fromEulerDeclaration(arg: Partial<EulerDeclaration>, options: FromEulerDeclarationOptions, out?: Euler): Euler
 function fromEulerDeclaration(...args: any[]): Euler {
-  const parseArgs = () => {
+  const parseArgs = (): [EulerDeclaration, FromEulerDeclarationOptions, Euler] => {
     if (args.length === 1)
-      return [args[0], defaultFromEulerDeclarationOptions, new Euler()] as [EulerDeclaration, FromEulerDeclarationOptions, Euler]
+      return [args[0], defaultFromEulerDeclarationOptions, new Euler()]
 
     if (args.length === 2) {
       return isEuler(args[1])
-        ? [args[0], defaultFromEulerDeclarationOptions, args[1]] as [EulerDeclaration, FromEulerDeclarationOptions, Euler]
-        : [args[0], args[1], new Euler()] as [EulerDeclaration, FromEulerDeclarationOptions, Euler]
+        ? [args[0], defaultFromEulerDeclarationOptions, args[1]]
+        : [args[0], args[1], new Euler()]
     }
 
     if (args.length === 3)
@@ -71,6 +75,10 @@ function fromEulerDeclaration(...args: any[]): Euler {
 
   if (typeof arg === 'string') {
     return fromEulerDeclarationString(arg, options, out)
+  }
+
+  if (typeof arg === 'number') {
+    return out.set(arg, arg, arg)
   }
 
   if (isEuler(arg)) {
