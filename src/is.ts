@@ -1,4 +1,4 @@
-import { ColorRepresentation, CubeTexture, Euler, Matrix4, Mesh, Object3D, Plane, Sprite, Texture, Vector2, Vector3, Vector4 } from 'three'
+import { ColorRepresentation, CubeTexture, Euler, Matrix4, Mesh, Object3D, Plane, Quaternion, Sprite, Texture, Vector2, Vector3, Vector4 } from 'three'
 
 /**
  * Safe type check for Vector3 (safer than `instanceof` which may fail with different versions of Three.js).
@@ -26,6 +26,13 @@ export function isVector4(value: any): value is Vector4 {
  */
 export function isEuler(value: any): value is Euler {
   return !!value?.isEuler
+}
+
+/** 
+ * Safe type check for Quaternion (safer than `instanceof` which may fail with different versions of Three.js).
+ */
+export function isQuaternion(value: any): value is Quaternion {
+  return !!value?.isQuaternion
 }
 
 /**

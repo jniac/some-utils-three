@@ -1,4 +1,4 @@
-import { Euler, EulerOrder } from 'three'
+import { Euler, EulerOrder, Quaternion } from 'three'
 
 import {
   AngleDeclaration,
@@ -7,7 +7,8 @@ import {
   fromAngleDeclaration,
   isAngleUnit
 } from 'some-utils-ts/declaration'
-import { isEuler } from '../is'
+
+import { isEuler, isQuaternion } from '../is'
 
 type ReadonlyOrNot<T> = T | Readonly<T>
 
@@ -21,6 +22,7 @@ type EulerDeclarationBase =
   | number
   | EulerDeclarationArray
   | EulerDeclarationObject
+  | Quaternion
   | string
 
 type EulerDeclaration = ReadonlyOrNot<EulerDeclarationBase>
@@ -83,6 +85,10 @@ function fromEulerDeclaration(...args: any[]): Euler {
 
   if (isEuler(arg)) {
     return out.copy(arg)
+  }
+
+  if (isQuaternion(arg)) {
+    return out.setFromQuaternion(arg)
   }
 
   const { defaultOrder } = options

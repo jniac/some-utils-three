@@ -7,8 +7,8 @@ import {
   Vector3Declaration,
   Vector4Declaration
 } from 'some-utils-ts/declaration'
-
 import { Vector4Like } from 'some-utils-ts/types'
+
 import { EulerDeclaration, fromEulerDeclaration } from './declaration/euler'
 import { isMatrix4, isObject3D } from './is'
 
