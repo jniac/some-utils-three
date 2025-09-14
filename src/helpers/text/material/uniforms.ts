@@ -1,6 +1,6 @@
 import { Matrix4, Vector2 } from 'three'
 
-import { fromVector2Declaration } from '../../../declaration'
+import { fromVector3Declaration } from '../../../declaration'
 
 import { TextHelperAtlas } from '../atlas'
 import { TextHelperData } from '../data'
@@ -16,7 +16,7 @@ export function createTextUniforms(userOptions: Options, data: TextHelperData, a
   return {
     uCameraMatrix: { value: new Matrix4() },
     uOrientation: { value: solveOrientation(options.orientation) },
-    uTextOffset: { value: fromVector2Declaration(options.textOffset) },
+    uTextOffset: { value: fromVector3Declaration(options.textOffset) },
     uPlaneSize: { value: planeSize },
     uCharSize: { value: options.charSize },
     uLineLength: { value: options.lineLength },

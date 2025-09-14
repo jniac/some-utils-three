@@ -1,6 +1,6 @@
-import { Vector2Declaration } from 'some-utils-ts/declaration'
 import { ColorRepresentation, Vector2 } from 'three'
-import { TransformDeclaration } from '../../declaration'
+
+import { TransformDeclaration, Vector3Declaration } from '../../declaration'
 
 export const orientations = {
   'oriented': 0,
@@ -33,7 +33,14 @@ export const optionsDefaults = {
   lineCount: 2,
   charSize: new Vector2(.2, .3),
   textSize: 1,
-  textOffset: 0 as Vector2Declaration,
+  /**
+   * The offset of the text in the local 3D space. 
+   * 
+   * Note:
+   * - When using 'billboard' orientation, z offset make the text closer/farther 
+   *   to the camera (useful for layering).
+   */
+  textOffset: 0 as Vector3Declaration,
   orientation: 'billboard' as (keyof typeof orientations) | Orientation,
   textDefaults: <SetTextOption>{
     color: '#ff00ff',

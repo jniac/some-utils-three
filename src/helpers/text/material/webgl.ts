@@ -73,7 +73,7 @@ export function createWebglMaterial(uniforms: TextUniforms, atlas: TextHelperAtl
           uCameraMatrix[2],
           modelMatrix * vec4(instanceMatrix[3].xyz, 1.0));
 
-      mvPosition.xy += uTextOffset;
+      mvPosition.xyz += uTextOffset;
 
       mvPosition = viewMatrix * textMatrix * mvPosition;
 
