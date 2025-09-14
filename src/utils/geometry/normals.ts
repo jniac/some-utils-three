@@ -8,7 +8,7 @@ import { BufferGeometry, Vector2, Vector3 } from 'three'
  */
 export function flipNormals(geometry: BufferGeometry): BufferGeometry {
   if (geometry.index) {
-    // Inverse triangle's order
+    // Inverse triangle's winding order
     const arr = geometry.index.array
     for (let i = 0, max = arr.length; i < max; i += 3) {
       const i0 = arr[i + 0]
@@ -20,7 +20,7 @@ export function flipNormals(geometry: BufferGeometry): BufferGeometry {
   }
 
   else {
-    // Inverse vertex's order
+    // Inverse item's order (positions, normals, uvs, ...)
     const count = geometry.attributes.position.count
     for (const attr of Object.values(geometry.attributes)) {
       const { array, itemSize } = attr
@@ -51,6 +51,7 @@ export function flipNormals(geometry: BufferGeometry): BufferGeometry {
     }
   }
 
+  // Inverse normals directions
   if (geometry.attributes.normal) {
     const n = geometry.attributes.normal
     for (let i = 0; i < n.count; i++) {
