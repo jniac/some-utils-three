@@ -1,21 +1,53 @@
-import { BufferGeometry } from 'three'
+import { BufferGeometry, Vector2, Vector3 } from 'three'
 
 /**
  * Flips the normals of a BufferGeometry.
  * 
- * Note: If the geometry has an index, it will be converted to a non-indexed geometry.
+ * If the geometry is indexed, only the index is modified, otherwise each attribute
+ * is modified.
  */
 export function flipNormals(geometry: BufferGeometry): BufferGeometry {
-  if (geometry.index)
-    geometry = geometry.toNonIndexed()
+  if (geometry.index) {
+    // Inverse triangle's order
+    const arr = geometry.index.array
+    for (let i = 0, max = arr.length; i < max; i += 3) {
+      const i0 = arr[i + 0]
+      const i1 = arr[i + 1]
+      arr[i + 0] = i1
+      arr[i + 1] = i0
+    }
+    geometry.index.needsUpdate = true
+  }
 
-  const pos = geometry.attributes.position
-  for (let i = 0; i < pos.count; i += 3) {
+  else {
+    // Inverse vertex's order
+    const count = geometry.attributes.position.count
     for (const attr of Object.values(geometry.attributes)) {
-      const x1 = attr.getX(i + 1), y1 = attr.getY(i + 1), z1 = attr.getZ(i + 1)
-      const x2 = attr.getX(i + 2), y2 = attr.getY(i + 2), z2 = attr.getZ(i + 2)
-      attr.setXYZ(i + 1, x2, y2, z2)
-      attr.setXYZ(i + 2, x1, y1, z1)
+      const { array, itemSize } = attr
+      attr.needsUpdate = true
+      switch (itemSize) {
+        case 3: {
+          const p0 = new Vector3()
+          const p1 = new Vector3()
+          for (let i = 0; i < count; i += 3) {
+            p0.fromArray(array, (i + 0) * itemSize)
+            p1.fromArray(array, (i + 1) * itemSize)
+            p0.toArray(array, (i + 1) * itemSize)
+            p1.toArray(array, (i + 0) * itemSize)
+          }
+          break
+        }
+        case 2: {
+          const p0 = new Vector2()
+          const p1 = new Vector2()
+          for (let i = 0; i < count; i += 3) {
+            p0.fromArray(array, (i + 0) * itemSize)
+            p1.fromArray(array, (i + 1) * itemSize)
+            p0.toArray(array, (i + 1) * itemSize)
+            p1.toArray(array, (i + 0) * itemSize)
+          }
+        }
+      }
     }
   }
 
@@ -25,10 +57,6 @@ export function flipNormals(geometry: BufferGeometry): BufferGeometry {
       n.setXYZ(i, -n.getX(i), -n.getY(i), -n.getZ(i))
     }
     n.needsUpdate = true
-  }
-
-  for (const attr of Object.values(geometry.attributes)) {
-    attr.needsUpdate = true
   }
 
   return geometry
