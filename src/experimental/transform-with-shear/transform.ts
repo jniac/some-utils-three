@@ -128,4 +128,13 @@ export class Transform implements TransformLike {
     const { x, y, z } = this.scale
     return x * y * z >= 0
   }
+
+  toInfoString(): string {
+    const { x: px, y: py, z: pz } = this.position
+    const { x: sx, y: sy, z: sz } = this.scale
+    const { x: shx, y: shy, z: shz } = this.shear
+    const sf = this.scaleFactor
+    const f = (n: number) => n.toFixed(2).replace(/\.?0+$/, '')
+    return `Position: (${f(px)}, ${f(py)}, ${f(pz)}), Scale: (${f(sx)}, ${f(sy)}, ${f(sz)})x(${f(sf)}), Shear: (${f(shx)}, ${f(shy)}, ${f(shz)})`
+  }
 }
