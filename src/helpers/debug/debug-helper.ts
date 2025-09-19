@@ -1,5 +1,7 @@
 import { ColorRepresentation, Group, Matrix4, Object3D } from 'three'
 
+import { Rectangle } from 'some-utils-ts/math/geom/rectangle'
+
 import { fromVector3Declaration, TransformDeclaration, Vector3Declaration } from '../../declaration'
 import { SetTextOption, TextHelper } from '../text'
 import { BaseManager } from './base'
@@ -100,6 +102,11 @@ const defaultLinePointsOptions = {
 
 type LinePointsOptions = {
   points?: boolean | Partial<typeof defaultLinePointsOptions>
+}
+
+type RectanglePointsOptions = LinePointsOptions & {
+  center?: boolean | Partial<typeof defaultLinePointsOptions>
+  corners?: boolean | Partial<typeof defaultLinePointsOptions>
 }
 
 class DebugHelper extends Group {
@@ -218,8 +225,27 @@ class DebugHelper extends Group {
     return this
   }
 
-  rect(...args: Parameters<LinesManager['rect']>): this {
-    this.parts.linesManager.rect(...args)
+  rect(
+    rectArg: Parameters<LinesManager['rect']>[0],
+    options?: Parameters<LinesManager['rect']>[1] & RectanglePointsOptions,
+  ): this {
+    this.parts.linesManager.rect(rectArg, options)
+    if (options?.points || options?.center) {
+      const rect = Rectangle.from(rectArg)
+      if (options?.center) {
+        this.parts.pointsManager.point(rect.center, { color: options.color, ...options, ...(options.center === true ? {} : options.center) })
+      }
+      if (options?.corners) {
+        const { minX, minY, maxX, maxY } = rect
+        const corners: [number, number][] = [
+          [minX, minY],
+          [maxX, minY],
+          [maxX, maxY],
+          [minX, maxY],
+        ]
+        this.parts.pointsManager.points(corners, { color: options.color, ...options, ...(options.corners === true ? {} : options.corners) })
+      }
+    }
     return this
   }
 
