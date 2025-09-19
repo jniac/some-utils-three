@@ -230,7 +230,7 @@ class DebugHelper extends Group {
     options?: Parameters<LinesManager['rect']>[1] & RectanglePointsOptions,
   ): this {
     this.parts.linesManager.rect(rectArg, options)
-    if (options?.points || options?.center) {
+    if (options?.corners || options?.center) {
       const rect = Rectangle.from(rectArg)
       if (options?.center) {
         this.parts.pointsManager.point(rect.center, { color: options.color, ...options, ...(options.center === true ? {} : options.center) })
