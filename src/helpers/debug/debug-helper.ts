@@ -157,8 +157,15 @@ class DebugHelper extends Group {
     return this
   }
 
-  line(...args: Parameters<LinesManager['line']>): this {
-    this.parts.linesManager.line(...args)
+  line(
+    p0: Vector3Declaration,
+    p1: Vector3Declaration,
+    options?: Parameters<LinesManager['line']>[2] & LinePointsOptions,
+  ): this {
+    this.parts.linesManager.line(p0, p1, options)
+    if (options?.points) {
+      this.points([p0, p1], { ...defaultLinePointsOptions, color: options.color, ...(options.points === true ? {} : options.points) })
+    }
     return this
   }
 
