@@ -117,7 +117,7 @@ class DebugHelper extends Group {
     points: ConstructorParameters<typeof PointsManager>[0],
   }>) {
     const { nodeMaterial } = options ?? {}
-    const pointsManager = new PointsManager(options?.points)
+    const pointsManager = new PointsManager({ ...options?.points })
     instance.add(pointsManager.parts.points)
 
     const linesManager = new LinesManager({ nodeMaterial, ...options?.lines })
