@@ -1,7 +1,6 @@
 import { Camera, ColorRepresentation, Euler, Group, Plane, Quaternion, Ray, Vector2, Vector2Like, Vector3 } from 'three'
 
 import { handleHtmlElementEvent } from 'some-utils-dom/handle/element-event'
-import { handleKeyboard } from 'some-utils-dom/handle/keyboard'
 import { handlePointer, PointerButton } from 'some-utils-dom/handle/pointer'
 import { Animation } from 'some-utils-ts/animation'
 import { clamp } from 'some-utils-ts/math/basic'
@@ -121,6 +120,10 @@ export class VertigoControls implements DestroyableObject {
     alternativeActivationCount: 0,
     alternativeIsActive: false,
     /**
+     * Was the vertigo controls started when entering the alternative vertigo?
+     */
+    alternativeWasStarted: false,
+    /**
      * The alternative vertigo controls is for exploring the scene without affecting
      * the main vertigo controls. The movement of the alternative vertigo controls
      * are free (eg: not constrained by the focus plane).
@@ -209,9 +212,14 @@ export class VertigoControls implements DestroyableObject {
         })
     },
     enterAlternative: () => {
+      this.#state.alternativeWasStarted = this.started
+      this.start() // ensure started
       this.#doEnterAlternative()
     },
     exitAlternative: () => {
+      if (this.#state.alternativeWasStarted === false) {
+        this.stop() // stop if was not started before
+      }
       this.#state.alternativeExiting = true
     },
     toggleAlternative: (active?: boolean) => {
@@ -348,13 +356,6 @@ export class VertigoControls implements DestroyableObject {
         event.preventDefault()
       },
     })
-
-    yield handleKeyboard([
-      [{ code: 'Tab', modifiers: 'alt' }, (info) => {
-        info.event.preventDefault()
-        this.actions.toggleAlternative()
-      }]
-    ])
 
     const pointer = new Vector2()
     yield handlePointer(element, {

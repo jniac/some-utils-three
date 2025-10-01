@@ -77,11 +77,14 @@ export class VertigoHelper extends Group {
       }),
     ), planeWrapper)
 
+    const debugHelper = setup(new DebugHelper(), instance)
+    debugHelper.renderOrder = 1e9
+
     return {
       plane,
       planeWrapper,
+      debugHelper,
       matrix: new Matrix4(),
-      debugHelper: setup(new DebugHelper(), instance),
     }
   }
 
