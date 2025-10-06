@@ -1,4 +1,4 @@
-import { cameraPosition, cameraWorldMatrix, color, EPSILON, float, Fn, hash, If, mat3, mix, NodeAccess, NodeRepresentation, normalWorld, objectPosition, positionLocal, ShaderNodeObject, storage, uniform, vec2, vec3, vec4 } from 'three/tsl'
+import { cameraPosition, cameraWorldMatrix, color, EPSILON, float, Fn, hash, If, int, mat3, mix, NodeAccess, normalWorld, objectPosition, positionLocal, ShaderNodeObject, storage, uniform, vec2, vec3, vec4 } from 'three/tsl'
 import { ColorRepresentation, Matrix4, Object3D, StorageBufferNode, StorageInstancedBufferAttribute } from 'three/webgpu'
 
 import { fromVector3Declaration, Vector3Declaration } from '../declaration'
@@ -16,7 +16,7 @@ export const autoLit = (mainColor: ColorRepresentation = 'white', options?: Auto
   const t1 = normalWorld.normalize().dot(vec3(sunDirectionVector)).add(1).mul(0.5).pow(power).oneMinus()
   // const t1 = normalWorld.normalize().dot(positionWorld.sub(vec3(1, 3, 1)).normalize()).add(1).mul(0.5).pow(power).oneMinus()
   const t2 = mix(emissive, 1, t1)
-  return mix(color(shadowColor), color(mainColor), t2.mul(1))
+  return mix(color(shadowColor as any), color(mainColor as any), t2.mul(1))
 })()
 
 /**
@@ -29,17 +29,17 @@ export const clampVector = Fn(([v, maxLength = 1 as any]) => {
 })
 
 // @ts-ignore
-export const spow = Fn(([x, p]: [NodeRepresentation, NodeRepresentation]) => {
+export const spow = Fn(([x, p]: [any, any]) => {
   return float(x).sign().mul(float(x).abs().pow(p))
 })
 
 // @ts-ignore
-export const powerBump = Fn(([x, p]: [NodeRepresentation, NodeRepresentation]) => {
+export const powerBump = Fn(([x, p]: [any, any]) => {
   return float(1).sub(float(2).mul(x).sub(1).abs().pow(p))
 })
 
 // @ts-ignore
-export const toDirectionAndMagnitude = Fn(([v]: [NodeRepresentation]) => {
+export const toDirectionAndMagnitude = Fn(([v]: [any]) => {
   const vVec3 = vec3(v)
   const vLength = vVec3.length()
   const result = vec4().toVar()
@@ -50,7 +50,7 @@ export const toDirectionAndMagnitude = Fn(([v]: [NodeRepresentation]) => {
 })
 
 // @ts-ignore
-export const rotate2D = Fn(([vector, angle]: [NodeRepresentation, NodeRepresentation]) => {
+export const rotate2D = Fn(([vector, angle]: [any, any]) => {
   const v = vec2(vector)
   const a = float(angle)
   const c = float(angle).cos()
@@ -62,7 +62,7 @@ export const rotate2D = Fn(([vector, angle]: [NodeRepresentation, NodeRepresenta
 })
 
 // @ts-ignore
-export const scale2D = Fn(([vector, scale, pivot]: NodeRepresentation[]) => {
+export const scale2D = Fn(([vector, scale, pivot]: any[]) => {
   const v = vec2(vector)
   const s = vec2(scale)
   const p = vec2(pivot)
@@ -144,7 +144,8 @@ export function zOffset(object: Object3D, zOffset = 1) {
     const clampedZOffset = float(zOffset).min(d.sub(1))
 
     // Convert the forward camera direction to the local space of the current object.
-    const v = plane1MatrixWorldInverse.mul(cameraWorldMatrix.element(3)).xyz.normalize().mul(clampedZOffset)
+
+    const v = plane1MatrixWorldInverse.mul(cameraWorldMatrix.element(int(3))).xyz.normalize().mul(clampedZOffset)
 
     // Since the object is send backward, we need to scale the position to make it appear at the right place.
     const magicScaleFactor = d.sub(clampedZOffset).div(d)
@@ -203,7 +204,7 @@ export const sdf2D = {
    * @param p The point to test
    * @param radius The radius of the circle
    */
-  circle: (p: NodeRepresentation, radius: NodeRepresentation = 1) => {
+  circle: (p: any, radius: any = 1) => {
     return vec2(p).length().sub(radius)
   },
 
@@ -211,7 +212,7 @@ export const sdf2D = {
    * @param p The point to test
    * @param size the extents of the box
    */
-  box: (p: NodeRepresentation, size: NodeRepresentation = vec2(1, 1)) => {
+  box: (p: any, size: any = vec2(1, 1)) => {
     const d = vec2(p).abs().sub(size)
     return d.max(0).length().add(d.x.max(d.y).min(0))
   },

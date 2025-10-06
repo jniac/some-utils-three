@@ -1,6 +1,6 @@
 import { DoubleSide } from 'three'
 
-import { add, cameraWorldMatrix, color, div, float, floor, Fn, If, instanceIndex, mat3, mod, mul, NodeRepresentation, positionGeometry, sub, texture, uniform, varying, vec2, vec3, vec4 } from 'three/tsl'
+import { add, cameraWorldMatrix, color, div, float, floor, Fn, If, instanceIndex, mat3, mod, mul, positionGeometry, sub, texture, uniform, varying, vec2, vec3, vec4 } from 'three/tsl'
 import { MeshBasicNodeMaterial } from 'three/webgpu'
 import { TextHelperAtlas } from '../atlas'
 import { TextUniforms } from './uniforms'
@@ -23,7 +23,7 @@ export function createTextNodeMaterial(uniforms: TextUniforms, atlas: TextHelper
   const uAtlasCharGrid = uniform(uniforms.uAtlasCharGrid.value)
     .onFrameUpdate(() => uniforms.uAtlasCharGrid.value)
 
-  function getData4(instanceId: NodeRepresentation, offset: NodeRepresentation) {
+  function getData4(instanceId: any, offset: any) {
     const width = uDataTextureSize.x
     const index = add(mul(instanceId, uDataStride), offset)
     const dataY = div(index, width)
@@ -31,7 +31,7 @@ export function createTextNodeMaterial(uniforms: TextUniforms, atlas: TextHelper
     return texture(uniforms.uDataTexture.value, vec2(dataX, dataY))
   }
 
-  function getCharOffset(instanceId: NodeRepresentation, charIndex: NodeRepresentation) {
+  function getCharOffset(instanceId: any, charIndex: any) {
     const p = add(uDataStrideHeader, charIndex)
     const q = floor(div(p, 4))
     const r = sub(p, mul(q, 4))
