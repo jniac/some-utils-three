@@ -213,7 +213,7 @@ export class Pointer {
    * 
    * NOTE: The result point reference is reused, so it should be copied if needed for later use.
    */
-  intersectPlane(plane: Plane | 'X' | 'Y' | 'Z', {
+  intersectPlane(plane: Plane | 'yz' | 'xz' | 'xy', {
     distance = 1000,
     out = this.#intersectPlane.result.point,
   } = {}) {
@@ -221,14 +221,17 @@ export class Pointer {
     const { point, line, result, plane: plane2 } = this.#intersectPlane
     if (typeof plane === 'string') {
       plane2.constant = 0
-      switch (plane) {
-        case 'X':
+      switch (plane as string) {
+        case 'X': // backward compatibility
+        case 'yz':
           plane2.normal.set(1, 0, 0)
           break
-        case 'Y':
+        case 'Y': // backward compatibility
+        case 'xz':
           plane2.normal.set(0, 1, 0)
           break
-        case 'Z':
+        case 'Z': // backward compatibility
+        case 'xy':
           plane2.normal.set(0, 0, 1)
           break
       }
