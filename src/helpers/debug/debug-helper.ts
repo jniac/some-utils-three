@@ -107,6 +107,7 @@ type LinePointsOptions = {
 type RectanglePointsOptions = LinePointsOptions & {
   center?: boolean | Partial<typeof defaultLinePointsOptions>
   corners?: boolean | Partial<typeof defaultLinePointsOptions>
+  points?: boolean | Partial<typeof defaultLinePointsOptions>
 }
 
 class DebugHelper extends Group {
@@ -237,12 +238,17 @@ class DebugHelper extends Group {
     options?: Parameters<LinesManager['rect']>[1] & RectanglePointsOptions,
   ): this {
     this.parts.linesManager.rect(rectArg, options)
-    if (options?.corners || options?.center) {
+    const {
+      points,
+      center = points,
+      corners = points,
+    } = options ?? {}
+    if (corners || center) {
       const rect = Rectangle.from(rectArg)
-      if (options?.center) {
-        this.parts.pointsManager.point(rect.center, { color: options.color, ...options, ...(options.center === true ? {} : options.center) })
+      if (center) {
+        this.parts.pointsManager.point(rect.center, { color: options?.color, ...options, ...(options?.center === true ? {} : options?.center) })
       }
-      if (options?.corners) {
+      if (corners) {
         const { minX, minY, maxX, maxY } = rect
         const corners: [number, number][] = [
           [minX, minY],
@@ -250,7 +256,7 @@ class DebugHelper extends Group {
           [maxX, maxY],
           [minX, maxY],
         ]
-        this.parts.pointsManager.points(corners, { color: options.color, ...options, ...(options.corners === true ? {} : options.corners) })
+        this.parts.pointsManager.points(corners, { color: options?.color, ...options, ...(options?.corners === true ? {} : options?.corners) })
       }
     }
     return this
