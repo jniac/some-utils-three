@@ -206,12 +206,27 @@ function varying(varying: string | Record<string, VaryingType>) {
 
 const createVaryingOptions = {
   sf_vObjectPosition: () => {
-    top(/* glsl */`varying vec3 sf_vObjectPosition;`)
-    vertex.mainAfterAll(/* glsl */`sf_vObjectPosition = transformed;`)
+    top(/* glsl */`
+      varying vec3 sf_vObjectPosition;
+    `)
+    vertex.mainAfterAll(/* glsl */`
+      sf_vObjectPosition = transformed;
+    `)
   },
   sf_vWorldPosition: () => {
-    top(/* glsl */`varying vec3 sf_vWorldPosition;`)
-    vertex.mainAfterAll(/* glsl */`sf_vWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;`)
+    top(/* glsl */`
+      varying vec3 sf_vWorldPosition;
+    `)
+    vertex.mainAfterAll(/* glsl */`
+      vec4 sf_mvPosition = vec4(transformed,1.0 );
+      #ifdef USE_BATCHING
+        sf_mvPosition = batchingMatrix * sf_mvPosition;
+      #endif
+      #ifdef USE_INSTANCING
+        sf_mvPosition = instanceMatrix * sf_mvPosition;
+      #endif
+      sf_vWorldPosition = (modelMatrix * sf_mvPosition).xyz;
+    `)
   },
 }
 function createVarying(...args: (keyof typeof createVaryingOptions)[]) {
