@@ -449,7 +449,7 @@ export class LinesManager extends BaseManager {
     return this
   }
 
-  box(value: Parameters<typeof Utils.box>[0], options?: LineOptions) {
+  box(value?: Parameters<typeof Utils.box>[0], options?: LineOptions) {
     const [p0, p1, p2, p3, p4, p5, p6, p7] = Utils.box(value).boxPoints
     return this.segmentsArray(new Float32Array([
       p0.x, p0.y, p0.z,

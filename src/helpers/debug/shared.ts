@@ -39,7 +39,7 @@ export class Utils {
     size: new Vector3(1, 1, 1) as Vector3Declaration,
   };
 
-  static box(value: Partial<typeof Utils.boxDefaults> & (Partial<typeof Utils.boxMinMaxDefaults> | Partial<typeof Utils.boxCenterSizeDefaults>)) {
+  static box(value: Partial<typeof Utils.boxDefaults> & (Partial<typeof Utils.boxMinMaxDefaults> | Partial<typeof Utils.boxCenterSizeDefaults>) = {}) {
     const [p0, p1, p2, p3, p4, p5, p6, p7] = Utils.boxPoints
 
     // P1 & P2 should represent the min and max points of the box

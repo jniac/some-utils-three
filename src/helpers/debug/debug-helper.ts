@@ -218,7 +218,7 @@ class DebugHelper extends Group {
   }
 
   box(
-    boxArg: Parameters<LinesManager['box']>[0],
+    boxArg?: Parameters<LinesManager['box']>[0],
     options?: Parameters<LinesManager['box']>[1] & LinePointsOptions,
   ): this {
     this.parts.linesManager.box(boxArg, options)
