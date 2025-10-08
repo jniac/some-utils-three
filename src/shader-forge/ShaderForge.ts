@@ -228,6 +228,22 @@ const createVaryingOptions = {
       sf_vWorldPosition = (modelMatrix * sf_mvPosition).xyz;
     `)
   },
+  sf_vWorldNormal: () => {
+    top(/* glsl */`
+      varying vec3 sf_vWorldNormal;
+    `)
+    vertex.mainAfterAll(/* glsl */`
+      #ifdef USE_INSTANCING
+        sf_vWorldNormal = mat3(modelMatrix) * mat3(instanceMatrix) * normal;
+      #elif
+        sf_vWorldNormal = mat3(modelMatrix) * normal;
+      #endif
+
+      #ifdef FLIP_SIDED
+        sf_vWorldNormal = -sf_vWorldNormal;
+      #endif
+    `)
+  },
 }
 function createVarying(...args: (keyof typeof createVaryingOptions)[]) {
   for (const key of args) {

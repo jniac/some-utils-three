@@ -41,10 +41,14 @@ export class AutoLitMaterial extends MeshBasicMaterial {
         })
         .vertex.mainAfterAll(/* glsl */`
           vWorldNormal = mat3(modelMatrix) * normal;
+          #ifdef USE_INSTANCING
+            vWorldNormal = mat3(instanceMatrix) * vWorldNormal;
+          #endif
         `)
         .fragment.after('map_fragment', /* glsl */`
+          vec3 normal = normalize(vWorldNormal);
           vec3 lightDirection = normalize(uSunPosition);
-          float light = dot(normalize(vWorldNormal), lightDirection) * 0.5 + 0.5;
+          float light = dot(normal, lightDirection) * 0.5 + 0.5;
           light = pow(light, uRampPower);
           diffuseColor.rgb *= mix(uShadowColor * uLuminosity, vec3(1.0), light);
         `)
