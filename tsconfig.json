@@ -9,6 +9,7 @@
     "esModuleInterop": true, // For compatibility with ES6 modules
     "skipLibCheck": true,
     "moduleResolution": "Bundler",
+    "rootDir": "./src",
     "sourceMap": true,
     "declarationMap": true
   },
