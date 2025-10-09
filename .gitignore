@@ -9,3 +9,4 @@ test
 # Dist folder should not be committed since it is generated, can be built from source
 # and can change even if the source code does not change.
 dist
+dist-npm
