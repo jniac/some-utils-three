@@ -4,6 +4,8 @@ import { fromVector2Declaration } from 'some-utils-three/declaration'
 import { Vector2Declaration } from 'some-utils-ts/declaration'
 import { glsl_utils } from 'some-utils-ts/glsl/utils'
 
+import { blurGlsl } from './utils/blur'
+
 function createGpuComputeMaterialUniforms() {
   return {
     uTexture: { value: <Texture | null>null },
@@ -48,9 +50,26 @@ const defaultGpuComputeMaterialParams = {
   uniforms: <{ [uniform: string]: IUniform<any> }>{},
 }
 
-type GpuComputeMaterialParams = Partial<typeof defaultGpuComputeMaterialParams>
+export type GpuComputeMaterialParams = Partial<typeof defaultGpuComputeMaterialParams>
 
-class GpuComputeMaterial extends ShaderMaterial {
+/**
+ * A ShaderMaterial specialized for GPU computations.
+ * 
+ * It includes default uniforms and allows custom fragment shader code.
+ * 
+ * Default uniforms:
+ * - uTexture: sampler2D - the input texture
+ * - uTextureSize: vec2 - the size of the texture
+ * - uTime: float - elapsed time
+ * - uDeltaTime: float - time since last frame
+ * 
+ * You can provide additional uniforms via the `uniforms` parameter.
+ * 
+ * There are also utility functions and blur functions included:
+ * - glsl_utils: common GLSL utility functions
+ * - blurGlsl: eg: `gaussianBlur7x7(uv)` function for 7x7 Gaussian blur
+ */
+export class GpuComputeMaterial extends ShaderMaterial {
   uniforms: { [uniform: string]: IUniform<any> }
   constructor(userParams?: GpuComputeMaterialParams) {
     const params = { ...defaultGpuComputeMaterialParams, ...userParams }
@@ -77,6 +96,7 @@ class GpuComputeMaterial extends ShaderMaterial {
         uniform float uDeltaTime;
         ${uniformDeclaration(params.uniforms)}
         ${params.fragmentTop}
+        ${blurGlsl}
         void main() {
           ${params.fragmentColor}
         }
@@ -91,6 +111,14 @@ const defaultParams = {
   type: HalfFloatType,
 }
 
+export type GpuComputeParams = Partial<typeof defaultParams>
+
+/**
+ * A class for performing GPU-based computations using fragment shaders.
+ * 
+ * It manages two render targets to store the current and next state of the simulation.
+ * You can define custom shaders for initialization and updating the state.
+ */
 export class GpuCompute {
   parts = {
     orthoCamera: new OrthographicCamera(-1, 1, 1, -1, 0, 1),
@@ -105,12 +133,12 @@ export class GpuCompute {
     rtb: WebGLRenderTarget
     time: number
     frame: number
+    initialMaterial?: GpuComputeMaterial
+    updateMaterial?: GpuComputeMaterial
   }
 
   #innerState?: {
     renderer: WebGLRenderer
-    initialMaterial: GpuComputeMaterial
-    updateMaterial: GpuComputeMaterial
   }
 
   get initialized() { return !!this.#innerState }
@@ -119,9 +147,9 @@ export class GpuCompute {
    * Access the uniforms of the update shader (the instance must be initialized first).
    */
   get uniforms() {
-    if (!this.#innerState)
-      throw new Error('GpuCompute: not initialized')
-    return this.#innerState.updateMaterial.uniforms
+    if (!this.state.updateMaterial)
+      throw new Error('GpuCompute: shaders not set')
+    return this.state.updateMaterial.uniforms
   }
 
   constructor(userParams?: Partial<typeof defaultParams>) {
@@ -152,24 +180,33 @@ export class GpuCompute {
     }
   }
 
-  initialize(
-    renderer: WebGLRenderer,
-    initialMaterialParams?: GpuComputeMaterialParams,
-    updateMaterialParams?: GpuComputeMaterialParams,
-  ): this {
+  /**
+   * Initialize the shaders used for the simulation.
+   */
+  shaders(params: { initial?: GpuComputeMaterialParams, update?: GpuComputeMaterialParams }): this {
+    this.state.initialMaterial = new GpuComputeMaterial(params.initial)
+    this.state.updateMaterial = new GpuComputeMaterial(params.update)
+    return this
+  }
+
+  /**
+   * Set the renderer and initialize the simulation (run the initial shader once).
+   */
+  initialize(renderer: WebGLRenderer): this {
     const { orthoCamera, plane } = this.parts
     const { rta } = this.state
 
-    const initialMaterial = new GpuComputeMaterial(initialMaterialParams)
-    initialMaterial.uniforms.uTextureSize.value.copy(this.state.size)
-    initialMaterial.uniforms.uTexture.value = null
-    initialMaterial.uniforms.uTime.value = 0
-    initialMaterial.uniforms.uDeltaTime.value = 0
-    plane.material = initialMaterial
+    this.#innerState = { renderer }
 
-    const updateMaterial = new GpuComputeMaterial(updateMaterialParams)
+    const { initialMaterial } = this.state
 
-    this.#innerState = { renderer, initialMaterial, updateMaterial }
+    if (initialMaterial) {
+      initialMaterial.uniforms.uTextureSize.value.copy(this.state.size)
+      initialMaterial.uniforms.uTexture.value = null
+      initialMaterial.uniforms.uTime.value = 0
+      initialMaterial.uniforms.uDeltaTime.value = 0
+      plane.material = initialMaterial
+    }
 
     renderer.setRenderTarget(rta)
     renderer.render(plane, orthoCamera)
@@ -184,17 +221,19 @@ export class GpuCompute {
     if (!this.#innerState)
       throw new Error('GpuCompute: not initialized')
 
-    const { renderer, updateMaterial } = this.#innerState
+    const { renderer } = this.#innerState
     const { orthoCamera, plane } = this.parts
-    const { rta, rtb, time, frame } = this.state
+    const { rta, rtb, time, frame, updateMaterial } = this.state
 
     this.state.time += deltaTime
 
-    updateMaterial.uniforms.uTextureSize.value.copy(this.state.size)
-    updateMaterial.uniforms.uTexture.value = frame % 2 === 0 ? rta.texture : rtb.texture
-    updateMaterial.uniforms.uTime.value = time
-    updateMaterial.uniforms.uDeltaTime.value = deltaTime
-    plane.material = updateMaterial
+    if (updateMaterial) {
+      updateMaterial.uniforms.uTextureSize.value.copy(this.state.size)
+      updateMaterial.uniforms.uTexture.value = frame % 2 === 0 ? rta.texture : rtb.texture
+      updateMaterial.uniforms.uTime.value = time
+      updateMaterial.uniforms.uDeltaTime.value = deltaTime
+      plane.material = updateMaterial
+    }
 
     renderer.setRenderTarget(frame % 2 === 0 ? rtb : rta)
     renderer.render(plane, orthoCamera)
