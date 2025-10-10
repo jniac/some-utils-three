@@ -65,6 +65,6 @@ export function makeGaussianKernel2DAsGlsl(size: number, sigma?: number): string
   return kernelGlsl + '\n\n' + filterGlsl
 }
 
-export const blurGlsl = [3, 5, 7, 9, 11]
+export const glsl_blur_3_11 = [3, 5, 7, 9, 11]
   .map(size => makeGaussianKernel2DAsGlsl(size))
   .join('\n\n')

@@ -4,7 +4,7 @@ import { fromVector2Declaration } from 'some-utils-three/declaration'
 import { Vector2Declaration } from 'some-utils-ts/declaration'
 import { glsl_utils } from 'some-utils-ts/glsl/utils'
 
-import { blurGlsl } from './utils/blur'
+import { glslLibrary } from './glsl'
 
 function createGpuComputeMaterialUniforms() {
   return {
@@ -71,12 +71,16 @@ export type GpuComputeMaterialParams = Partial<typeof defaultGpuComputeMaterialP
  */
 export class GpuComputeMaterial extends ShaderMaterial {
   uniforms: { [uniform: string]: IUniform<any> }
-  constructor(userParams?: GpuComputeMaterialParams) {
+  constructor(glslLibs: Iterable<keyof typeof glslLibrary>, userParams?: GpuComputeMaterialParams) {
     const params = { ...defaultGpuComputeMaterialParams, ...userParams }
     const uniforms = {
       ...createGpuComputeMaterialUniforms(),
       ...params.uniforms,
     }
+    const glslLibsString = Array.from(glslLibs)
+      .map(lib => glslLibrary[lib])
+      .filter(v => !!v)
+      .join('\n\n')
     uniforms.uTexture.value = params.texture
     super({
       uniforms,
@@ -94,9 +98,9 @@ export class GpuComputeMaterial extends ShaderMaterial {
         uniform vec2 uTextureSize;
         uniform float uTime;
         uniform float uDeltaTime;
+        ${glslLibsString}
         ${uniformDeclaration(params.uniforms)}
         ${params.fragmentTop}
-        ${blurGlsl}
         void main() {
           ${params.fragmentColor}
         }
@@ -129,8 +133,8 @@ export class GpuCompute {
 
   state: {
     size: Vector2
-    rta: WebGLRenderTarget
-    rtb: WebGLRenderTarget
+    rtA: WebGLRenderTarget
+    rtB: WebGLRenderTarget
     time: number
     frame: number
     initialMaterial?: GpuComputeMaterial
@@ -141,7 +145,10 @@ export class GpuCompute {
     renderer: WebGLRenderer
   }
 
+  #glslLibs = new Set<keyof typeof glslLibrary>()
+
   get initialized() { return !!this.#innerState }
+  get renderer() { return this.#innerState?.renderer }
 
   /**
    * Access the uniforms of the update shader (the instance must be initialized first).
@@ -158,34 +165,48 @@ export class GpuCompute {
 
     const { type } = params
     const size = fromVector2Declaration(params.size)
-    const rta = new WebGLRenderTarget(size.width, size.height, {
+    const rtA = new WebGLRenderTarget(size.width, size.height, {
       minFilter: NearestFilter,
       magFilter: NearestFilter,
       format: RGBAFormat,
       type,
     })
-    const rtb = new WebGLRenderTarget(size.width, size.height, {
+    const rtB = new WebGLRenderTarget(size.width, size.height, {
       minFilter: NearestFilter,
       magFilter: NearestFilter,
       format: RGBAFormat,
       type,
     })
 
+    rtA.texture.name = 'GpuCompute.rtA'
+    rtB.texture.name = 'GpuCompute.rtB'
+
     this.state = {
       size,
-      rta,
-      rtb,
+      rtA,
+      rtB,
       time: 0,
       frame: 0,
     }
+  }
+
+  enableGlslLib(...libs: (keyof typeof glslLibrary)[]): this {
+    for (const lib of libs) {
+      if (glslLibrary[lib]) {
+        this.#glslLibs.add(lib)
+      } else {
+        console.warn(`GpuCompute: unknown glsl lib: ${lib}`)
+      }
+    }
+    return this
   }
 
   /**
    * Initialize the shaders used for the simulation.
    */
   shaders(params: { initial?: GpuComputeMaterialParams, update?: GpuComputeMaterialParams }): this {
-    this.state.initialMaterial = new GpuComputeMaterial(params.initial)
-    this.state.updateMaterial = new GpuComputeMaterial(params.update)
+    this.state.initialMaterial = new GpuComputeMaterial(this.#glslLibs, params.initial)
+    this.state.updateMaterial = new GpuComputeMaterial(this.#glslLibs, params.update)
     return this
   }
 
@@ -194,7 +215,7 @@ export class GpuCompute {
    */
   initialize(renderer: WebGLRenderer): this {
     const { orthoCamera, plane } = this.parts
-    const { rta } = this.state
+    const { rtA } = this.state
 
     this.#innerState = { renderer }
 
@@ -208,7 +229,7 @@ export class GpuCompute {
       plane.material = initialMaterial
     }
 
-    renderer.setRenderTarget(rta)
+    renderer.setRenderTarget(rtA)
     renderer.render(plane, orthoCamera)
     renderer.setRenderTarget(null)
 
@@ -217,25 +238,33 @@ export class GpuCompute {
     return this
   }
 
+  /**
+   * Update the simulation by running the update shader.
+   * 
+   * Note:
+   * - You must call `initialize()` before calling this method.
+   * - You can pass the time since last frame as `deltaTime` (optional, this is used to update the `uTime` and `uDeltaTime` uniforms).
+   */
   update(deltaTime = 0): this {
     if (!this.#innerState)
       throw new Error('GpuCompute: not initialized')
 
     const { renderer } = this.#innerState
     const { orthoCamera, plane } = this.parts
-    const { rta, rtb, time, frame, updateMaterial } = this.state
+    const { rtA, rtB, time, frame, updateMaterial } = this.state
 
     this.state.time += deltaTime
 
     if (updateMaterial) {
       updateMaterial.uniforms.uTextureSize.value.copy(this.state.size)
-      updateMaterial.uniforms.uTexture.value = frame % 2 === 0 ? rta.texture : rtb.texture
+      updateMaterial.uniforms.uTexture.value = frame % 2 === 0 ? rtA.texture : rtB.texture
       updateMaterial.uniforms.uTime.value = time
       updateMaterial.uniforms.uDeltaTime.value = deltaTime
+      updateMaterial.needsUpdate = true
       plane.material = updateMaterial
     }
 
-    renderer.setRenderTarget(frame % 2 === 0 ? rtb : rta)
+    renderer.setRenderTarget(frame % 2 === 0 ? rtB : rtA)
     renderer.render(plane, orthoCamera)
     renderer.setRenderTarget(null)
 
@@ -246,7 +275,7 @@ export class GpuCompute {
 
   currentTexture(): Texture {
     return this.state.frame % 2 === 0
-      ? this.state.rta.texture
-      : this.state.rtb.texture
+      ? this.state.rtA.texture
+      : this.state.rtB.texture
   }
 }
