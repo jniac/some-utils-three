@@ -2,8 +2,8 @@
 import { GpuCompute, GpuComputeParams } from '../gpu-compute'
 
 export class GpuComputeGameOfLifeDemo extends GpuCompute {
-  constructor(params?: GpuComputeParams) {
-    super(params)
+  constructor(userParams?: Partial<GpuComputeParams>) {
+    super(userParams)
     this.enableGlslLib('glsl_utils') // for hash()
     this.shaders({
       initial: {
