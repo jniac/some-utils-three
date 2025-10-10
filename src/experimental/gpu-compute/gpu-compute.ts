@@ -2,7 +2,6 @@ import { Color, HalfFloatType, IUniform, Mesh, NearestFilter, OrthographicCamera
 
 import { fromVector2Declaration } from 'some-utils-three/declaration'
 import { Vector2Declaration } from 'some-utils-ts/declaration'
-import { glsl_utils } from 'some-utils-ts/glsl/utils'
 
 import { glslLibrary } from './glsl'
 
@@ -105,15 +104,18 @@ export class GpuComputeMaterial extends ShaderMaterial {
         }
       `,
       fragmentShader: /* glsl */ `
-        ${glsl_utils}
         varying vec2 vUv;
         uniform sampler2D uTexture;
         uniform vec2 uTextureSize;
         uniform float uTime;
         uniform float uDeltaTime;
+
         ${glslLibsString}
+
         ${uniformDeclaration(params.uniforms)}
+
         ${params.fragmentTop}
+
         void main() {
           ${params.fragmentColor}
         }

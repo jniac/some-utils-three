@@ -1,4 +1,6 @@
-import { Vector3 } from 'three'
+import { Color, Vector3 } from 'three'
+
+import { glsl_ramp } from 'some-utils-ts/glsl/ramp'
 
 import { GpuCompute, GpuComputeParams } from '../gpu-compute'
 
@@ -31,7 +33,9 @@ export class GpuComputePenDemo extends GpuCompute {
         uniforms: {
           uPenLast: { value: new Vector3() },
           uPen: { value: new Vector3() },
+          uColors: { value: [new Color('#ffcc00'), new Color('#00ffcc'), new Color('#00ccff')] },
         },
+        fragmentTop: glsl_ramp,
         fragmentColor: /* glsl */`
           vec2 uv = vUv;
           vec2 center = uPen.xy;
@@ -44,13 +48,16 @@ export class GpuComputePenDemo extends GpuCompute {
 
           float strength = smoothstep(0.005, -0.005, dist);
           
-          float decay = 0.99;
+          float decay = 0.995;
           // No blur:
           // vec3 prev = texture2D(uTexture, uv).rgb * decay;
           // With blur (enabled via glsl_blur_3_11):
-          vec3 prev = gaussianBlur11x11(uv).rgb * decay;
+          vec3 prev = gaussianBlur11x11(uv, 2.0).rgb * decay;
 
-          vec3 pen = vec3(1.0, 0.5, 0.0) * strength;
+          Vec3Ramp r = ramp(mod(uTime, 1.0), uColors[0], uColors[1], uColors[2], uColors[0]);
+          vec3 color = mix(r.a, r.b, r.t);
+
+          vec3 pen = color * strength;
           gl_FragColor.rgb = max(prev, pen);
         `,
       },

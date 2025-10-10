@@ -49,8 +49,8 @@ export function makeGaussianKernel2DAsGlsl(size: number, sigma?: number): string
 
   const half = Math.floor(size / 2)
   const filterGlsl = dedent(/* glsl */`
-    vec4 gaussianBlur${size}x${size}(vec2 uv) {
-      vec2 texelSize = 1.0 / uTextureSize;
+    vec4 gaussianBlur${size}x${size}(vec2 uv, float scale) {
+      vec2 texelSize = scale / uTextureSize;
       vec4 color = vec4(0.0);
       for (int x = -${half}; x <= ${half}; x++) {
         for (int y = -${half}; y <= ${half}; y++) {
@@ -59,6 +59,10 @@ export function makeGaussianKernel2DAsGlsl(size: number, sigma?: number): string
         }
       }
       return color;
+    }
+
+    vec4 gaussianBlur${size}x${size}(vec2 uv) {
+      return gaussianBlur${size}x${size}(uv, 1.0);
     }
   `)
 

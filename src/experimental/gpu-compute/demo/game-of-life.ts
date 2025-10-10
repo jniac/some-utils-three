@@ -4,13 +4,14 @@ import { GpuCompute, GpuComputeParams } from '../gpu-compute'
 export class GpuComputeGameOfLifeDemo extends GpuCompute {
   constructor(params?: GpuComputeParams) {
     super(params)
+    this.enableGlslLib('glsl_utils') // for hash()
     this.shaders({
       initial: {
         fragmentColor: /* glsl */`
           vec2 uv = vUv;
-          float r = step(0.6, hash(uv));
-          float g = step(0.6, hash(uv + vec2(1.0, 0.0)));
-          float b = step(0.6, hash(uv + vec2(0.0, 1.0)));
+          float r = step(0.9, hash(uv));
+          float g = step(0.9, hash(uv + vec2(1.0, 0.0)));
+          float b = step(0.9, hash(uv + vec2(0.0, 1.0)));
           gl_FragColor = vec4(r, g, b, 1.0);
         `,
       },
