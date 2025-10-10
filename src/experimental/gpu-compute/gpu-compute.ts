@@ -16,12 +16,25 @@ function createGpuComputeMaterialUniforms() {
 }
 
 function inferUniformType(value: any): string {
+  if (Array.isArray(value)) {
+    if (value.length === 0)
+      throw new Error('GpuCompute: cannot infer uniform type for empty array')
+    const firstType = inferUniformType(value[0])
+    for (let i = 1; i < value.length; i++) {
+      const itemType = inferUniformType(value[i])
+      if (itemType !== firstType)
+        throw new Error('GpuCompute: cannot infer uniform type for array with mixed types')
+    }
+    return `${firstType}[${value.length}]`
+  }
+
   if (typeof value === 'number') return 'float'
   if (value instanceof Vector2) return 'vec2'
   if (value instanceof Vector3) return 'vec3'
   if (value instanceof Vector4) return 'vec4'
   if (value instanceof Color) return 'vec3'
   if (value instanceof Texture) return 'sampler2D'
+
   throw new Error(`GpuCompute: cannot infer uniform type for value: ${value}`)
 }
 
