@@ -6,35 +6,35 @@ function parseHexString(color: string) {
 
   // #rgb
   if (color.length === 3) {
-    const r = parseInt(color[1], 16) / 15
-    const g = parseInt(color[2], 16) / 15
-    const b = parseInt(color[3], 16) / 15
+    const r = parseInt(color[0], 16) / 15
+    const g = parseInt(color[1], 16) / 15
+    const b = parseInt(color[2], 16) / 15
     return { r, g, b, a: 1 }
   }
 
   // #rgba
   if (color.length === 4) {
-    const r = parseInt(color[1], 16) / 15
-    const g = parseInt(color[2], 16) / 15
-    const b = parseInt(color[3], 16) / 15
-    const a = parseInt(color[4], 16) / 15
+    const r = parseInt(color[0], 16) / 15
+    const g = parseInt(color[1], 16) / 15
+    const b = parseInt(color[2], 16) / 15
+    const a = parseInt(color[3], 16) / 15
     return { r, g, b, a }
   }
 
   // #rrggbb
   if (color.length === 6) {
-    const r = parseInt(color.slice(1, 3), 16) / 255
-    const g = parseInt(color.slice(3, 5), 16) / 255
-    const b = parseInt(color.slice(5, 7), 16) / 255
+    const r = parseInt(color.slice(0, 2), 16) / 255
+    const g = parseInt(color.slice(2, 4), 16) / 255
+    const b = parseInt(color.slice(4, 6), 16) / 255
     return { r, g, b, a: 1 }
   }
 
   // #rrggbbaa
   if (color.length === 8) {
-    const r = parseInt(color.slice(1, 3), 16) / 255
-    const g = parseInt(color.slice(3, 5), 16) / 255
-    const b = parseInt(color.slice(5, 7), 16) / 255
-    const a = parseInt(color.slice(7, 9), 16) / 255
+    const r = parseInt(color.slice(0, 2), 16) / 255
+    const g = parseInt(color.slice(2, 4), 16) / 255
+    const b = parseInt(color.slice(4, 6), 16) / 255
+    const a = parseInt(color.slice(6, 8), 16) / 255
     return { r, g, b, a }
   }
 
