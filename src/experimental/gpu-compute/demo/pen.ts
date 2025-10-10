@@ -16,6 +16,8 @@ const defaultParams = {
 type Params = typeof defaultParams & GpuComputeParams
 
 export class GpuComputePenDemo extends GpuCompute<Params> {
+  static override defaultParams = defaultParams
+
   constructor(userParams?: Partial<Params>) {
     super(userParams)
 
