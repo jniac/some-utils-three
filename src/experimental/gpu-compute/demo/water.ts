@@ -2,8 +2,8 @@ import { Vector4 } from 'three'
 import { GpuCompute, GpuComputeParams } from '../gpu-compute'
 
 export class GpuComputeWaterDemo extends GpuCompute {
-  constructor(params?: GpuComputeParams) {
-    super(params)
+  constructor(userParams?: Partial<GpuComputeParams>) {
+    super(userParams)
 
     this.shaders({
       initial: {
