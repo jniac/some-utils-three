@@ -171,6 +171,38 @@ export class ThreeBaseContext {
 
   protected _onSetScene() { }
 
+  /**
+   * Convenience method to set the fullscreen mode.
+   */
+  setFullscreen(element: 'document' | 'canvas' | HTMLElement | null): this {
+    if (typeof element === 'string') {
+      switch (element) {
+        case 'canvas': {
+          element = this.domElement
+          break
+        }
+        case 'document': {
+          element = document.documentElement
+          break
+        }
+        default: {
+          throw new Error(`Invalid fullscreen element: ${element}`)
+        }
+      }
+    }
+
+    if (document.fullscreenElement === element)
+      return this
+
+    if (element === null) {
+      document.exitFullscreen()
+      return this
+    }
+
+    element.requestFullscreen()
+    return this
+  }
+
   initialize(domContainer: HTMLElement, pointerScope: HTMLElement): Destroyable {
     throw new Error('Not implemented')
   }
