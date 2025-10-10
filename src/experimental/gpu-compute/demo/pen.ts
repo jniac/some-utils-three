@@ -1,12 +1,23 @@
-import { Color, Vector3 } from 'three'
+import { Color, ColorRepresentation, Vector3 } from 'three'
 
 import { glsl_ramp } from 'some-utils-ts/glsl/ramp'
 
 import { GpuCompute, GpuComputeParams } from '../gpu-compute'
 
-export class GpuComputePenDemo extends GpuCompute {
-  constructor(params?: GpuComputeParams) {
-    super(params)
+const defaultParams = {
+  ...GpuCompute.defaultParams,
+  colors: <[ColorRepresentation, ColorRepresentation, ColorRepresentation]>[
+    '#ffcc00',
+    '#00ffcc',
+    '#00ccff',
+  ],
+}
+
+type Params = typeof defaultParams & GpuComputeParams
+
+export class GpuComputePenDemo extends GpuCompute<Params> {
+  constructor(userParams?: Partial<Params>) {
+    super(userParams)
 
     // Enable glsl libs
     this.enableGlslLib(
@@ -33,7 +44,7 @@ export class GpuComputePenDemo extends GpuCompute {
         uniforms: {
           uPenLast: { value: new Vector3() },
           uPen: { value: new Vector3() },
-          uColors: { value: [new Color('#ffcc00'), new Color('#00ffcc'), new Color('#00ccff')] },
+          uColors: { value: this.params.colors.map(c => new Color(c)) },
         },
         fragmentTop: glsl_ramp,
         fragmentColor: /* glsl */`

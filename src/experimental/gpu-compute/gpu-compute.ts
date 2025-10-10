@@ -44,7 +44,7 @@ function uniformDeclaration(uniforms: { [uniform: string]: IUniform<any> }) {
   }).join('\n')
 }
 
-const defaultGpuComputeMaterialParams = {
+const defaultMaterialParams = {
   /**
    * Fragment shader code injected at the top (for functions, etc.)
    */
@@ -62,7 +62,7 @@ const defaultGpuComputeMaterialParams = {
   uniforms: <{ [uniform: string]: IUniform<any> }>{},
 }
 
-export type GpuComputeMaterialParams = Partial<typeof defaultGpuComputeMaterialParams>
+type MaterialParams = Partial<typeof defaultMaterialParams>
 
 /**
  * A ShaderMaterial specialized for GPU computations.
@@ -83,8 +83,8 @@ export type GpuComputeMaterialParams = Partial<typeof defaultGpuComputeMaterialP
  */
 export class GpuComputeMaterial extends ShaderMaterial {
   uniforms: { [uniform: string]: IUniform<any> }
-  constructor(glslLibs: Iterable<keyof typeof glslLibrary>, userParams?: GpuComputeMaterialParams) {
-    const params = { ...defaultGpuComputeMaterialParams, ...userParams }
+  constructor(glslLibs: Iterable<keyof typeof glslLibrary>, userParams?: MaterialParams) {
+    const params = { ...defaultMaterialParams, ...userParams }
     const uniforms = {
       ...createGpuComputeMaterialUniforms(),
       ...params.uniforms,
@@ -130,7 +130,7 @@ const defaultParams = {
   type: HalfFloatType,
 }
 
-export type GpuComputeParams = Partial<typeof defaultParams>
+type Params = typeof defaultParams
 
 /**
  * A class for performing GPU-based computations using fragment shaders.
@@ -138,13 +138,15 @@ export type GpuComputeParams = Partial<typeof defaultParams>
  * It manages two render targets to store the current and next state of the simulation.
  * You can define custom shaders for initialization and updating the state.
  */
-export class GpuCompute {
+export class GpuCompute<T extends Params = Params> {
+  static defaultParams = defaultParams
+
   parts = {
     orthoCamera: new OrthographicCamera(-1, 1, 1, -1, 0, 1),
     plane: new Mesh(new PlaneGeometry(2, 2), undefined),
   }
 
-  params: typeof defaultParams
+  params: T
 
   state: {
     size: Vector2
@@ -174,9 +176,9 @@ export class GpuCompute {
     return this.state.updateMaterial.uniforms
   }
 
-  constructor(userParams?: Partial<typeof defaultParams>) {
-    const params = { ...defaultParams, ...userParams }
-    this.params = params
+  constructor(userParams?: Partial<T>) {
+    const params = { ...(this.constructor as typeof GpuCompute).defaultParams, ...userParams }
+    this.params = params as T
 
     const { type } = params
     const size = fromVector2Declaration(params.size)
@@ -219,7 +221,7 @@ export class GpuCompute {
   /**
    * Initialize the shaders used for the simulation.
    */
-  shaders(params: { initial?: GpuComputeMaterialParams, update?: GpuComputeMaterialParams }): this {
+  shaders(params: { initial?: MaterialParams, update?: MaterialParams }): this {
     this.state.initialMaterial = new GpuComputeMaterial(this.#glslLibs, params.initial)
     this.state.updateMaterial = new GpuComputeMaterial(this.#glslLibs, params.update)
     return this
@@ -294,3 +296,9 @@ export class GpuCompute {
       : this.state.rtB.texture
   }
 }
+
+export {
+  MaterialParams as GpuComputeMaterialParams,
+  Params as GpuComputeParams
+}
+
