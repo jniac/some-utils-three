@@ -168,7 +168,7 @@ export class GpuCompute {
   /**
    * Access the uniforms of the update shader (the instance must be initialized first).
    */
-  get uniforms() {
+  get updateUniforms() {
     if (!this.state.updateMaterial)
       throw new Error('GpuCompute: shaders not set')
     return this.state.updateMaterial.uniforms

@@ -65,12 +65,14 @@ export class GpuComputePenDemo extends GpuCompute {
   }
 
   pen(x: number, y: number, size: number) {
-    this.uniforms.uPen.value.set(x, y, size)
-    this.uniforms.uPenLast.value.copy(this.uniforms.uPen.value)
+    const { uPen, uPenLast } = this.updateUniforms
+    uPen.value.set(x, y, size)
+    uPenLast.value.copy(uPen.value)
   }
 
   penMove(x: number, y: number, size: number) {
-    this.uniforms.uPenLast.value.copy(this.uniforms.uPen.value)
-    this.uniforms.uPen.value.set(x, y, size)
+    const { uPen, uPenLast } = this.updateUniforms
+    uPenLast.value.copy(uPen.value)
+    uPen.value.set(x, y, size)
   }
 }
