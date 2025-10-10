@@ -1,8 +1,18 @@
 import { Vector4 } from 'three'
 import { GpuCompute, GpuComputeParams } from '../gpu-compute'
 
-export class GpuComputeWaterDemo extends GpuCompute {
-  constructor(userParams?: Partial<GpuComputeParams>) {
+const defaultParams = {
+  ...GpuCompute.defaultParams,
+
+  viscosity: 0.99,
+}
+
+type Params = typeof defaultParams & GpuComputeParams
+
+export class GpuComputeWaterDemo extends GpuCompute<Params> {
+  static override defaultParams = defaultParams
+
+  constructor(userParams?: Partial<Params>) {
     super(userParams)
 
     this.shaders({
@@ -14,11 +24,12 @@ export class GpuComputeWaterDemo extends GpuCompute {
       },
       update: {
         uniforms: {
+          uViscosity: { value: this.params.viscosity },
           uPointer: { value: new Vector4(.5, .5, 0.1, 1.0) },
         },
         fragmentColor: /* glsl */`
           vec2 uv = vUv;
-          float viscosity = 0.98;
+          float viscosity = uViscosity;
           float scale = 3.0;
           vec2 cellSize = scale / uTextureSize;
 
