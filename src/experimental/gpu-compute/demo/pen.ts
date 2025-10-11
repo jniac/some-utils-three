@@ -77,7 +77,7 @@ export class GpuComputePenDemo extends GpuCompute<Params> {
     })
   }
 
-  pen(x: number, y: number, size: number) {
+  penAt(x: number, y: number, size: number) {
     const { uPen, uPenLast } = this.updateUniforms
     uPen.value.set(x, y, size)
     uPenLast.value.copy(uPen.value)

@@ -185,12 +185,14 @@ export class GpuCompute<T extends Params = Params> {
     const rtA = new WebGLRenderTarget(size.width, size.height, {
       minFilter: NearestFilter,
       magFilter: NearestFilter,
+      generateMipmaps: false,
       format: RGBAFormat,
       type,
     })
     const rtB = new WebGLRenderTarget(size.width, size.height, {
       minFilter: NearestFilter,
       magFilter: NearestFilter,
+      generateMipmaps: false,
       format: RGBAFormat,
       type,
     })
