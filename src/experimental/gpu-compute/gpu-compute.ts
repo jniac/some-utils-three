@@ -209,6 +209,9 @@ export class GpuCompute<T extends Params = Params> {
     }
   }
 
+  /**
+   * https://github.com/jniac/some-utils-ts/tree/main/src/glsl
+   */
   enableGlslLib(...libs: (keyof typeof glslLibrary)[]): this {
     for (const lib of libs) {
       if (glslLibrary[lib]) {

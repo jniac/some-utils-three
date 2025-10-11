@@ -23,6 +23,7 @@ export class GpuComputePenDemo extends GpuCompute<Params> {
 
     // Enable glsl libs
     this.enableGlslLib(
+      'glsl_blending',
       'glsl_blur_3_11',
       'glsl_sdf_2d',
     )
@@ -44,8 +45,8 @@ export class GpuComputePenDemo extends GpuCompute<Params> {
        */
       update: {
         uniforms: {
-          uPenLast: { value: new Vector3() },
-          uPen: { value: new Vector3() },
+          uPenLast: { value: new Vector3(.5, .5, .02) },
+          uPen: { value: new Vector3(.5, .5, .02) },
           uColors: { value: this.params.colors.map(c => new Color(c)) },
         },
         fragmentTop: glsl_ramp,
@@ -71,7 +72,8 @@ export class GpuComputePenDemo extends GpuCompute<Params> {
           vec3 color = mix(r.a, r.b, r.t);
 
           vec3 pen = color * strength;
-          gl_FragColor.rgb = max(prev, pen);
+          // gl_FragColor.rgb = max(prev, pen);
+          gl_FragColor.rgb = screenBlending(prev, pen * 0.1);
         `,
       },
     })
