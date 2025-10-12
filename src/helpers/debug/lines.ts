@@ -596,8 +596,8 @@ export class LinesManager extends BaseManager {
 
     for (let i = 0; i <= count; i++) {
       let j = subdivisionsCount - 1
-      while (i % cumul[j] === 0) {
-        if (--j <= 0) break
+      while (j > 0 && i % cumul[j] === 0) {
+        j--
       }
 
       const [r, g, b] = colorArray[j]
