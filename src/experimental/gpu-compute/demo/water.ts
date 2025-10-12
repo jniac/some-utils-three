@@ -1,11 +1,14 @@
 import { Vector4 } from 'three'
+
+import { Vector2Declaration } from '../../../declaration'
 import { GpuCompute, GpuComputeParams } from '../gpu-compute'
 
 const defaultParams = {
   ...GpuCompute.defaultParams,
 
+  size: <Vector2Declaration>512,
   viscosity: 0.98,
-  cellScale: 7.0,
+  cellScale: 1.0,
 }
 
 type Params = typeof defaultParams & GpuComputeParams
@@ -36,7 +39,7 @@ export class GpuComputeWaterDemo extends GpuCompute<Params> {
             }
             float margin = 0.2;
             float edgeDist = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
-            edgeDist = 1.0 - pow(1.0 - edgeDist, 5.0);
+            edgeDist = 1.0 - pow(1.0 - edgeDist, 15.0);
             float edgeFade = smoothstep(0.0, margin, edgeDist);
             return texture2D(uTexture, uv) * edgeFade;
           }
@@ -57,12 +60,12 @@ export class GpuComputeWaterDemo extends GpuCompute<Params> {
           // z: unused
           // w: unused
 
-          float newHeight = ((north.x + south.x + east.x + west.x) * 0.501 - center.y) * viscosity;
+          float newHeight = ((north.x + south.x + east.x + west.x) * 0.5 - center.y) * viscosity;
 
           // Pointer influence
           float radius = uPointer.z;
           float strength = uPointer.w;
-          float dist = distance(uv, uPointer.xy) - radius;
+          float dist = distance(uv * uTextureSize, uPointer.xy * uTextureSize) - radius;
           float cellLength = length(cellSize);
           float influence = smoothstep(cellLength * 0.5, -cellLength * 0.5, dist);
           newHeight += influence * strength;
@@ -73,8 +76,16 @@ export class GpuComputeWaterDemo extends GpuCompute<Params> {
     })
   }
 
-  pointer(x: number, y: number, radius: number, strength: number) {
+  /**
+   * Set the pointer position and influence parameters.
+   * 
+   * @param u - Horizontal position in [0, 1]
+   * @param v - Vertical position in [0, 1]
+   * @param radius - Influence radius in pixels
+   * @param strength - Influence strength (positive or negative)
+   */
+  pointer(u: number, v: number, radius: number, strength: number) {
     const { uPointer } = this.updateUniforms
-    uPointer.value.set(x, y, radius, strength)
+    uPointer.value.set(u, v, radius, strength)
   }
 }

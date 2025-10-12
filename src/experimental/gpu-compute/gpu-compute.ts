@@ -1,7 +1,6 @@
 import { Color, HalfFloatType, IUniform, Mesh, NearestFilter, OrthographicCamera, PlaneGeometry, RGBAFormat, ShaderMaterial, Texture, Vector2, Vector3, Vector4, WebGLRenderer, WebGLRenderTarget } from 'three'
 
-import { fromVector2Declaration } from 'some-utils-three/declaration'
-import { Vector2Declaration } from 'some-utils-ts/declaration'
+import { fromVector2Declaration, Vector2Declaration } from '../../declaration'
 
 import { glslLibrary } from './glsl'
 
@@ -207,6 +206,22 @@ export class GpuCompute<T extends Params = Params> {
       time: 0,
       frame: 0,
     }
+  }
+
+  /**
+   * Set the size of the simulation (in pixels).
+   * 
+   * Notes:
+   * - If the new size is the same as the current size, nothing happens.
+   */
+  setSize(size: Vector2Declaration): this {
+    const { width, height } = fromVector2Declaration(size)
+    if (this.state.size.x !== width || this.state.size.y !== height) {
+      this.state.size.set(width, height)
+      this.state.rtA.setSize(width, height)
+      this.state.rtB.setSize(width, height)
+    }
+    return this
   }
 
   /**
