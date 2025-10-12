@@ -17,7 +17,7 @@ export class GpuComputeWaterDemo extends GpuCompute<Params> {
   static override defaultParams = defaultParams
 
   constructor(userParams?: Partial<Params>) {
-    super(userParams)
+    super({ filter: 'linear', ...userParams })
 
     this.shaders({
       initial: {
