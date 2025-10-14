@@ -1,8 +1,9 @@
-import { Camera, Intersection, Line3, Object3D, Plane, Raycaster, Vector2, Vector3 } from 'three'
+import { Camera, Intersection, Line3, Object3D, Plane, Ray, Raycaster, Vector2, Vector3 } from 'three'
 
 import { allDescendantsOf } from 'some-utils-ts/iteration/tree'
 import { Ticker } from 'some-utils-ts/ticker'
 
+import { Duplicable } from 'some-utils-ts/misc/duplicable'
 import { isMesh } from '../../is'
 
 /**
@@ -195,51 +196,84 @@ export class Pointer {
   raycaster = new Raycaster()
 
   /**
+   * The ray from the camera to the pointer in the previous frame.
+   * 
+   * Useful for effects that require knowledge of the previous ray (eg: any swipe-based effect).
+   */
+  rayOld = new Ray()
+
+  /**
    * Returns the ray from the camera to the pointer.
    */
   get ray() { return this.raycaster.ray }
 
+  static defaultIntersectPlaneOptions = {
+    /**
+     * The interpolation factor between the current ray and the previous ray.
+     * 
+     * This can be used to create a smoother transition when the pointer moves quickly.
+     * 
+     * - 0: use the current ray only.
+     * - 1: use the old ray only.
+     * 
+     * Default is 0.
+     */
+    oldFactor: 0,
+    /**
+     * The distance to extend the ray when intersecting with the plane.
+     */
+    distance: 1000,
+  }
+
   #intersectPlane = {
     plane: new Plane(),
-    point: new Vector3(),
     line: new Line3(),
-    result: {
-      intersected: false,
-      point: new Vector3(),
+    result: new class IntersectPlaneResult extends Duplicable {
+      intersected = false
+      point = new Vector3()
     },
   }
+
   /**
    * Returns the intersection point of the ray from the camera to the pointer with the plane.
    * 
-   * NOTE: The result point reference is reused, so it should be copied if needed for later use.
+   * Notes:
+   * - The result is reused for performance reasons, so it should be cloned if needed.
    */
-  intersectPlane(plane: Plane | 'yz' | 'xz' | 'xy', {
-    distance = 1000,
-    out = this.#intersectPlane.result.point,
-  } = {}) {
-    const { ray } = this.raycaster
-    const { point, line, result, plane: plane2 } = this.#intersectPlane
+  intersectPlane(plane: Plane | 'yz' | 'xz' | 'xy', options?: Partial<typeof Pointer.defaultIntersectPlaneOptions>) {
+    const { oldFactor, distance } = { ...Pointer.defaultIntersectPlaneOptions, ...options }
+    const { rayOld, raycaster: { ray } } = this
+    const { line, result, plane: plane2 } = this.#intersectPlane
     if (typeof plane === 'string') {
       plane2.constant = 0
       switch (plane as string) {
         case 'X': // backward compatibility
-        case 'yz':
+        case 'yz': {
           plane2.normal.set(1, 0, 0)
           break
+        }
         case 'Y': // backward compatibility
-        case 'xz':
+        case 'xz': {
           plane2.normal.set(0, 1, 0)
           break
+        }
         case 'Z': // backward compatibility
-        case 'xy':
+        case 'xy': {
           plane2.normal.set(0, 0, 1)
           break
+        }
       }
     } else {
       plane2.copy(plane)
     }
-    line.set(ray.origin, point.copy(ray.origin).addScaledVector(ray.direction, distance))
-    result.intersected = !!plane2.intersectLine(line, out)
+
+    line.start.lerpVectors(ray.origin, rayOld.origin, oldFactor)
+    line.end.lerpVectors(ray.direction, rayOld.direction, oldFactor)
+      .normalize()
+      .multiplyScalar(distance)
+      .add(line.start)
+
+    result.intersected = !!plane2.intersectLine(line, result.point)
     return result
   }
 
@@ -251,6 +285,7 @@ export class Pointer {
     this.camera = camera
     this.clientPosition.set(clientX, clientY)
     this.screenPosition.set(screenX, screenY)
+    this.rayOld.copy(this.raycaster.ray)
     this.raycaster.setFromCamera(this.screenPosition, camera)
   }
 
