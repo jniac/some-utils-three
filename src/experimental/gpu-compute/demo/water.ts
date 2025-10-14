@@ -9,12 +9,22 @@ const defaultParams = {
   size: <Vector2Declaration>512,
   viscosity: 0.98,
   cellScale: 1.0,
+  damping: 0.98,
 }
 
 type Params = typeof defaultParams & GpuComputeParams
 
 export class GpuComputeWaterDemo extends GpuCompute<Params> {
   static override defaultParams = defaultParams
+
+  get viscosity() { return this.updateUniforms.uViscosity.value }
+  set viscosity(value: number) { this.updateUniforms.uViscosity.value = value }
+
+  get cellScale() { return this.updateUniforms.uCellScale.value }
+  set cellScale(value: number) { this.updateUniforms.uCellScale.value = value }
+
+  get damping() { return this.updateUniforms.uDamping.value }
+  set damping(value: number) { this.updateUniforms.uDamping.value = value }
 
   constructor(userParams?: Partial<Params>) {
     super({ filter: 'linear', ...userParams })
@@ -30,6 +40,7 @@ export class GpuComputeWaterDemo extends GpuCompute<Params> {
         uniforms: {
           uViscosity: { value: this.params.viscosity },
           uCellScale: { value: this.params.cellScale },
+          uDamping: { value: this.params.damping },
           uPointer: { value: new Vector4(.5, .5, 0.1, 1.0) },
         },
         fragmentTop: /* glsl */`
@@ -69,6 +80,10 @@ export class GpuComputeWaterDemo extends GpuCompute<Params> {
           float cellLength = length(cellSize);
           float influence = smoothstep(cellLength * 0.5, -cellLength * 0.5, dist);
           newHeight += influence * strength;
+
+          // Damping
+          newHeight *= uDamping;
+          center.x *= uDamping;
 
           gl_FragColor = vec4(newHeight, center.x, 0.0, 1.0);
         `,
