@@ -225,13 +225,15 @@ export class Pointer {
     distance: 1000,
   }
 
+  static IntersectPlaneResult = class IntersectPlaneResult extends Duplicable {
+    intersected = false
+    point = new Vector3()
+  }
+
   #intersectPlane = {
     plane: new Plane(),
     line: new Line3(),
-    result: new class IntersectPlaneResult extends Duplicable {
-      intersected = false
-      point = new Vector3()
-    },
+    result: new Pointer.IntersectPlaneResult(),
   }
 
   /**
@@ -285,7 +287,6 @@ export class Pointer {
     this.camera = camera
     this.clientPosition.set(clientX, clientY)
     this.screenPosition.set(screenX, screenY)
-    this.rayOld.copy(this.raycaster.ray)
     this.raycaster.setFromCamera(this.screenPosition, camera)
   }
 
@@ -330,6 +331,9 @@ export class Pointer {
     // calculate the difference in pointer state
     this.diffState.diff(this.state, this.stateOld)
     this.intersections = this.raycast(scene)
+
+    // save the previous ray
+    this.rayOld.copy(this.raycaster.ray)
 
     this.#updatePointerEvents(scene)
   }
