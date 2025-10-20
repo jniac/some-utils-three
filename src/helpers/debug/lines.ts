@@ -482,14 +482,36 @@ export class LinesManager extends BaseManager {
   static rectDefaultOptions = {
     inset: 0,
     triple: <undefined | number>undefined,
+    diagonals: <undefined | boolean | { inset: number }>undefined,
   };
   rect(value: RectangleDeclaration, options?: Partial<typeof LinesManager.rectDefaultOptions> & LineOptions) {
     let { minX, minY, maxX, maxY } = Rectangle.from(value)
-    const { inset, triple } = { ...LinesManager.rectDefaultOptions, ...options }
+    const { inset, triple, diagonals } = { ...LinesManager.rectDefaultOptions, ...options }
     minX += inset
     minY += inset
     maxX -= inset
     maxY -= inset
+    if (diagonals) {
+      const diagInset = typeof diagonals === 'object' ? diagonals.inset : 0
+      let dx = 0, dy = 0
+      if (diagInset !== 0) {
+        const length = Math.hypot(maxX - minX, maxY - minY)
+        dx = (diagInset * (maxX - minX)) / length
+        dy = (diagInset * (maxY - minY)) / length
+      }
+      this.segments([
+        { x: minX + dx, y: minY + dy, z: 0 },
+        { x: maxX - dx, y: maxY - dy, z: 0 },
+        { x: maxX - dx, y: minY + dy, z: 0 },
+        { x: minX + dx, y: maxY - dy, z: 0 },
+      ], options)
+      // this.segments([
+      //   { x: minX, y: minY, z: 0 },
+      //   { x: maxX, y: maxY, z: 0 },
+      //   { x: maxX, y: minY, z: 0 },
+      //   { x: minX, y: maxY, z: 0 },
+      // ], options)
+    }
     if (triple) {
       const t = triple
       this.segments([
