@@ -52,6 +52,10 @@ const defaultAxisOptions = {
    * @default 0
    */
   align: 0,
+  /**
+   *
+   */
+  heightSegments: 1,
 }
 
 const _color = new Color()
@@ -62,6 +66,7 @@ function createAxisGeometry(options?: Partial<typeof defaultAxisOptions>) {
     length,
     radius,
     radialSegments,
+    heightSegments,
     coneRatio,
     radiusScale,
     vertexColor,
@@ -73,8 +78,10 @@ function createAxisGeometry(options?: Partial<typeof defaultAxisOptions>) {
   const r = radius * radiusScale
 
   const coneHeight = length * coneRatio
-  const cone = new ConeGeometry(r * 3, coneHeight, radialSegments)
-  const cyl = new CylinderGeometry(r, r, 1, radialSegments, 1, true)
+  const coneHeightSegments = Math.max(1, Math.ceil(heightSegments * coneRatio))
+  const cylinderHeightSegments = Math.max(1, Math.ceil(heightSegments * (1 - coneRatio)))
+  const cone = new ConeGeometry(r * 3, coneHeight, radialSegments, coneHeightSegments)
+  const cyl = new CylinderGeometry(r, r, 1, radialSegments, cylinderHeightSegments, true)
 
   const cylLength = length - coneHeight
   const coneDistance = length - coneHeight * .5
