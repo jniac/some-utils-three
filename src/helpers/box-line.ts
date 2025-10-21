@@ -1,7 +1,7 @@
 import { BufferAttribute, BufferGeometry, LineBasicMaterial, LineSegments, Vector3, WebGLProgramParametersWithUniforms } from 'three'
 
 import { ShaderForge } from 'some-utils-three/shader-forge'
-import { getX, getY, getZ } from './xyz'
+import { getMinusX, getMinusY, getMinusZ, getPlusX, getPlusY, getPlusZ } from './xyz'
 
 export class BoxLineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
   constructor(options?: {
@@ -41,9 +41,12 @@ export class BoxLineHelper extends LineSegments<BufferGeometry, LineBasicMateria
       ...getLerpPoints(new Vector3(-1, +1, -1), new Vector3(-1, +1, +1), divisions),
     ]
     const lettersPoints = !letters ? [] : [
-      ...getX(.1, { x: 1.1 }),
-      ...getY(.1, { y: 1.1 }),
-      ...getZ(.1, { z: 1.1 }),
+      ...getPlusX(.1, { x: 1.1 }),
+      ...getPlusY(.1, { y: 1.1 }),
+      ...getPlusZ(.1, { z: 1.1 }),
+      ...getMinusX(.1, { x: -1.1 }),
+      ...getMinusY(.1, { y: -1.1 }),
+      ...getMinusZ(.1, { z: -1.1 }),
     ]
     const interiorEdges = [
       // x interior edges
