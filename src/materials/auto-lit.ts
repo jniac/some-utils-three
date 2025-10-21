@@ -37,16 +37,16 @@ export class AutoLitMaterial extends MeshBasicMaterial {
       ShaderForge.with(shader)
         .uniforms(uniforms)
         .varying({
-          vWorldNormal: 'vec3',
+          vAutoLitWorldNormal: 'vec3',
         })
         .vertex.mainAfterAll(/* glsl */`
-          vWorldNormal = mat3(modelMatrix) * normal;
+          vAutoLitWorldNormal = mat3(modelMatrix) * normal;
           #ifdef USE_INSTANCING
-            vWorldNormal = mat3(instanceMatrix) * vWorldNormal;
+            vAutoLitWorldNormal = mat3(instanceMatrix) * vAutoLitWorldNormal;
           #endif
         `)
         .fragment.after('map_fragment', /* glsl */`
-          vec3 normal = normalize(vWorldNormal);
+          vec3 normal = normalize(vAutoLitWorldNormal);
           vec3 lightDirection = normalize(uSunPosition);
           float light = dot(normal, lightDirection) * 0.5 + 0.5;
           light = pow(light, uRampPower);
