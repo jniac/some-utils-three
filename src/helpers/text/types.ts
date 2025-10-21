@@ -39,6 +39,9 @@ export const optionsDefaults = {
    * Note:
    * - When using 'billboard' orientation, z offset make the text closer/farther 
    *   to the camera (useful for layering).
+   * - Additional per-instance offset can be provided using the `offset` option
+   *   in `setTextAt` method.
+   * @default 0
    */
   textOffset: 0 as Vector3Declaration,
   orientation: 'billboard' as (keyof typeof orientations) | Orientation,
@@ -116,5 +119,12 @@ export type SetTextOption = TransformDeclaration & SetColorOptions & Partial<{
    * @default 1
    */
   scale: number
+  /**
+   * The offset of the text in the local 3D space.
+   * 
+   * This is a per-instance offset that is added to the global textOffset option.
+   * @default [0, 0, 0]
+   */
+  offset: Vector3Declaration
 }>
 

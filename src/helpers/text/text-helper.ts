@@ -1,6 +1,6 @@
-import { BufferGeometry, Color, InstancedMesh, Material, Matrix4, Object3D, PlaneGeometry, Vector2 } from 'three'
+import { BufferGeometry, Color, InstancedBufferAttribute, InstancedMesh, Material, Matrix4, Object3D, PlaneGeometry, Vector2, Vector3 } from 'three'
 
-import { fromTransformDeclarations, TransformDeclaration } from '../../declaration'
+import { fromTransformDeclarations, fromVector3Declaration, TransformDeclaration } from '../../declaration'
 import { makeMatrix4 } from '../../utils/make'
 
 import { TextHelperAtlas } from './atlas'
@@ -25,6 +25,8 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
     planeSize: Vector2
   }
 
+  readonly textOffsetInstanceAttribute: InstancedBufferAttribute
+
   atlas: TextHelperAtlas
   data: TextHelperData
 
@@ -46,8 +48,11 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
     const data = new TextHelperData(atlas.symbols, options.textCount, options.lineCount, options.lineLength)
     const uniforms = createTextUniforms(options, data, atlas)
 
+    const textOffsetInstanceAttribute = new InstancedBufferAttribute(new Float32Array(options.textCount * 3), 3)
+
     const planeSize = uniforms.uPlaneSize.value
     const geometry = new PlaneGeometry(planeSize.width, planeSize.height)
+    geometry.setAttribute('aTextOffset', textOffsetInstanceAttribute)
 
     const material = options.nodeMaterial
       ? createTextNodeMaterial(uniforms, atlas)
@@ -57,6 +62,8 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
     this.onBeforeRender = (renderer, scene, camera, geometry, material, group) => {
       uniforms.uCameraMatrix.value.copy(camera.matrixWorld)
     }
+
+    this.textOffsetInstanceAttribute = textOffsetInstanceAttribute
 
     // Frustum culling cannot be applied since each text position is defined into the data texture.
     this.frustumCulled = false
@@ -116,14 +123,24 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
   clearAllText() {
     this.instanceMatrix.array.fill(0)
     this.instanceMatrix.needsUpdate = true
+
+    this.textOffsetInstanceAttribute.array.fill(0)
+    this.textOffsetInstanceAttribute.needsUpdate = true
+
     return this
   }
 
+  static #setTextAt = { v: new Vector3() }
   setTextAt(index: number, text: string, options: SetTextOption = {}) {
     this.data.setTextAt(index, text, { ...this.options.textDefaults, ...options })
 
     this.setMatrixAt(index, makeMatrix4(options).premultiply(this.transformMatrix))
     this.instanceMatrix.needsUpdate = true
+
+    const { v } = TextHelper.#setTextAt
+    const { x, y, z } = fromVector3Declaration(options.offset ?? 0, v)
+    this.textOffsetInstanceAttribute.setXYZ(index, x, y, z)
+    this.textOffsetInstanceAttribute.needsUpdate = true
 
     return this
   }

@@ -48,6 +48,9 @@ export function createWebglMaterial(uniforms: TextUniforms, atlas: TextHelperAtl
         return getCharOffset(instanceId, line * uLineLength + char);
       }
     `)
+    .vertex.top(/* glsl */`
+      attribute vec3 aTextOffset;
+    `)
     .vertex.replace('project_vertex', /* glsl */`
       vec4 infoTexel = getData4(gl_InstanceID, 0);
       vCurrentLineCount = infoTexel.r * 255.0;
@@ -73,9 +76,9 @@ export function createWebglMaterial(uniforms: TextUniforms, atlas: TextHelperAtl
           uCameraMatrix[2],
           modelMatrix * vec4(instanceMatrix[3].xyz, 1.0));
 
-      mvPosition.xyz += uTextOffset;
-
       mvPosition = viewMatrix * textMatrix * mvPosition;
+
+      mvPosition.xyz += uTextOffset + aTextOffset;
 
       gl_Position = projectionMatrix * mvPosition;
 
