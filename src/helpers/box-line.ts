@@ -1,16 +1,19 @@
 import { BufferAttribute, BufferGeometry, LineBasicMaterial, LineSegments, Vector3, WebGLProgramParametersWithUniforms } from 'three'
 
 import { ShaderForge } from 'some-utils-three/shader-forge'
+import { getX, getY, getZ } from './xyz'
 
 export class BoxLineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
   constructor(options?: {
     divisions?: number,
     interiorOpacity?: number,
     onBeforeCompile?: (shader: WebGLProgramParametersWithUniforms) => void,
+    letters?: boolean,
   }) {
     const {
       divisions = 10,
       interiorOpacity = 0.2,
+      letters = false,
     } = options ?? {}
     const getLerpPoints = (p0: Vector3, p1: Vector3, count: number) => {
       return Array.from({ length: count }, (_, i) => [
@@ -18,7 +21,7 @@ export class BoxLineHelper extends LineSegments<BufferGeometry, LineBasicMateria
         new Vector3().lerpVectors(p0, p1, (i + 1) / count),
       ]).flat()
     }
-    const boxGeometry = new BufferGeometry().setFromPoints([
+    const edges = [
       // x edges
       ...getLerpPoints(new Vector3(-1, -1, -1), new Vector3(+1, -1, -1), divisions),
       ...getLerpPoints(new Vector3(-1, +1, -1), new Vector3(+1, +1, -1), divisions),
@@ -36,7 +39,13 @@ export class BoxLineHelper extends LineSegments<BufferGeometry, LineBasicMateria
       ...getLerpPoints(new Vector3(+1, -1, -1), new Vector3(+1, -1, +1), divisions),
       ...getLerpPoints(new Vector3(+1, +1, -1), new Vector3(+1, +1, +1), divisions),
       ...getLerpPoints(new Vector3(-1, +1, -1), new Vector3(-1, +1, +1), divisions),
-
+    ]
+    const lettersPoints = !letters ? [] : [
+      ...getX(.1, { x: 1.1 }),
+      ...getY(.1, { y: 1.1 }),
+      ...getZ(.1, { z: 1.1 }),
+    ]
+    const interiorEdges = [
       // x interior edges
       ...getLerpPoints(new Vector3(-1, -1, 0), new Vector3(+1, -1, 0), divisions),
       ...getLerpPoints(new Vector3(-1, +1, 0), new Vector3(+1, +1, 0), divisions),
@@ -54,10 +63,16 @@ export class BoxLineHelper extends LineSegments<BufferGeometry, LineBasicMateria
       ...getLerpPoints(new Vector3(+1, 0, -1), new Vector3(+1, 0, +1), divisions),
       ...getLerpPoints(new Vector3(0, -1, -1), new Vector3(0, -1, +1), divisions),
       ...getLerpPoints(new Vector3(0, +1, -1), new Vector3(0, +1, +1), divisions),
+    ]
+    const boxGeometry = new BufferGeometry().setFromPoints([
+      ...edges,
+      ...lettersPoints,
+      ...interiorEdges,
     ])
     const opacityAttribute = new BufferAttribute(new Float32Array(boxGeometry.getAttribute('position').count), 1)
-    opacityAttribute.array.fill(1, 0, opacityAttribute.array.length / 2)
-    opacityAttribute.array.fill(interiorOpacity, opacityAttribute.array.length / 2)
+    const half = edges.length + lettersPoints.length
+    opacityAttribute.array.fill(1, 0, half)
+    opacityAttribute.array.fill(interiorOpacity, half)
     boxGeometry.setAttribute('aOpacity', opacityAttribute)
 
     const boxMaterial = new LineBasicMaterial({ color: '#ff0', transparent: true })
