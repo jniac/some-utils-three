@@ -1,4 +1,4 @@
-import { Color, HalfFloatType, IUniform, LinearFilter, LinearMipMapLinearFilter, Mesh, NearestFilter, OrthographicCamera, PlaneGeometry, RGBAFormat, ShaderMaterial, Texture, Vector2, Vector3, Vector4, WebGLRenderer, WebGLRenderTarget } from 'three'
+import { Color, HalfFloatType, IUniform, LinearFilter, LinearMipMapLinearFilter, Mesh, NearestFilter, OrthographicCamera, PlaneGeometry, RepeatWrapping, RGBAFormat, ShaderMaterial, Texture, Vector2, Vector3, Vector4, WebGLRenderer, WebGLRenderTarget, Wrapping } from 'three'
 
 import { fromVector2Declaration, Vector2Declaration } from '../../declaration'
 
@@ -129,6 +129,9 @@ const defaultParams = {
   type: HalfFloatType,
   generateMipmaps: false,
   filter: 'nearest' as 'nearest' | 'linear',
+  wrap: RepeatWrapping,
+  wrapS: <undefined | Wrapping>undefined,
+  wrapT: <undefined | Wrapping>undefined,
 }
 
 type Params = typeof defaultParams
@@ -181,7 +184,14 @@ export class GpuCompute<T extends Params = Params> {
     const params = { ...(this.constructor as typeof GpuCompute).defaultParams, ...userParams }
     this.params = params as T
 
-    const { type, generateMipmaps, filter } = params
+    const {
+      type,
+      generateMipmaps,
+      filter,
+      wrap,
+      wrapS = wrap,
+      wrapT = wrap,
+    } = params
     const minFilter = filter === 'nearest' ? NearestFilter : generateMipmaps ? LinearMipMapLinearFilter : LinearFilter
     const magFilter = filter === 'nearest' ? NearestFilter : LinearFilter
     const size = fromVector2Declaration(params.size)
@@ -190,6 +200,8 @@ export class GpuCompute<T extends Params = Params> {
       magFilter,
       generateMipmaps,
       format: RGBAFormat,
+      wrapS,
+      wrapT,
       type,
     })
     const rtB = new WebGLRenderTarget(size.width, size.height, {
@@ -197,6 +209,8 @@ export class GpuCompute<T extends Params = Params> {
       magFilter,
       generateMipmaps,
       format: RGBAFormat,
+      wrapS,
+      wrapT,
       type,
     })
 
