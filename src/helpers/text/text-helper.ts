@@ -25,6 +25,12 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
     planeSize: Vector2
   }
 
+  // Mark as helper object
+  userData: Record<string, any> = {
+    helper: true,
+    ignorePointer: true,
+  }
+
   readonly textOffsetInstanceAttribute: InstancedBufferAttribute
 
   atlas: TextHelperAtlas

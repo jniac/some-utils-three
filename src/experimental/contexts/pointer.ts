@@ -301,12 +301,16 @@ export class Pointer {
     /**
      * Prune children that should be ignored by the pointer.
      */
-    const prune = (child: Object3D) => child.userData.ignorePointer === true
+    const prune = (child: Object3D) =>
+      child.visible === false
+      || child.userData.ignorePointer === true
 
     /**
      * Skip children that are not meshes or should be ignored by the pointer.
      */
-    const skip = (child: Object3D) => isMesh(child) === false || ((child.userData.helper === true || child.visible === false) && child.userData.pointerArea !== true)
+    const skip = (child: Object3D) =>
+      isMesh(child) === false
+      || ((child.userData.helper === true || child.visible === false) && child.userData.pointerArea !== true)
 
     for (const { node } of allDescendantsOf(root, { skip, prune })) {
       this.raycaster.intersectObject(node, false, intersections)
