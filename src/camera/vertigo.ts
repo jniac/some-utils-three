@@ -1,4 +1,4 @@
-import { Camera, Euler, EulerOrder, Matrix4, OrthographicCamera, PerspectiveCamera, Quaternion, Vector2, Vector3 } from 'three'
+import { Camera, Euler, EulerOrder, Matrix4, OrthographicCamera, PerspectiveCamera, Plane, Quaternion, Vector2, Vector3 } from 'three'
 
 import { deepFreeze } from 'some-utils-ts/object/deep'
 import { Vector2Like } from 'some-utils-ts/types'
@@ -127,6 +127,7 @@ export class Vertigo {
     _v1: new Vector3(),
     _qa: new Quaternion(),
     _qb: new Quaternion(),
+    _plane: new Plane(),
   }
 
   // General settings:
@@ -365,6 +366,20 @@ export class Vertigo {
   ndcToScreen<T extends Vector2Like>(ndc: Vector2Like, out: T = ndc as T): T {
     out.x = ndc.x * this.state.realSize.x * .5
     out.y = ndc.y * this.state.realSize.y * .5
+    return out
+  }
+
+  /**
+   * Computes the focus plane of the vertigo camera.
+   * 
+   * Notes:
+   * - The plane is computed from the focus point and the camera rotation.
+   * - ⚠️ The returned plane is a shared instance. If you need to keep it, clone it.
+   */
+  computeFocusPlane(out = Vertigo.shared._plane): Plane {
+    const { focus, rotation } = this
+    out.normal.set(0, 0, 1).applyEuler(rotation)
+    out.setFromNormalAndCoplanarPoint(out.normal, focus)
     return out
   }
 
