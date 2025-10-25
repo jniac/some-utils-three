@@ -1,6 +1,7 @@
 import { Camera, Object3D, Scene, Vector2, Vector3 } from 'three'
 
 import { allDescendantsOf } from 'some-utils-ts/iteration/tree'
+import { Message } from 'some-utils-ts/message'
 import { Tick, Ticker } from 'some-utils-ts/ticker'
 import { Destroyable } from 'some-utils-ts/types'
 
@@ -134,6 +135,9 @@ export class ThreeBaseContext {
   constructor(type: ThreeContextType) {
     this.type = type
     this.#internal.now = performance.now()
+    Message.on<ThreeBaseContext>(ThreeBaseContext, message => {
+      message.setPayload(this)
+    })
   }
 
   setSize(newSize: Partial<{
