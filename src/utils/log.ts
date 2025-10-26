@@ -86,6 +86,7 @@ function* allDescendantsOf(node: Object3D, {
 export class LogUtils {
   static tree(root: Object3D) {
     const lines = <string[]>[]
+    let total = 0
     for (const item of allDescendantsOf(root, { includeSelf: true })) {
       const indent = item.getParentItems()
         .map(parentItem => {
@@ -99,7 +100,9 @@ export class LogUtils {
       const childrenCount = item.node.children.length > 0 ? `(${item.node.children.length})` : ''
       const line = `${indent}${relation} ${letter} (${getName(item.node)})${childrenCount}`
       lines.push(line)
+      total++
     }
+    lines.unshift(`Tree of "${getName(root)}": (${total} nodes)`)
     const str = lines.join('\n')
     console.log(str)
   }
