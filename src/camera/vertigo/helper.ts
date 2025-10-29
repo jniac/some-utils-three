@@ -3,7 +3,7 @@ import { ColorRepresentation, DoubleSide, Group, Matrix4, Mesh, MeshBasicMateria
 import { DebugHelper } from '../../helpers/debug'
 import { makeMatrix4 } from '../../utils/make'
 import { setup } from '../../utils/tree'
-import { Vertigo } from '../vertigo'
+import { Vertigo } from './vertigo'
 
 function texture() {
   const create = () => {

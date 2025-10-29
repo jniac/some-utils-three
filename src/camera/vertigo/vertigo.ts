@@ -13,7 +13,7 @@ import {
   toAngleDeclarationString,
   Vector2Declaration,
   Vector3Declaration
-} from '../declaration'
+} from '../../declaration'
 
 const defaultRotationOrder = <EulerOrder>'YXZ' // Default rotation order for Vertigo
 

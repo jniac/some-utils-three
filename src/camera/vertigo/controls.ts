@@ -10,8 +10,8 @@ import { DestroyableInstance } from 'some-utils-ts/misc/destroy'
 import { DestroyableObject } from 'some-utils-ts/types'
 
 import { fromPlaneDeclaration, fromVector3Declaration, PlaneDeclaration, Vector3Declaration } from '../../declaration'
-import { Vertigo, VertigoProps } from '../vertigo'
 import { VertigoHelper } from './helper'
+import { Vertigo, VertigoProps } from './vertigo'
 
 const _quaternion = new Quaternion()
 const _vectorX = new Vector3()
