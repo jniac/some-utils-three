@@ -333,6 +333,12 @@ export class GpuCompute<T extends Params = Params> {
       ? this.state.rtA.texture
       : this.state.rtB.texture
   }
+
+  previousTexture(): Texture {
+    return this.state.frame % 2 === 0
+      ? this.state.rtB.texture
+      : this.state.rtA.texture
+  }
 }
 
 export {
