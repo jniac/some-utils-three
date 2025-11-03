@@ -38,6 +38,7 @@ function filenameFromUrl(url: string): string {
 
 type TextureOptions = Partial<{
   colorSpace: ColorSpace
+  generateMipmaps: boolean
 }>
 
 class AnyLoader {
@@ -85,6 +86,7 @@ class AnyLoader {
           ? LinearSRGBColorSpace
           : SRGBColorSpace
       )
+      texture.generateMipmaps = options?.generateMipmaps ?? true
       unpromisified()
       resolve(texture)
     }, undefined, () => {
