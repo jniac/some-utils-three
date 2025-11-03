@@ -57,6 +57,7 @@ class YieldItem {
     return items
   }
 }
+
 function* allDescendantsOf(node: Object3D, {
   includeSelf = false,
 } = {}): Generator<YieldItem> {
