@@ -170,13 +170,19 @@ export class PointsManager extends BaseManager {
     return this
   }
 
-  points(p: Vector3Declaration[], {
-    key = undefined as any, size: argSize = .1, scale: argScale = 1, color: argColor = 'white' as ColorRepresentation, shape: argShape = 'square' as keyof typeof PointsManager.shapes,
+  points(pointsArg: Vector3Declaration[] | Float32Array, {
+    key = undefined as any,
+    size: argSize = .1,
+    scale: argScale = 1,
+    color: argColor = 'white' as ColorRepresentation,
+    shape: argShape = 'square' as keyof typeof PointsManager.shapes,
   } = {}): this {
     const { transformMatrix } = this
+    const isBuffer = pointsArg instanceof Float32Array
 
     const useKey = key !== undefined
-    const count = p.length
+    const count =
+      isBuffer ? pointsArg.length / 3 : pointsArg.length
 
     const { index: i0 } = useKey
       ? this.ensureKeyEntry(key, this.state.index, count)
@@ -187,7 +193,9 @@ export class PointsManager extends BaseManager {
     const size = argScale * argSize
     const shape = PointsManager.shapes[argShape]
     for (let i1 = 0; i1 < count; i1++) {
-      const { x, y, z } = fromVector3Declaration(p[i1], _v0).applyMatrix4(transformMatrix)
+      const { x, y, z } = isBuffer
+        ? _v0.fromArray(pointsArg, i1 * 3).applyMatrix4(transformMatrix)
+        : fromVector3Declaration(pointsArg[i1], _v0).applyMatrix4(transformMatrix)
       const i = i0 + i1
       position.setXYZ(i, x, y, z)
       color.setXYZ(i, r, g, b)
