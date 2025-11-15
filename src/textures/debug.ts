@@ -1,4 +1,4 @@
-import { CanvasTexture } from 'three'
+import { CanvasTexture, RepeatWrapping } from 'three'
 
 const defaultOptions = {
   size: 2048,
@@ -24,7 +24,7 @@ export class DebugTexture extends CanvasTexture {
     const yInvert = options.yMode === 'up'
     const step = options.size / options.division
 
-    for (let i = 0; i <= options.division; i++) {
+    for (let i = 0; i < options.division; i++) {
       const pos = i * step
       ctx.strokeStyle = '#0006'
       ctx.lineWidth = Math.ceil(.5 * options.size / 512)
@@ -39,20 +39,20 @@ export class DebugTexture extends CanvasTexture {
       ctx.lineTo(options.size, (i + .5) * step)
       ctx.stroke()
 
+      // Draw grid lines
+      // ctx.strokeStyle = '#000'
+      // ctx.lineWidth = Math.ceil(2 * options.size / 512)
+      // ctx.beginPath()
+      // ctx.moveTo(pos, 0)
+      // ctx.lineTo(pos, options.size)
+      // ctx.stroke()
 
-      ctx.strokeStyle = '#000'
-      ctx.lineWidth = Math.ceil(2 * options.size / 512)
-      ctx.beginPath()
-      ctx.moveTo(pos, 0)
-      ctx.lineTo(pos, options.size)
-      ctx.stroke()
+      // ctx.beginPath()
+      // ctx.moveTo(0, pos)
+      // ctx.lineTo(options.size, pos)
+      // ctx.stroke()
 
-      ctx.beginPath()
-      ctx.moveTo(0, pos)
-      ctx.lineTo(options.size, pos)
-      ctx.stroke()
-
-      for (let j = 0; j <= options.division; j++) {
+      for (let j = 0; j < options.division; j++) {
         ctx.font = `${step / 4}px "Fira Code", monospace`
         ctx.fillStyle = '#000'
         ctx.textAlign = 'center'
@@ -61,6 +61,13 @@ export class DebugTexture extends CanvasTexture {
         const x = (i + .5) * step
         const y = (yInvert ? (options.division - j - .5) : (j + .5)) * step
         ctx.fillText(`${i},${j}`, x, y)
+
+        const LINE_WIDTH = 32
+        ctx.lineWidth = LINE_WIDTH
+        const r = Math.floor(i / options.division * 0x100).toString(16).padStart(2, '0')
+        const g = Math.floor((1 - (j + 1) / options.division) * 0x100).toString(16).padStart(2, '0')
+        ctx.strokeStyle = `#${r}${g}ff`
+        ctx.strokeRect((i * step + LINE_WIDTH / 2), (j * step + LINE_WIDTH / 2), step - LINE_WIDTH, step - LINE_WIDTH)
       }
     }
 
@@ -74,7 +81,7 @@ export class DebugTexture extends CanvasTexture {
       ctx.stroke()
     }
 
-    super(canvas)
+    super(canvas, undefined, RepeatWrapping, RepeatWrapping)
     this.options = options
   }
 }
