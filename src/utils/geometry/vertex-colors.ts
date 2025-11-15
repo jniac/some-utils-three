@@ -1,4 +1,6 @@
-import { BufferAttribute, BufferGeometry, Color, ColorRepresentation } from 'three'
+import { BufferAttribute, BufferGeometry, ColorRepresentation } from 'three'
+
+import { makeColor } from '../make'
 
 /**
  * Sets vertex colors for a BufferGeometry.
@@ -12,8 +14,8 @@ export function setVertexColors(
   endIndex = -1,
 ): BufferGeometry {
   const colors = Array.isArray(colorsArg)
-    ? colorsArg.map(c => new Color(c))
-    : [new Color(colorsArg)]
+    ? colorsArg.map(c => makeColor(c))
+    : [makeColor(colorsArg)]
 
   const count = geometry.attributes.position.count
 
