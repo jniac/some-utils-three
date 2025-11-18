@@ -50,3 +50,10 @@ export function makeColor(color: ColorRepresentation | 'random', out = _color): 
   return out.set(color)
 }
 
+/**
+ * Safe version of `makeColor` that always returns a new Color instance (no need to clone).
+ */
+export function safeColor(color: ColorRepresentation | 'random', out = new Color()): Color {
+  return makeColor(color, out)
+}
+
