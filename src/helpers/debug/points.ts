@@ -170,7 +170,7 @@ export class PointsManager extends BaseManager {
     return this
   }
 
-  points(pointsArg: Vector3Declaration[] | Float32Array, {
+  points(pointsArg: Iterable<Vector3Declaration> | Float32Array, {
     key = undefined as any,
     size: argSize = .1,
     scale: argScale = 1,
@@ -179,10 +179,11 @@ export class PointsManager extends BaseManager {
   } = {}): this {
     const { transformMatrix } = this
     const isBuffer = pointsArg instanceof Float32Array
+    const points = isBuffer ? null : [...pointsArg]
 
     const useKey = key !== undefined
     const count =
-      isBuffer ? pointsArg.length / 3 : pointsArg.length
+      isBuffer ? pointsArg.length / 3 : points!.length
 
     const { index: i0 } = useKey
       ? this.ensureKeyEntry(key, this.state.index, count)
@@ -195,7 +196,7 @@ export class PointsManager extends BaseManager {
     for (let i1 = 0; i1 < count; i1++) {
       const { x, y, z } = isBuffer
         ? _v0.fromArray(pointsArg, i1 * 3).applyMatrix4(transformMatrix)
-        : fromVector3Declaration(pointsArg[i1], _v0).applyMatrix4(transformMatrix)
+        : fromVector3Declaration(points![i1], _v0).applyMatrix4(transformMatrix)
       const i = i0 + i1
       position.setXYZ(i, x, y, z)
       color.setXYZ(i, r, g, b)

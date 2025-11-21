@@ -551,7 +551,7 @@ export class LinesManager extends BaseManager {
   }
 
   rects(
-    value: RectangleDeclaration[],
+    value: Iterable<RectangleDeclaration>,
     options?: Partial<typeof LinesManager.rectDefaultOptions> & LineOptions,
   ): this {
     for (const r of value)
