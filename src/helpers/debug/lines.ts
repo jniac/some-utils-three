@@ -155,7 +155,7 @@ function computeArrowPoints(segments: Float32Array, arrowOptions?: ArrowOptionsA
 
       const length = Math.sqrt(lengthSq)
       const s = (proportionalSize ? length : 1) * size * scale
-      D.copy(V).divideScalar(length)
+      D.copy(V).divideScalar(length || 1) // normalize, but avoid division by zero
 
       // Normal based on the smallest component of the direction
       const ax = Math.abs(D.x)
@@ -226,6 +226,7 @@ export class LinesManager extends BaseManager {
     defaultOpacity = 1,
   } = {}) {
     const geometry = new BufferGeometry()
+    geometry.name = 'LinesManager:Geometry'
     const attributes = {
       'position': new BufferAttribute(new Float32Array(count * 3 * 2), 3),
       'color': new BufferAttribute(new Float32Array(count * 3 * 2), 3),
