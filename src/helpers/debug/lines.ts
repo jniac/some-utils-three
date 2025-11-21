@@ -483,8 +483,11 @@ export class LinesManager extends BaseManager {
     inset: 0,
     triple: <undefined | number>undefined,
     diagonals: <undefined | boolean | { inset: number }>undefined,
-  };
-  rect(value: RectangleDeclaration, options?: Partial<typeof LinesManager.rectDefaultOptions> & LineOptions) {
+  }
+  rect(
+    value: RectangleDeclaration,
+    options?: Partial<typeof LinesManager.rectDefaultOptions> & LineOptions,
+  ): this {
     let { minX, minY, maxX, maxY } = Rectangle.from(value)
     const { inset, triple, diagonals } = { ...LinesManager.rectDefaultOptions, ...options }
     minX += inset
@@ -545,6 +548,15 @@ export class LinesManager extends BaseManager {
       { x: minX, y: maxY, z: 0 },
       { x: minX, y: minY, z: 0 },
     ], options)
+  }
+
+  rects(
+    value: RectangleDeclaration[],
+    options?: Partial<typeof LinesManager.rectDefaultOptions> & LineOptions,
+  ): this {
+    for (const r of value)
+      this.rect(r, options)
+    return this
   }
 
   static circleQualityPresets = {

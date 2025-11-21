@@ -262,6 +262,14 @@ class DebugHelper extends Group {
     return this
   }
 
+  rects(
+    rectsArg: Parameters<LinesManager['rects']>[0],
+    options?: Parameters<LinesManager['rects']>[1] & RectanglePointsOptions,
+  ): this {
+    this.parts.linesManager.rects(rectsArg, options)
+    return this
+  }
+
   regularGrid(...args: Parameters<LinesManager['regularGrid']>): this {
     this.parts.linesManager.regularGrid(...args)
     return this
