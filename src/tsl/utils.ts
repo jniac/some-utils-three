@@ -1,5 +1,5 @@
-import { cameraPosition, cameraWorldMatrix, color, EPSILON, float, Fn, hash, If, int, mat3, mix, NodeAccess, normalWorld, objectPosition, positionLocal, ShaderNodeObject, storage, uniform, vec2, vec3, vec4 } from 'three/tsl'
-import { ColorRepresentation, Matrix4, Object3D, StorageBufferNode, StorageInstancedBufferAttribute } from 'three/webgpu'
+import { cameraPosition, cameraWorldMatrix, color, EPSILON, float, Fn, hash, If, int, mat3, mix, NodeAccess, normalWorld, objectPosition, positionLocal, storage, uniform, vec2, vec3, vec4 } from 'three/tsl'
+import { ColorRepresentation, Matrix4, Object3D, StorageInstancedBufferAttribute } from 'three/webgpu'
 
 import { fromVector3Declaration, Vector3Declaration } from '../declaration'
 
@@ -79,7 +79,7 @@ export class InstancedStorage {
   type: string
   typeSize: number
   attribute: StorageInstancedBufferAttribute
-  storage: ShaderNodeObject<StorageBufferNode>
+  storage: any // ShaderNodeObject<StorageBufferNode>
 
   get readonlyStorage() { return this.getReadonlyStorage() }
 
@@ -102,7 +102,7 @@ export class InstancedStorage {
     this.storage = storage(this.attribute, type, count)
   }
 
-  private _readonlyStorage: ShaderNodeObject<StorageBufferNode> | null = null
+  private _readonlyStorage: /* ShaderNodeObject<StorageBufferNode> */ any | null = null
   /**
    * This is an important feature: it allows to create a read-only storage buffer
    * that can be used in a vertex / fragment shader (positionNode, normalNode, etc.). 
