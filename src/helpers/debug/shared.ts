@@ -22,22 +22,24 @@ export class Utils {
     new Vector3(),
     new Vector3(),
     new Vector3(),
-  ];
+  ]
+
+  static boxIsValid = true
 
   static boxDefaults = {
     inset: 0,
     transform: undefined as TransformDeclaration | undefined,
-  };
+  }
 
   static boxMinMaxDefaults = {
     min: new Vector3(-.5, -.5, -.5) as Vector3Declaration,
     max: new Vector3(.5, .5, .5) as Vector3Declaration,
-  };
+  }
 
   static boxCenterSizeDefaults = {
     center: new Vector3(0, 0, 0) as Vector3Declaration,
     size: new Vector3(1, 1, 1) as Vector3Declaration,
-  };
+  }
 
   static box(value: Partial<typeof Utils.boxDefaults> & (Partial<typeof Utils.boxMinMaxDefaults> | Partial<typeof Utils.boxCenterSizeDefaults>) = {}) {
     const [p0, p1, p2, p3, p4, p5, p6, p7] = Utils.boxPoints
@@ -73,6 +75,7 @@ export class Utils {
     }
     const { x: x0, y: y0, z: z0 } = p0
     const { x: x1, y: y1, z: z1 } = p1
+    this.boxIsValid = (x1 > x0) && (y1 > y0) && (z1 > z0)
     p1.set(x1, y0, z0)
     p2.set(x1, y0, z1)
     p3.set(x0, y0, z1)
