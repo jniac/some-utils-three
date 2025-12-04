@@ -75,7 +75,7 @@ export class Utils {
     }
     const { x: x0, y: y0, z: z0 } = p0
     const { x: x1, y: y1, z: z1 } = p1
-    this.boxIsValid = (x1 > x0) && (y1 > y0) && (z1 > z0)
+    this.boxIsValid = (x1 >= x0) && (y1 >= y0) && (z1 >= z0)
     p1.set(x1, y0, z0)
     p2.set(x1, y0, z1)
     p3.set(x0, y0, z1)

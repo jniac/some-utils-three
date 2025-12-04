@@ -455,9 +455,10 @@ export class LinesManager extends BaseManager {
       boxIsValid,
       boxPoints: [p0, p1, p2, p3, p4, p5, p6, p7],
     } = Utils.box(value)
-    if (boxIsValid === false) {
+
+    if (boxIsValid === false)
       return this
-    }
+
     return this.segmentsArray(new Float32Array([
       p0.x, p0.y, p0.z,
       p1.x, p1.y, p1.z,
