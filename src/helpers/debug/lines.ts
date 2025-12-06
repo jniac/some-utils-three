@@ -489,7 +489,11 @@ export class LinesManager extends BaseManager {
 
   static rectDefaultOptions = {
     inset: 0,
-    triple: <undefined | number>undefined,
+    /**
+     * If defined, draw multiple borders.
+     */
+    multipleBorder: <undefined | Partial<{ count: number, step: number, align: number }>>undefined,
+    triple: <undefined | number | { step: number, align: number }>undefined,
     diagonals: <undefined | boolean | { inset: number }>undefined,
   }
   rect(
@@ -497,7 +501,7 @@ export class LinesManager extends BaseManager {
     options?: Partial<typeof LinesManager.rectDefaultOptions> & LineOptions,
   ): this {
     let { minX, minY, maxX, maxY } = Rectangle.from(value)
-    const { inset, triple, diagonals } = { ...LinesManager.rectDefaultOptions, ...options }
+    const { inset, triple, diagonals, multipleBorder: multipleArg } = { ...LinesManager.rectDefaultOptions, ...options }
     minX += inset
     minY += inset
     maxX -= inset
@@ -523,28 +527,25 @@ export class LinesManager extends BaseManager {
       //   { x: minX, y: maxY, z: 0 },
       // ], options)
     }
-    if (triple) {
-      const t = triple
-      this.segments([
-        { x: minX + t, y: minY + t, z: 0 },
-        { x: maxX - t, y: minY + t, z: 0 },
-        { x: maxX - t, y: minY + t, z: 0 },
-        { x: maxX - t, y: maxY - t, z: 0 },
-        { x: maxX - t, y: maxY - t, z: 0 },
-        { x: minX + t, y: maxY - t, z: 0 },
-        { x: minX + t, y: maxY - t, z: 0 },
-        { x: minX + t, y: minY + t, z: 0 },
-      ], options)
-      this.segments([
-        { x: minX - t, y: minY - t, z: 0 },
-        { x: maxX + t, y: minY - t, z: 0 },
-        { x: maxX + t, y: minY - t, z: 0 },
-        { x: maxX + t, y: maxY + t, z: 0 },
-        { x: maxX + t, y: maxY + t, z: 0 },
-        { x: minX - t, y: maxY + t, z: 0 },
-        { x: minX - t, y: maxY + t, z: 0 },
-        { x: minX - t, y: minY - t, z: 0 },
-      ], options)
+    const multiple =
+      multipleArg ??
+        triple ? (typeof triple === 'number' ? { count: 3, step: triple, align: .5 } : { count: 3, ...triple }) : undefined
+    if (multiple) {
+      const { count, step = .1, align = .5 } = multiple
+      for (let i = 0; i < count; i++) {
+        const t = step * (i - (count - 1) * align)
+        this.segments([
+          { x: minX - t, y: minY - t, z: 0 },
+          { x: maxX + t, y: minY - t, z: 0 },
+          { x: maxX + t, y: minY - t, z: 0 },
+          { x: maxX + t, y: maxY + t, z: 0 },
+          { x: maxX + t, y: maxY + t, z: 0 },
+          { x: minX - t, y: maxY + t, z: 0 },
+          { x: minX - t, y: maxY + t, z: 0 },
+          { x: minX - t, y: minY - t, z: 0 },
+        ], options)
+      }
+      return this
     }
     return this.segments([
       { x: minX, y: minY, z: 0 },
