@@ -520,12 +520,6 @@ export class LinesManager extends BaseManager {
         { x: maxX - dx, y: minY + dy, z: 0 },
         { x: minX + dx, y: maxY - dy, z: 0 },
       ], options)
-      // this.segments([
-      //   { x: minX, y: minY, z: 0 },
-      //   { x: maxX, y: maxY, z: 0 },
-      //   { x: maxX, y: minY, z: 0 },
-      //   { x: minX, y: maxY, z: 0 },
-      // ], options)
     }
     const multiple = multipleArg
       ?? (triple ? (typeof triple === 'number' ? { count: 3, step: triple, align: .5 } : { count: 3, ...triple }) : undefined)
@@ -534,14 +528,14 @@ export class LinesManager extends BaseManager {
       for (let i = 0; i < count; i++) {
         const t = step * (i - (count - 1) * align)
         this.segments([
-          { x: minX - t, y: minY - t, z: 0 },
-          { x: maxX + t, y: minY - t, z: 0 },
-          { x: maxX + t, y: minY - t, z: 0 },
-          { x: maxX + t, y: maxY + t, z: 0 },
-          { x: maxX + t, y: maxY + t, z: 0 },
-          { x: minX - t, y: maxY + t, z: 0 },
-          { x: minX - t, y: maxY + t, z: 0 },
-          { x: minX - t, y: minY - t, z: 0 },
+          { x: minX + t, y: minY + t, z: 0 },
+          { x: maxX - t, y: minY + t, z: 0 },
+          { x: maxX - t, y: minY + t, z: 0 },
+          { x: maxX - t, y: maxY - t, z: 0 },
+          { x: maxX - t, y: maxY - t, z: 0 },
+          { x: minX + t, y: maxY - t, z: 0 },
+          { x: minX + t, y: maxY - t, z: 0 },
+          { x: minX + t, y: minY + t, z: 0 },
         ], options)
       }
       return this
