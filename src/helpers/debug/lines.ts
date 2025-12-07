@@ -492,7 +492,7 @@ export class LinesManager extends BaseManager {
     /**
      * If defined, draw multiple borders.
      */
-    multipleBorder: <undefined | Partial<{ count: number, step: number, align: number }>>undefined,
+    multipleBorder: <undefined | false | Partial<{ count: number, step: number, align: number }>>undefined,
     triple: <undefined | number | { step: number, align: number }>undefined,
     diagonals: <undefined | boolean | { inset: number }>undefined,
   }
@@ -527,11 +527,10 @@ export class LinesManager extends BaseManager {
       //   { x: minX, y: maxY, z: 0 },
       // ], options)
     }
-    const multiple =
-      multipleArg ??
-        triple ? (typeof triple === 'number' ? { count: 3, step: triple, align: .5 } : { count: 3, ...triple }) : undefined
+    const multiple = multipleArg
+      ?? (triple ? (typeof triple === 'number' ? { count: 3, step: triple, align: .5 } : { count: 3, ...triple }) : undefined)
     if (multiple) {
-      const { count, step = .1, align = .5 } = multiple
+      const { count = 3, step = .1, align = .5 } = multiple
       for (let i = 0; i < count; i++) {
         const t = step * (i - (count - 1) * align)
         this.segments([
