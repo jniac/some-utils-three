@@ -245,6 +245,10 @@ class DebugHelper extends Group {
     } = options ?? {}
     if (corners || center) {
       const rect = Rectangle.from(rectArg)
+
+      if (rect.hasNaN())
+        return this
+
       if (center) {
         this.parts.pointsManager.point(rect.center, { color: options?.color, ...options, ...(options?.center === true ? {} : options?.center) })
       }

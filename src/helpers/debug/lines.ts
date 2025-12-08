@@ -501,6 +501,8 @@ export class LinesManager extends BaseManager {
     options?: Partial<typeof LinesManager.rectDefaultOptions> & LineOptions,
   ): this {
     let { minX, minY, maxX, maxY } = Rectangle.from(value)
+    if (Number.isNaN(minX) || Number.isNaN(minY) || Number.isNaN(maxX) || Number.isNaN(maxY))
+      return this
     const { inset, triple, diagonals, multipleBorder: multipleArg } = { ...LinesManager.rectDefaultOptions, ...options }
     minX += inset
     minY += inset
