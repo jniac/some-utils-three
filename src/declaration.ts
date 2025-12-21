@@ -7,7 +7,7 @@ import {
   Vector3Declaration,
   Vector4Declaration
 } from 'some-utils-ts/declaration'
-import { Vector4Like } from 'some-utils-ts/types'
+import { Vector2Like, Vector3Like, Vector4Like } from 'some-utils-ts/types'
 
 import { EulerDeclaration, fromEulerDeclaration } from './declaration/euler'
 import { isMatrix4, isObject3D } from './is'
@@ -55,11 +55,13 @@ export type TransformDeclaration = Partial<{
   scaleScalar: number
 }>
 
-export function fromVector2Declaration(arg: Partial<Vector2Declaration>, out: Vector2 = new Vector2()): Vector2 {
+export function fromVector2Declaration<T extends Vector2Like = Vector2>(arg: Partial<Vector2Declaration>, out?: T): T {
+  out ??= new Vector2() as unknown as T
   return agnostic.fromVector2Declaration(arg, out)
 }
 
-export function fromVector3Declaration(arg: Partial<Vector3Declaration>, out: Vector3 = new Vector3()): Vector3 {
+export function fromVector3Declaration<T extends Vector3Like = Vector3>(arg: Partial<Vector3Declaration>, out?: T): T {
+  out ??= new Vector3() as unknown as T
   return agnostic.fromVector3Declaration(arg, out)
 }
 
