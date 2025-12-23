@@ -32,6 +32,8 @@ export class AutoLitMaterial extends MeshBasicMaterial {
       uRampPower: { value: rampPower },
       uLuminosity: { value: luminosity },
     }
+    if (rest.color === undefined)
+      delete rest.color
     super(rest)
     this.onBeforeCompile = shader => {
       ShaderForge.with(shader)
