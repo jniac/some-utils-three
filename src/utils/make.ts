@@ -46,6 +46,29 @@ export function makeColor(color: ColorRepresentation | 'random', out = _color): 
         color = color.slice(0, 4)
       }
     }
+    if (color.startsWith('hsl(') && color.endsWith(')')) {
+      // handle hsl colors manually because three.js does not support the modern CSS hsl syntax
+      const parts = color.slice(4, -1).split(/[\s,]+/).map(p => p.trim().replace('%', ''))
+      if (parts.length === 3) {
+        const h = Number.parseFloat(parts[0]) / 360
+        const s = Number.parseFloat(parts[1]) / 100
+        const l = Number.parseFloat(parts[2]) / 100
+        out.setHSL(h, s, l)
+        return out
+      }
+    }
+    if (color.startsWith('hsla(') && color.endsWith(')')) {
+      // handle hsla colors manually because three.js does not support the modern CSS hsla syntax
+      const parts = color.slice(5, -1).split(/[\s,]+/).map(p => p.trim().replace('%', ''))
+      if (parts.length === 4) {
+        const h = Number.parseFloat(parts[0]) / 360
+        const s = Number.parseFloat(parts[1]) / 100
+        const l = Number.parseFloat(parts[2]) / 100
+        // const a = Number.parseFloat(parts[3]) / 100 // alpha channel is ignored
+        out.setHSL(h, s, l)
+        return out
+      }
+    }
   }
   return out.set(color)
 }
