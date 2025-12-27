@@ -27,9 +27,9 @@ const _color = new Color()
  * NOTE: 
  * - For convenience, the string 'random' can be passed to get a random color.
  * - For convenience too, 8-digit hex colors are supported (the alpha channel is ignored).
- * - For performance reasons, by default the same color instance is returned.
+ * - ⚠️ For performance reasons, by default the same color instance is returned.
  * The value must be used immediately or copied / cloned if it needs to be stored.
- * - To get a new instance, pass a new color as the second argument.
+ * - 👉 To get a new instance, pass a new color as the second argument.
  */
 export function makeColor(color: ColorRepresentation | 'random', out = _color): Color {
   if (color === 'random') {
