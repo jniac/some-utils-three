@@ -419,7 +419,7 @@ export class LinesManager extends BaseManager {
     return this.segments([p0, p1], options)
   }
 
-  axes(p: Vector3Declaration, { size = 1 } = {}) {
+  axes(p: Vector3Declaration = 0, { size = 1 } = {}) {
     const { x, y, z } = fromVector3Declaration(p, _v0)
     return this
       .segmentsArray(new Float32Array([x, y, z, x + size, y, z]), { color: '#ff0033' })
