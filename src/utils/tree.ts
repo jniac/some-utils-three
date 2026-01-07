@@ -185,3 +185,6 @@ export function queryFirstAncestorOf(...args: Parameters<typeof queryAncestorsOf
     return parent
   return null
 }
+
+export { treeToString, TreeToStringOptions } from './tree/tree-to-string'
+
