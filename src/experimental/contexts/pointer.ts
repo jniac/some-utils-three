@@ -398,9 +398,13 @@ export class Pointer {
       // NOTE: Update the pointer position on "down" too (because of touch events)
       updatePointerPosition(event)
 
-      // Ignore events that are not from the canvas (but from other injected elements)
-      if (event.target instanceof HTMLCanvasElement === false)
-        return
+      // ⚠️ Finally we don't care about the scope here, because the pointer position should
+      // be updated anyway, otherwise we may have issues about "down" state not being set correctly.
+      // ⚠️ Scope may be useful to filter events though, but for now we don't do that.
+
+      // ~~Ignore events that are not from the canvas (but from other injected elements)~~
+      // if (event.target instanceof HTMLCanvasElement === false)
+      //   return
 
       document.addEventListener('pointerup', onPointerUp)
 
@@ -417,12 +421,12 @@ export class Pointer {
     }
 
     document.addEventListener('pointermove', onPointerMove)
-    scope.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('pointerdown', onPointerDown)
 
     this.#enableListenersState.disable = () => {
       document.removeEventListener('pointermove', onPointerMove)
       document.removeEventListener('pointerup', onPointerUp)
-      scope.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('pointerdown', onPointerDown)
     }
   }
   #disableListeners() {
