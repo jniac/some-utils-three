@@ -1,10 +1,12 @@
-import { Camera, Object3D, Scene, Vector2, Vector3 } from 'three'
+import { Camera, Mesh, Object3D, Scene, Vector2, Vector3 } from 'three'
 
 import { allDescendantsOf } from 'some-utils-ts/iteration/tree'
 import { Message } from 'some-utils-ts/message'
 import { Tick, Ticker } from 'some-utils-ts/ticker'
 import { Destroyable } from 'some-utils-ts/types'
 
+import { treeToString, TreeToStringOptions } from '../../utils/tree'
+import { treeToStringDefaultOptions } from '../../utils/tree/tree-to-string'
 import { Pointer } from './pointer'
 import { ThreeContextType } from './types'
 import { RollingSum } from './utils/rolling-sum'
@@ -280,5 +282,21 @@ export class ThreeBaseContext {
       return object
 
     return null
+  }
+
+  debug = {
+    logTree: (options?: TreeToStringOptions) => {
+      console.log(treeToString(this.scene, options))
+    },
+    logMeshRenderOrder: () => {
+      console.log(treeToString(this.scene, {
+        filter: n => n instanceof Mesh,
+        toString: n => {
+          return n instanceof Mesh
+            ? `${n.name} [${n.constructor.name}] (renderOrder: ${n.renderOrder})`
+            : treeToStringDefaultOptions.toString(n)
+        }
+      }))
+    }
   }
 }
