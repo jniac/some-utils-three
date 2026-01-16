@@ -7,13 +7,14 @@ const defaultOptions = {
   height: 1,
   depth: .1,
   borderWidth: .1,
-  borderAlign: .5,
+  borderAlign: <number | 'inside' | 'outside'>.5,
   cornerRadius: 0,
   cornerSegments: 8,
 }
 
 function setupSimpleFrameGeometry(geometry: BufferGeometry, options: typeof defaultOptions) {
-  const { width: w, height: h, borderWidth: bw, borderAlign: ba } = options
+  const { width: w, height: h, borderWidth: bw, borderAlign } = options
+  const ba = borderAlign === 'inside' ? 0 : borderAlign === 'outside' ? 1 : borderAlign
   const w2 = w / 2
   const h2 = h / 2
   const bw_in = bw * (1 - ba)
