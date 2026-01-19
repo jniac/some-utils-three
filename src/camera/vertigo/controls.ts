@@ -501,6 +501,14 @@ export class VertigoControls implements DestroyableObject {
     this.currentDampedVertigo
       .apply(camera, aspect)
   }
+
+  /**
+   * Reset the damped vertigo to the current vertigo state.
+   */
+  resetDamping(): this {
+    this.dampedVertigo.copy(this.vertigo)
+    return this
+  }
 }
 
 export type {
