@@ -1,5 +1,5 @@
 import { ColorSpace, LinearSRGBColorSpace, SRGBColorSpace, Texture, TextureLoader } from 'three'
-import { RGBELoader } from 'three/examples/jsm/Addons.js'
+import { HDRLoader } from 'three/examples/jsm/Addons.js'
 
 import { Promisified, promisify } from 'some-utils-ts/misc/promisify'
 
@@ -43,7 +43,7 @@ type TextureOptions = Partial<{
 
 class AnyLoader {
   #textureLoader: TextureLoader | null = null
-  #rgbeLoader: RGBELoader | null = null
+  #hdrLoader: HDRLoader | null = null
 
   /**
    * Loads a texture from a URL.
@@ -54,7 +54,7 @@ class AnyLoader {
    * - Returns a "promisified" texture that can be used like a Promise AND a Texture.
    * - When video textures are loaded, it sets the width and height based on the video metadata.
    */
-  loadTexture(url: string, options?: TextureOptions): Promisified<Texture> {
+  loadTexture(url: string, options?: TextureOptions | ((texture: Texture) => void)): Promisified<Texture> {
     const filename = filenameFromUrl(url)
     const extension = filename.match(/[^.]+$/)?.[0]
 
@@ -74,19 +74,23 @@ class AnyLoader {
 
     const loader =
       isLinearExtension(extension)
-        ? (this.#rgbeLoader ??= new RGBELoader())
+        ? (this.#hdrLoader ??= new HDRLoader())
         : (this.#textureLoader ??= new TextureLoader())
 
     let resolve: (texture: Texture) => void
     let reject: (error: Error) => void
     const texture = loader.load(url, texture => {
       texture.name = filename
-      texture.colorSpace = options?.colorSpace ?? (
+      const optionsAsObject = typeof options === 'function' ? undefined : options
+      texture.colorSpace = optionsAsObject?.colorSpace ?? (
         isLinearExtension(extension)
           ? LinearSRGBColorSpace
           : SRGBColorSpace
       )
-      texture.generateMipmaps = options?.generateMipmaps ?? true
+      texture.generateMipmaps = optionsAsObject?.generateMipmaps ?? true
+      if (typeof options === 'function') {
+        options(texture)
+      }
       unpromisified()
       resolve(texture)
     }, undefined, () => {
@@ -121,7 +125,7 @@ class AnyLoader {
     if (isTextureExtension(extension))
       return this.loadTexture(url)
 
-    throw new Error(`Unsupported extension: ${url}`)
+    throw new Error(`Unsupported ext  ension: ${url}`)
   }
 }
 
