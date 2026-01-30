@@ -117,6 +117,7 @@ export class VertigoControls implements DestroyableObject {
   group = new Group()
 
   #state = {
+    enabled: true,
     alternativeActivationCount: 0,
     alternativeIsActive: false,
     /**
@@ -281,6 +282,12 @@ export class VertigoControls implements DestroyableObject {
     return this
   }
 
+  get enabled() { return this.#state.enabled }
+  set enabled(value: boolean) { this.setEnabled(value) }
+  setEnabled(enabled: boolean) {
+    this.#state.enabled = enabled
+  }
+
   pan(x: number, y: number) {
     _updateVectorXYZ(this.currentVertigo.rotation)
     const z = 1 / this.currentVertigo.zoom
@@ -367,6 +374,9 @@ export class VertigoControls implements DestroyableObject {
       },
       dragButton: ~0,
       onDrag: info => {
+        if (this.#state.enabled === false)
+          return
+
         const scalar = info.altKey ? .2 : info.shiftKey ? 5 : 1
         const type = info.button === PointerButton.Left && info.touchCount <= 1
           ? 'orbit'
@@ -388,6 +398,9 @@ export class VertigoControls implements DestroyableObject {
       },
       wheelPreventDefault: true,
       onWheel: info => {
+        if (this.#state.enabled === false)
+          return
+
         switch (this.inputConfig.wheel) {
           case 'zoom': {
             const newZoom = this.currentVertigo.zoom * (1 - info.delta.y * .001)
@@ -478,6 +491,9 @@ export class VertigoControls implements DestroyableObject {
   }
 
   update(camera: Camera, aspect: number, deltaTime = 1 / 60) {
+    if (this.#state.enabled === false)
+      return
+
     const t = calculateExponentialDecayLerpRatio(this.dampingDecayFactor, deltaTime)
     this.vertigo.update(aspect)
 

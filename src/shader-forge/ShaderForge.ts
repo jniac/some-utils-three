@@ -235,12 +235,28 @@ const createVaryingOptions = {
     vertex.mainAfterAll(/* glsl */`
       #ifdef USE_INSTANCING
         sf_vWorldNormal = mat3(modelMatrix) * mat3(instanceMatrix) * normal;
-      #elif
+      #else
         sf_vWorldNormal = mat3(modelMatrix) * normal;
       #endif
 
       #ifdef FLIP_SIDED
         sf_vWorldNormal = -sf_vWorldNormal;
+      #endif
+    `)
+  },
+  sf_vCamNormal: () => {
+    top(/* glsl */`
+      varying vec3 sf_vCamNormal;
+    `)
+    vertex.mainAfterAll(/* glsl */`
+      #ifdef USE_INSTANCING
+        sf_vCamNormal = normalize(mat3(viewMatrix * modelMatrix) * mat3(instanceMatrix) * normal);
+      #else
+        sf_vCamNormal = normalize(mat3(viewMatrix * modelMatrix) * normal);
+      #endif
+
+      #ifdef FLIP_SIDED
+        sf_vCamNormal = -sf_vCamNormal;
       #endif
     `)
   },

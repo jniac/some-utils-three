@@ -1,4 +1,4 @@
-import { ColorRepresentation, Group, Matrix4, Object3D } from 'three'
+import { BufferGeometry, ColorRepresentation, Group, Matrix4, Object3D, Vector3 } from 'three'
 
 import { Rectangle } from 'some-utils-ts/math/geom/rectangle'
 
@@ -271,6 +271,108 @@ class DebugHelper extends Group {
     options?: Parameters<LinesManager['rects']>[1] & RectanglePointsOptions,
   ): this {
     this.parts.linesManager.rects(rectsArg, options)
+    return this
+  }
+
+  static #debugTriangle_private = {
+    A: new Vector3(),
+    B: new Vector3(),
+    C: new Vector3(),
+    A2: new Vector3(),
+    B2: new Vector3(),
+    C2: new Vector3(),
+    AB: new Vector3(),
+    AC: new Vector3(),
+    tangent: new Vector3(),
+    bitangent: new Vector3(),
+    p0: new Vector3(),
+    p1: new Vector3(),
+    p2: new Vector3(),
+    normal: new Vector3(),
+    center: new Vector3(),
+  }
+  static #debugTriangle_defaultOptions = {
+    color: '#f0f',
+    arrowSize: .05,
+    shrinkFactor: .975,
+  }
+  debugTriangle(triArg: [Vector3Declaration, Vector3Declaration, Vector3Declaration] | [geometry: BufferGeometry, triangleIndex: number], options?: { color?: string }): this {
+    const { A, B, C, A2, B2, C2, AB, AC, tangent, bitangent, p0, p1, p2, normal, center } = DebugHelper.#debugTriangle_private
+
+    if (triArg.length === 3) {
+      const [aArg, bArg, cArg] = triArg
+      fromVector3Declaration(aArg, A)
+      fromVector3Declaration(bArg, B)
+      fromVector3Declaration(cArg, C)
+    } else {
+      const [geometry, triangleIndex] = triArg
+      let i0, i1, i2
+      if (geometry.index) {
+        const indexAttr = geometry.index!
+        i0 = indexAttr.getX(triangleIndex * 3)
+        i1 = indexAttr.getX(triangleIndex * 3 + 1)
+        i2 = indexAttr.getX(triangleIndex * 3 + 2)
+      } else {
+        i0 = triangleIndex * 3
+        i1 = triangleIndex * 3 + 1
+        i2 = triangleIndex * 3 + 2
+      }
+      const array = geometry.getAttribute('position').array as Float32Array
+      A.fromArray(array, i0 * 3)
+      B.fromArray(array, i1 * 3)
+      C.fromArray(array, i2 * 3)
+    }
+
+    AB.subVectors(B, A)
+    AC.subVectors(C, A)
+    normal.crossVectors(AB, AC)
+    const normalLength = normal.length()
+    const area = normalLength * .5
+    const size = Math.sqrt(area)
+    if (normalLength === 0)
+      throw new Error('❌ Unhandled. DebugHelper.debugTriangle: Degenerate triangle with zero area')
+    normal.divideScalar(normalLength || 1)
+    center.addVectors(A, B).add(C).divideScalar(3)
+
+    const {
+      color,
+      arrowSize,
+      shrinkFactor,
+    } = { ...DebugHelper.#debugTriangle_defaultOptions, ...options }
+
+    A2.copy(A).addScaledVector(tangent.subVectors(center, A), 1 - shrinkFactor)
+    B2.copy(B).addScaledVector(tangent.subVectors(center, B), 1 - shrinkFactor)
+    C2.copy(C).addScaledVector(tangent.subVectors(center, C), 1 - shrinkFactor)
+
+    this.point(center, { color, size: size * .05, shape: 'circle' })
+    this.point(A, { color, size: size * .12, shape: 'ring' })
+    this.segments([A, A2, B, B2, C, C2], { color })
+    this.polygon([A2, B2, C2], { color })
+
+    const points = [A, B, C]
+    for (let i = 0; i < 3; i++) {
+      const P0 = points[i]
+      const P1 = points[(i + 1) % 3]
+      tangent.subVectors(P1, P0)
+      bitangent.crossVectors(normal, tangent).normalize().multiplyScalar(size)
+      p0.copy(P0).addScaledVector(tangent, .5).addScaledVector(bitangent, .05)
+      p1.copy(p0).addScaledVector(tangent, arrowSize)
+      p2.copy(p0).addScaledVector(bitangent, .05)
+      p0.addScaledVector(tangent, -arrowSize)
+      this.polyline([p0, p1, p2], { color })
+      for (let j = 0; j < i; j++) {
+        p1.addScaledVector(tangent, -arrowSize * .33)
+        p2.addScaledVector(tangent, -arrowSize * .33)
+        this.line(p1, p2, { color })
+      }
+    }
+
+    A.addScaledVector(p0.subVectors(center, A), .1)
+    p0.copy(A).addScaledVector(AB, .1)
+    p1.copy(A).addScaledVector(AC, .1)
+    this.line(A, p0, { color })
+    this.line(A, p1, { color })
+
     return this
   }
 
