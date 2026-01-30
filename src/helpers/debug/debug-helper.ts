@@ -333,8 +333,11 @@ class DebugHelper extends Group {
     const normalLength = normal.length()
     const area = normalLength * .5
     const size = Math.sqrt(area)
+
+    // Skip degenerate triangles
     if (normalLength === 0)
-      throw new Error('❌ Unhandled. DebugHelper.debugTriangle: Degenerate triangle with zero area')
+      return this
+
     normal.divideScalar(normalLength || 1)
     center.addVectors(A, B).add(C).divideScalar(3)
 
