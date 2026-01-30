@@ -291,12 +291,16 @@ class DebugHelper extends Group {
     normal: new Vector3(),
     center: new Vector3(),
   }
-  static #debugTriangle_defaultOptions = {
+  static debugTriangle_defaultOptions = {
     color: '#f0f',
     arrowSize: .05,
     shrinkFactor: .975,
+    text: undefined as string | number | undefined,
   }
-  debugTriangle(triArg: [Vector3Declaration, Vector3Declaration, Vector3Declaration] | [geometry: BufferGeometry, triangleIndex: number], options?: { color?: string }): this {
+  debugTriangle(
+    triArg: [Vector3Declaration, Vector3Declaration, Vector3Declaration] | [geometry: BufferGeometry, triangleIndex: number],
+    options?: Partial<typeof DebugHelper.debugTriangle_defaultOptions>,
+  ): this {
     const { A, B, C, A2, B2, C2, AB, AC, tangent, bitangent, p0, p1, p2, normal, center } = DebugHelper.#debugTriangle_private
 
     if (triArg.length === 3) {
@@ -338,7 +342,8 @@ class DebugHelper extends Group {
       color,
       arrowSize,
       shrinkFactor,
-    } = { ...DebugHelper.#debugTriangle_defaultOptions, ...options }
+      text,
+    } = { ...DebugHelper.debugTriangle_defaultOptions, ...options }
 
     A2.copy(A).addScaledVector(tangent.subVectors(center, A), 1 - shrinkFactor)
     B2.copy(B).addScaledVector(tangent.subVectors(center, B), 1 - shrinkFactor)
@@ -372,6 +377,10 @@ class DebugHelper extends Group {
     p1.copy(A).addScaledVector(AC, .1)
     this.line(A, p0, { color })
     this.line(A, p1, { color })
+
+    if (text !== undefined) {
+      this.text(center, String(text), { size: size * .5, color, offset: [0, size * .1, 0] })
+    }
 
     return this
   }
