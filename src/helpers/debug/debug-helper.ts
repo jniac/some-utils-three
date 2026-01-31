@@ -2,7 +2,7 @@ import { BufferGeometry, ColorRepresentation, Group, Matrix4, Object3D, Vector3 
 
 import { Rectangle } from 'some-utils-ts/math/geom/rectangle'
 
-import { fromVector3Declaration, TransformDeclaration, Vector3Declaration } from '../../declaration'
+import { fromTransformDeclaration, fromVector3Declaration, TransformDeclaration, Vector3Declaration } from '../../declaration'
 import { SetTextOption, TextHelper } from '../text'
 import { BaseManager } from './base'
 import { LinesManager } from './lines'
@@ -408,7 +408,8 @@ class DebugHelper extends Group {
     return this
   }
 
-  setTransformMatrix(matrix: Matrix4): this {
+  setTransformMatrix(matrixArg: Matrix4 | TransformDeclaration): this {
+    const matrix = matrixArg instanceof Matrix4 ? matrixArg : fromTransformDeclaration(matrixArg)
     this.parts.pointsManager.setTransformMatrix(matrix)
     this.parts.linesManager.setTransformMatrix(matrix)
     this.parts.textsManager.setTransformMatrix(matrix)

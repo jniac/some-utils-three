@@ -76,10 +76,11 @@ export const fromTransformDeclaration = (() => {
   const _rotation = new Euler()
   const _scale = new Vector3()
   const _quaternion = new Quaternion()
+  const _matrix = new Matrix4()
 
-  function fromTransformDeclaration(props: TransformDeclaration, out: Matrix4): Matrix4
+  function fromTransformDeclaration(props: TransformDeclaration, out?: Matrix4): Matrix4
   function fromTransformDeclaration<T extends Object3D>(props: TransformDeclaration, out: T): T
-  function fromTransformDeclaration(props: TransformDeclaration, out: any): any {
+  function fromTransformDeclaration(props: TransformDeclaration, out: any = _matrix): any {
     const {
       x = 0,
       y = 0,
