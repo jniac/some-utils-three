@@ -118,6 +118,7 @@ export class VertigoControls implements DestroyableObject {
 
   #state = {
     enabled: true,
+    interactive: true,
     alternativeActivationCount: 0,
     alternativeIsActive: false,
     /**
@@ -282,10 +283,31 @@ export class VertigoControls implements DestroyableObject {
     return this
   }
 
+  /**
+   * When disabled the controls does not update the camera anymore.
+   * 
+   * Useful to temporarily disable the controls and let other code manipulate the camera without interference from the controls.
+   * 
+   * For disabling only the interaction but keeping the vertigo active, use `interactive` instead.
+   */
   get enabled() { return this.#state.enabled }
   set enabled(value: boolean) { this.setEnabled(value) }
   setEnabled(enabled: boolean) {
     this.#state.enabled = enabled
+  }
+
+  /**
+   * If the controls should respond to user input. 
+   * 
+   * Can be used to temporarily disable interaction without stopping the controls 
+   * (and thus keeping the damped vertigo active).
+   * 
+   * For completely disabling the controls, use `enabled` instead.
+   */
+  get interactive() { return this.#state.interactive }
+  set interactive(value: boolean) { this.setInteractive(value) }
+  setInteractive(interactive: boolean) {
+    this.#state.interactive = interactive
   }
 
   pan(x: number, y: number) {
@@ -377,6 +399,9 @@ export class VertigoControls implements DestroyableObject {
         if (this.#state.enabled === false)
           return
 
+        if (this.#state.interactive === false)
+          return
+
         const scalar = info.altKey ? .2 : info.shiftKey ? 5 : 1
         const type = info.button === PointerButton.Left && info.touchCount <= 1
           ? 'orbit'
@@ -399,6 +424,9 @@ export class VertigoControls implements DestroyableObject {
       wheelPreventDefault: true,
       onWheel: info => {
         if (this.#state.enabled === false)
+          return
+
+        if (this.#state.interactive === false)
           return
 
         switch (this.inputConfig.wheel) {
