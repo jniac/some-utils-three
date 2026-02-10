@@ -1,4 +1,4 @@
-import { BufferGeometry, ColorRepresentation, Group, Matrix4, Object3D, Vector3 } from 'three'
+import { BufferGeometry, ColorRepresentation, Group, Matrix4, Mesh, Object3D, Vector3 } from 'three'
 
 import { Rectangle } from 'some-utils-ts/math/geom/rectangle'
 
@@ -120,9 +120,11 @@ class DebugHelper extends Group {
     const { nodeMaterial } = options ?? {}
     const pointsManager = new PointsManager({ ...options?.points })
     instance.add(pointsManager.parts.points)
+    instance.add(pointsManager.parts.xrayPoints)
 
     const linesManager = new LinesManager({ nodeMaterial, ...options?.lines })
     instance.add(linesManager.parts.lines)
+    instance.add(linesManager.parts.xrayLines)
 
     const textsManager = new TextsManager({ nodeMaterial, ...options?.texts })
     instance.add(textsManager.parts.textHelper)
@@ -290,6 +292,8 @@ class DebugHelper extends Group {
     p2: new Vector3(),
     normal: new Vector3(),
     center: new Vector3(),
+    matrix: new Matrix4(),
+    previousMatrix: new Matrix4(),
   }
   static debugTriangle_defaultOptions = {
     color: '#f0f',
@@ -298,10 +302,32 @@ class DebugHelper extends Group {
     text: undefined as string | number | undefined,
   }
   debugTriangle(
-    triArg: [Vector3Declaration, Vector3Declaration, Vector3Declaration] | [geometry: BufferGeometry, triangleIndex: number],
+    triArg: [Vector3Declaration, Vector3Declaration, Vector3Declaration] | [geometry: BufferGeometry | Mesh, triangleIndex: number],
     options?: Partial<typeof DebugHelper.debugTriangle_defaultOptions>,
   ): this {
-    const { A, B, C, A2, B2, C2, AB, AC, tangent, bitangent, p0, p1, p2, normal, center } = DebugHelper.#debugTriangle_private
+    const {
+      A, B, C,
+      A2, B2, C2,
+      AB, AC,
+      p0, p1, p2,
+      tangent,
+      bitangent,
+      normal,
+      center,
+      matrix,
+      previousMatrix,
+    } = DebugHelper.#debugTriangle_private
+
+    const {
+      color,
+      arrowSize,
+      shrinkFactor,
+      text: textArg,
+    } = { ...DebugHelper.debugTriangle_defaultOptions, ...options }
+
+    let text = textArg
+
+    matrix.identity()
 
     if (triArg.length === 3) {
       const [aArg, bArg, cArg] = triArg
@@ -309,7 +335,17 @@ class DebugHelper extends Group {
       fromVector3Declaration(bArg, B)
       fromVector3Declaration(cArg, C)
     } else {
-      const [geometry, triangleIndex] = triArg
+      const [geometryOrMesh, triangleIndex] = triArg
+      const geometry = geometryOrMesh instanceof Mesh ? geometryOrMesh.geometry : geometryOrMesh
+
+      text ??= triangleIndex
+
+      const mesh = geometryOrMesh instanceof Mesh ? geometryOrMesh : null
+      if (mesh) {
+        mesh.updateWorldMatrix(true, false)
+        matrix.copy(mesh.matrixWorld)
+      }
+
       let i0, i1, i2
       if (geometry.index) {
         const indexAttr = geometry.index!
@@ -341,12 +377,8 @@ class DebugHelper extends Group {
     normal.divideScalar(normalLength || 1)
     center.addVectors(A, B).add(C).divideScalar(3)
 
-    const {
-      color,
-      arrowSize,
-      shrinkFactor,
-      text,
-    } = { ...DebugHelper.debugTriangle_defaultOptions, ...options }
+    previousMatrix.copy(this.matrix)
+    this.matrix.copy(matrix)
 
     A2.copy(A).addScaledVector(tangent.subVectors(center, A), 1 - shrinkFactor)
     B2.copy(B).addScaledVector(tangent.subVectors(center, B), 1 - shrinkFactor)
@@ -385,6 +417,19 @@ class DebugHelper extends Group {
       this.text(center, String(text), { size: size * .5, color, offset: [0, size * .1, 0] })
     }
 
+    this.matrix.copy(previousMatrix)
+
+    return this
+  }
+
+  debugTriangles(
+    geometry: BufferGeometry,
+    triangleIndices: number[],
+    options?: Parameters<DebugHelper['debugTriangle']>[1],
+  ): this {
+    for (const triangleIndex of triangleIndices) {
+      this.debugTriangle([geometry, triangleIndex], { ...options, text: triangleIndex })
+    }
     return this
   }
 
@@ -442,6 +487,24 @@ class DebugHelper extends Group {
     this.parts.pointsManager.onTop(renderOrder)
     this.parts.linesManager.onTop(renderOrder)
     this.parts.textsManager.onTop(renderOrder)
+    return this
+  }
+
+  zOffset(value = .001): this {
+    this.parts.linesManager.zOffset(value)
+    this.parts.pointsManager.zOffset(value)
+    return this
+  }
+
+  /**
+   * Makes visible the occluded parts of the helper by rendering them faded / on top.
+   */
+  xray(amountArg?: false | number | { lines?: false | number, points?: false | number }): this {
+    const [linesAmount, pointsAmount] = typeof amountArg === 'object'
+      ? [amountArg.lines ?? false, amountArg.points ?? false]
+      : [amountArg ?? .1, amountArg ?? .1]
+    this.parts.linesManager.xray(linesAmount)
+    this.parts.pointsManager.xray(pointsAmount)
     return this
   }
 

@@ -5,7 +5,7 @@ import { Vector3Declaration } from 'some-utils-ts/declaration'
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 import { OneOrMany } from 'some-utils-ts/types'
 import { fromOneOrMany } from 'some-utils-ts/types/utils'
-import { BufferAttribute, BufferGeometry, ColorRepresentation, LineBasicMaterial, LineSegments } from 'three'
+import { BufferAttribute, BufferGeometry, ColorRepresentation, GreaterDepth, LessEqualDepth, LineBasicMaterial, LineSegments } from 'three'
 
 import { TransformDeclaration, fromTransformDeclarations, fromVector3Declaration } from '../../declaration'
 import { ShaderForge } from '../../shader-forge'
@@ -218,6 +218,45 @@ function computeArrowPoints(segments: Float32Array, arrowOptions?: ArrowOptionsA
 
 const DEFAULT_LINE_COUNT = 20000
 
+class CustomLineMaterial extends LineBasicMaterial {
+  uniforms = {
+    uZOffset: { value: 0 },
+  }
+  constructor() {
+    super({
+      vertexColors: true,
+      transparent: true,
+    })
+    this.onBeforeCompile = shader => ShaderForge.with(shader)
+      .uniforms(this.uniforms)
+      .varying({
+        vOpacity: 'float',
+      })
+      .vertex.top(/* glsl */ `
+        attribute float aOpacity;
+      `)
+      .vertex.mainAfterAll(/* glsl */ `
+        vOpacity = aOpacity;
+        gl_Position.z += -uZOffset;
+      `)
+      .fragment.after('color_fragment', /* glsl */ `
+        diffuseColor.a *= vOpacity;
+      `)
+  }
+  customProgramCacheKey(): string {
+    return 'CustomLineNodeMaterial'
+  }
+  xray(amount: false | number) {
+    if (amount === false) {
+      this.opacity = 1
+      this.depthFunc = LessEqualDepth
+    } else {
+      this.opacity = amount
+      this.depthFunc = GreaterDepth
+    }
+  }
+}
+
 export class LinesManager extends BaseManager {
   static createParts({
     nodeMaterial = false,
@@ -235,27 +274,6 @@ export class LinesManager extends BaseManager {
     for (const [name, attr] of Object.entries(attributes)) {
       geometry.setAttribute(name, attr)
     }
-    const createLineMaterial = () => {
-      const material = new LineBasicMaterial({
-        vertexColors: true,
-        transparent: true,
-        depthWrite: false,
-      })
-      material.onBeforeCompile = shader => ShaderForge.with(shader)
-        .varying({
-          vOpacity: 'float',
-        })
-        .vertex.top(/* glsl */ `
-          attribute float aOpacity;
-        `)
-        .vertex.mainAfterAll(/* glsl */ `
-          vOpacity = aOpacity;
-        `)
-        .fragment.after('color_fragment', /* glsl */ `
-          diffuseColor.a *= vOpacity;
-        `)
-      return material
-    }
     const createLineNodeMaterial = () => {
       const material = new LineBasicNodeMaterial({
         vertexColors: true,
@@ -268,9 +286,17 @@ export class LinesManager extends BaseManager {
     }
     const material = nodeMaterial
       ? createLineNodeMaterial()
-      : createLineMaterial()
+      : new CustomLineMaterial()
     const lines = new LineSegments(geometry, material)
     lines.frustumCulled = false
+
+    const xrayMaterial = nodeMaterial
+      ? createLineNodeMaterial()
+      : new CustomLineMaterial()
+    const xrayLines = new LineSegments(geometry, xrayMaterial)
+    xrayLines.frustumCulled = false
+    xrayLines.visible = false
+
     return {
       count,
       defaults: {
@@ -280,6 +306,7 @@ export class LinesManager extends BaseManager {
       geometry,
       attributes,
       lines,
+      xrayLines,
     }
   }
 
@@ -300,6 +327,25 @@ export class LinesManager extends BaseManager {
     super.clear()
     this.state.index = 0
     this.parts.geometry.setDrawRange(0, 0)
+    return this
+  }
+
+  zOffset(amount: number): this {
+    if (this.parts.lines.material instanceof CustomLineMaterial) {
+      this.parts.lines.material.uniforms.uZOffset.value = amount
+    } else {
+      console.warn('"zOffset" is not implemented for node material')
+    }
+    return this
+  }
+
+  xray(amount: false | number = .2): this {
+    this.parts.xrayLines.visible = amount !== false
+    if (this.parts.xrayLines.material instanceof CustomLineMaterial) {
+      this.parts.xrayLines.material.xray(amount)
+    } else {
+      console.warn('"ghost" is not implemented for node material')
+    }
     return this
   }
 

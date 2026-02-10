@@ -1,4 +1,4 @@
-import { BufferAttribute, BufferGeometry, ColorRepresentation, Points, PointsMaterial } from 'three'
+import { BufferAttribute, BufferGeometry, ColorRepresentation, GreaterDepth, LessEqualDepth, Points, PointsMaterial } from 'three'
 
 import { Vector3Declaration } from 'some-utils-ts/declaration'
 
@@ -7,38 +7,14 @@ import { ShaderForge } from '../../shader-forge'
 import { BaseManager } from './base'
 import { _c0, _v0, Utils } from './shared'
 
-export class PointsManager extends BaseManager {
-  static shapes = (() => {
-    let i = 0
-    return {
-      'square': i++,
-      'circle': i++,
-      'ring': i++,
-      'ring-thin': i++,
-      'plus': i++,
-      'plus-thin': i++,
-      'plus-ultra-thin': i++,
-      'x': i++,
-      'x-thin': i++,
-      'x-ultra-thin': i++,
-    }
-  })();
-
-  static createParts({
-    pointCount: count = 10000,
-  } = {}) {
-    const geometry = new BufferGeometry()
-    const attributes = {
-      'position': new BufferAttribute(new Float32Array(count * 3), 3),
-      'color': new BufferAttribute(new Float32Array(count * 3), 3),
-      'aScale': new BufferAttribute(new Float32Array(count), 1),
-      'aShape': new BufferAttribute(new Float32Array(count), 1),
-    }
-    for (const [name, attr] of Object.entries(attributes)) {
-      geometry.setAttribute(name, attr)
-    }
-    const material = new PointsMaterial({ vertexColors: true })
-    material.onBeforeCompile = shader => ShaderForge.with(shader)
+class CustomPointsMaterial extends PointsMaterial {
+  uniforms = {
+    uZOffset: { value: 0 },
+  }
+  constructor() {
+    super({ vertexColors: true })
+    this.onBeforeCompile = shader => ShaderForge.with(shader)
+      .uniforms(this.uniforms)
       .varying({
         vShape: 'float',
       })
@@ -48,6 +24,7 @@ export class PointsManager extends BaseManager {
       `)
       .vertex.mainAfterAll(/* glsl */ `
         gl_PointSize *= aScale;
+        gl_Position.z += -uZOffset;
         vShape = aShape;
       `)
       .fragment.top(/* glsl */ `
@@ -123,14 +100,67 @@ export class PointsManager extends BaseManager {
 
         // diffuseColor.rgb *= vec3(gl_PointCoord, 1.0);
       `)
-    const points = new Points(geometry, material)
+  }
+  customProgramCacheKey(): string {
+    return 'CustomPointsMaterial'
+  }
+  xray(amount: false | number) {
+    if (amount === false) {
+      this.opacity = 1
+      this.depthFunc = LessEqualDepth
+    } else {
+      this.opacity = amount
+      this.depthFunc = GreaterDepth
+      this.transparent = true
+    }
+  }
+}
+
+export class PointsManager extends BaseManager {
+  static shapes = (() => {
+    let i = 0
+    return {
+      'square': i++,
+      'circle': i++,
+      'ring': i++,
+      'ring-thin': i++,
+      'plus': i++,
+      'plus-thin': i++,
+      'plus-ultra-thin': i++,
+      'x': i++,
+      'x-thin': i++,
+      'x-ultra-thin': i++,
+    }
+  })();
+
+  static createParts({
+    pointCount: count = 10000,
+  } = {}) {
+    const geometry = new BufferGeometry()
+    const attributes = {
+      'position': new BufferAttribute(new Float32Array(count * 3), 3),
+      'color': new BufferAttribute(new Float32Array(count * 3), 3),
+      'aScale': new BufferAttribute(new Float32Array(count), 1),
+      'aShape': new BufferAttribute(new Float32Array(count), 1),
+    }
+    for (const [name, attr] of Object.entries(attributes)) {
+      geometry.setAttribute(name, attr)
+    }
+
+    const points = new Points(geometry, new CustomPointsMaterial())
     points.frustumCulled = false
     // points.geometry.setDrawRange(0, 0)
+
+    const xrayPoints = new Points(geometry, new CustomPointsMaterial())
+    xrayPoints.frustumCulled = false
+    xrayPoints.visible = false
+
     return {
       count,
       geometry,
       attributes,
       points,
+      xrayPoints
     }
   }
 
@@ -167,6 +197,18 @@ export class PointsManager extends BaseManager {
       points.material.depthWrite = true
       points.material.transparent = false
     }
+    return this
+  }
+
+  zOffset(amount = .001): this {
+    this.parts.points.material.uniforms.uZOffset.value = amount
+    this.parts.xrayPoints.material.uniforms.uZOffset.value = amount
+    return this
+  }
+
+  xray(amount: false | number = .1): this {
+    this.parts.xrayPoints.visible = amount !== false
+    this.parts.xrayPoints.material.xray(amount)
     return this
   }
 
