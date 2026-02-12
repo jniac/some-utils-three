@@ -573,6 +573,11 @@ export class Vertigo {
     return JSON.stringify(this.toDeclaration())
   }
 
+  fromDeclaration(decl: any): this {
+    // TODO: Add validation, warn about unknown properties, etc.
+    return this.set(decl)
+  }
+
   fromJsonDeclaration(json: string): this {
     const decl = JSON.parse(json) as Props
     return this.set(decl)
