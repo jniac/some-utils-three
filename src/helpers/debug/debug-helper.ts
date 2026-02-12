@@ -1,4 +1,4 @@
-import { BufferGeometry, ColorRepresentation, Group, Matrix4, Mesh, Object3D, Vector3 } from 'three'
+import { BufferGeometry, Color, ColorRepresentation, Group, Matrix4, Mesh, Object3D, Vector3 } from 'three'
 
 import { Rectangle } from 'some-utils-ts/math/geom/rectangle'
 
@@ -429,6 +429,28 @@ class DebugHelper extends Group {
   ): this {
     for (const triangleIndex of triangleIndices) {
       this.debugTriangle([geometry, triangleIndex], { ...options, text: triangleIndex })
+    }
+    return this
+  }
+
+  /**
+   * 🚧 WIP.
+   * 
+   * Currently:
+   * - Displays the vertex indices.
+   */
+  debugGeometry(
+    geometry: BufferGeometry,
+    {
+      color: colorArg = <ColorRepresentation>'#0ff',
+    } = {},
+  ): this {
+    const positionArray = geometry.getAttribute('position').array as Float32Array
+    const color = new Color(colorArg)
+    const v = new Vector3()
+    for (let i = 0, max = positionArray.length / 3; i < max; i++) {
+      v.fromArray(positionArray, i * 3)
+      this.text(v, String(i), { size: .2, color })
     }
     return this
   }

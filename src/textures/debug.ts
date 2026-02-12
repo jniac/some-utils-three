@@ -1,87 +1,189 @@
+import { fromVector2Declaration } from 'some-utils-three/declaration'
+import { Vector2Declaration } from 'some-utils-ts/declaration'
 import { CanvasTexture, RepeatWrapping } from 'three'
 
-const defaultOptions = {
-  size: 2048,
-  division: 8,
-  yMode: 'up' as 'up' | 'down',
+const defaultParams = {
+  // "canvas" parameters
+  subdivisions: 8,
+  size: 1024,
+  lineSize: 2,
+  lineColor: 'hsl(0, 0%, 80%)',
+  checkerColorA: 'hsl(0, 0%, 100%)',
+  checkerColorB: 'hsl(0, 0%, 95%)',
+  textColor: 'hsla(0, 0%, 0%, 0.5)',
+
+  // "texture" parameters
+  generateMipmaps: true,
+  repeat: <Vector2Declaration>1,
+  offset: <Vector2Declaration>0,
+  wrap: RepeatWrapping,
 }
 
-export class DebugTexture extends CanvasTexture {
-  readonly options: typeof defaultOptions
+type Params = typeof defaultParams
 
-  constructor(userOptions?: Partial<typeof defaultOptions>) {
-    const options = { ...defaultOptions, ...userOptions }
+const canvasCache = new Map<string, { canvas: HTMLCanvasElement; refCount: number }>()
 
-    const canvas = document.createElement('canvas')
-    canvas.width = options.size
-    canvas.height = options.size
-    const ctx = canvas.getContext('2d')!
+/**
+ * Produces an unique key for the given parameters, to be used for caching canvases.
+ * 
+ * Notes:
+ * - Only the "canvas" parameters are considered for the key, not the "texture" parameters.
+ */
+function makeCanvasKey(p: Params) {
+  return [
+    p.subdivisions,
+    p.size,
+    p.lineSize,
+    p.lineColor,
+    p.checkerColorA,
+    p.checkerColorB,
+    p.textColor,
+  ].join('|')
+}
 
-    ctx.fillStyle = '#fff'
-    ctx.fillRect(0, 0, options.size, options.size)
+function createCanvas(p: Params): HTMLCanvasElement {
+  const { subdivisions, size, lineSize } = p
+  const cell = size / subdivisions
 
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
 
-    const yInvert = options.yMode === 'up'
-    const step = options.size / options.division
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Could not get 2D context')
 
-    for (let i = 0; i < options.division; i++) {
-      const pos = i * step
-      ctx.strokeStyle = '#0006'
-      ctx.lineWidth = Math.ceil(.5 * options.size / 512)
-
-      ctx.beginPath()
-      ctx.moveTo((i + .5) * step, 0)
-      ctx.lineTo((i + .5) * step, options.size)
-      ctx.stroke()
-
-      ctx.beginPath()
-      ctx.moveTo(0, (i + .5) * step)
-      ctx.lineTo(options.size, (i + .5) * step)
-      ctx.stroke()
-
-      // Draw grid lines
-      // ctx.strokeStyle = '#000'
-      // ctx.lineWidth = Math.ceil(2 * options.size / 512)
-      // ctx.beginPath()
-      // ctx.moveTo(pos, 0)
-      // ctx.lineTo(pos, options.size)
-      // ctx.stroke()
-
-      // ctx.beginPath()
-      // ctx.moveTo(0, pos)
-      // ctx.lineTo(options.size, pos)
-      // ctx.stroke()
-
-      for (let j = 0; j < options.division; j++) {
-        ctx.font = `${step / 4}px "Fira Code", monospace`
-        ctx.fillStyle = '#000'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-
-        const x = (i + .5) * step
-        const y = (yInvert ? (options.division - j - .5) : (j + .5)) * step
-        ctx.fillText(`${i},${j}`, x, y)
-
-        const LINE_WIDTH = 32
-        ctx.lineWidth = LINE_WIDTH
-        const r = Math.floor(i / options.division * 0x100).toString(16).padStart(2, '0')
-        const g = Math.floor((1 - (j + 1) / options.division) * 0x100).toString(16).padStart(2, '0')
-        ctx.strokeStyle = `#${r}${g}ff`
-        ctx.strokeRect((i * step + LINE_WIDTH / 2), (j * step + LINE_WIDTH / 2), step - LINE_WIDTH, step - LINE_WIDTH)
-      }
+  // --- background checker (Y-up indexing)
+  // canvas y grows downward, so map row(y-up) -> y-down
+  for (let yUp = 0; yUp < subdivisions; yUp++) {
+    const yDown = subdivisions - 1 - yUp
+    for (let x = 0; x < subdivisions; x++) {
+      const isA = (x + yUp) % 2 === 0
+      ctx.fillStyle = isA ? p.checkerColorA : p.checkerColorB
+      ctx.fillRect(x * cell, yDown * cell, cell, cell)
     }
+  }
 
-    // Draw circles in the center
-    const center = options.size / 2
-    ctx.strokeStyle = '#0006'
-    ctx.lineWidth = Math.ceil(.5 * options.size / 512)
-    for (let i = 1; i <= options.division; i++) {
-      ctx.beginPath()
-      ctx.arc(center, center, i * step / 2, 0, Math.PI * 2)
-      ctx.stroke()
+  // --- per-cell corner labels
+  // small, subtle text; keep it readable on both checker colors
+  const fontPx = Math.max(10, Math.floor(cell * .18))
+  const pad = Math.max(4, Math.floor(cell * .08))
+
+  ctx.font = `${fontPx * .8}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`
+  ctx.textBaseline = 'top'
+  ctx.fillStyle = p.textColor
+
+  for (let yUp = 0; yUp < subdivisions; yUp++) {
+    const yDown = subdivisions - 1 - yUp
+    for (let x = 0; x < subdivisions; x++) {
+      const x0 = x * cell
+      const y0 = yDown * cell
+
+      // Top-left corner (of the cell): corner coord = (x, yUp + 1) => write x component only
+      const xText = String(x)
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'top'
+      ctx.fillText(xText, x0 + pad, y0 + pad)
+
+      // Bottom-right corner (of the cell): corner coord = (x + 1, yUp) => write y component only
+      const yText = String(yUp)
+      ctx.textAlign = 'right'
+      ctx.textBaseline = 'bottom'
+      ctx.fillText(yText, x0 + cell - pad, y0 + cell - pad)
     }
+  }
 
-    super(canvas, undefined, RepeatWrapping, RepeatWrapping)
-    this.options = options
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.font = `${fontPx * 1.25}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`
+  ctx.fillText('0,0', cell * .5, cell * (subdivisions - .5))
+  ctx.fillText(`0,1`, cell * .5, cell * .5)
+  ctx.fillText(`1,0`, cell * (subdivisions - .5), cell * (subdivisions - .5))
+  ctx.fillText(`1,1`, cell * (subdivisions - .5), cell * .5)
+
+  // --- grid lines (half visible on edges)
+  ctx.strokeStyle = p.lineColor
+  ctx.lineWidth = lineSize
+  ctx.lineCap = 'butt'
+
+  // Lines should be centered on boundaries; edges get clipped => half visible
+  // To avoid .5px wobble, don’t snap; just draw at exact multiples.
+  ctx.beginPath()
+  for (let i = 0; i <= subdivisions; i++) {
+    const x = i * cell
+    ctx.moveTo(x, 0)
+    ctx.lineTo(x, size)
+
+    const y = i * cell
+    ctx.moveTo(0, y)
+    ctx.lineTo(size, y)
+  }
+  ctx.stroke()
+
+
+  return canvas
+}
+
+function requireCanvas(key: string, params: Params): HTMLCanvasElement {
+  const cached = canvasCache.get(key)
+  if (cached) {
+    cached.refCount++
+    return cached.canvas
+  } else {
+    const canvas = createCanvas(params)
+    canvasCache.set(key, { canvas, refCount: 1 })
+    return canvas
   }
 }
+
+/**
+ * UV debug texture (checker + grid lines + corner coords)
+ * 
+ * Useful for verifying UVs on extrusions, especially with complex paths where UVs can get distorted.
+ * 
+ * Notes:
+ * - By default the texture is deliberately low-contrast and subtle. This is done 
+ *   in particular to allow the viewer to appreciate the modeling and the interaction 
+ *   of light with the normals.
+ */
+class DebugTexture extends CanvasTexture {
+  static defaultParams = defaultParams
+  static get canvasCacheSize() { return canvasCache.size }
+
+  readonly key: string
+  readonly params: Params
+
+  constructor(userParams?: Partial<Params>) {
+    const params = { ...defaultParams, ...userParams }
+
+    const key = makeCanvasKey(params)
+
+    const canvas = requireCanvas(key, params)
+
+    super(canvas)
+
+    fromVector2Declaration(params.repeat, this.repeat)
+    fromVector2Declaration(params.offset, this.offset)
+    this.wrapS = this.wrapT = params.wrap
+    this.generateMipmaps = params.generateMipmaps
+
+    this.key = key
+    this.params = params
+  }
+
+  override dispose() {
+    super.dispose()
+    const entry = canvasCache.get(this.key)
+    if (!entry) {
+      console.warn(`DebugTexture: dispose() called but no cache entry found for key ${this.key}`)
+      return
+    }
+    entry.refCount--
+    if (entry.refCount <= 0) {
+      canvasCache.delete(this.key)
+    }
+  }
+}
+
+export { DebugTexture }
+export type { Params as DebugTextureParams }
+
