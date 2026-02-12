@@ -569,6 +569,15 @@ export class Vertigo {
     }
   }
 
+  toJsonDeclaration(): string {
+    return JSON.stringify(this.toDeclaration())
+  }
+
+  fromJsonDeclaration(json: string): this {
+    const decl = JSON.parse(json) as Props
+    return this.set(decl)
+  }
+
   /** @deprecated Deprecated. What's the usage? */
   get computedNdcScalar() {
     console.warn('Vertigo.computedNdcScalar is deprecated. Deprecated. What\'s the usage?')

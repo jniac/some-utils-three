@@ -303,6 +303,13 @@ function clean() {
   return ShaderForge
 }
 
+function printFinalCode() {
+  console.log('\nVERTEX:')
+  vertex.printFinalCode()
+  console.log('\nFRAGMENT:')
+  fragment.printFinalCode()
+}
+
 const fragment = new ShaderTool<MeshPhysicalMaterialFragmentTokens>('fragmentShader')
 const vertex = new ShaderTool<MeshPhysicalMaterialVertexTokens>('vertexShader')
 
@@ -314,10 +321,11 @@ type ShaderForgeType = {
   varying: typeof varying
   createVarying: typeof createVarying
   top: typeof top
-  vertex: typeof vertex
-  fragment: typeof fragment
   header: typeof header
   clean: typeof clean
+  printFinalCode: typeof printFinalCode
+  vertex: typeof vertex
+  fragment: typeof fragment
   with: typeof withShader
   wrap: typeof wrap
 }
@@ -355,10 +363,11 @@ export const ShaderForge: ShaderForgeType = Object.assign(function (shader?: Web
   varying,
   createVarying,
   top,
-  vertex,
-  fragment,
   header,
   clean,
+  printFinalCode,
+  vertex,
+  fragment,
   with: withShader,
   wrap,
 })

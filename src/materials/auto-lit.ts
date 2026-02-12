@@ -7,6 +7,7 @@ const defaultOptions = {
   luminosity: 1,
   rampPower: 1,
   onBeforeCompile: <((shader: WebGLProgramParametersWithUniforms) => void) | undefined>undefined,
+  customProgramCacheToken: <string | undefined>undefined
 }
 
 // type Options = Partial<Omit<ShaderMaterialParameters, 'fragmentShader' | 'vertexShader'> & typeof defaultOptions>
@@ -15,8 +16,11 @@ type Options = Partial<typeof defaultOptions> & MeshBasicMaterialParameters
 /**
  * A simple shader material that uses vertex colors and a simple lighting model.
  */
-export class AutoLitMaterial extends MeshBasicMaterial {
+class AutoLitMaterial extends MeshBasicMaterial {
+  static materialName = 'AutoLitMaterial'
+
   sunPosition: Vector3
+  customProgramCacheToken: string
 
   constructor(options?: Options) {
     const {
@@ -24,6 +28,7 @@ export class AutoLitMaterial extends MeshBasicMaterial {
       shadowColor,
       luminosity,
       onBeforeCompile,
+      customProgramCacheToken = onBeforeCompile?.toString() ?? '',
       ...rest
     } = { ...defaultOptions, ...options }
     const uniforms = {
@@ -59,7 +64,20 @@ export class AutoLitMaterial extends MeshBasicMaterial {
     }
 
     this.sunPosition = uniforms.uSunPosition.value
+    this.customProgramCacheToken = customProgramCacheToken
+  }
+
+  customProgramCacheKey(): string {
+    const { customProgramCacheToken } = this
+    const { materialName } = AutoLitMaterial
+    return customProgramCacheToken ? `${materialName}-${customProgramCacheToken}` : materialName
   }
 
   // get color() { return this.uniforms.uColor.value }
 }
+
+export {
+  AutoLitMaterial,
+  Options as AutoLitMaterialOptions
+}
+
