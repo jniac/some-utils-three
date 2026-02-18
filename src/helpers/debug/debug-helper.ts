@@ -512,9 +512,12 @@ class DebugHelper extends Group {
     return this
   }
 
-  zOffset(value = .001): this {
-    this.parts.linesManager.zOffset(value)
-    this.parts.pointsManager.zOffset(value)
+  zOffset(value: number | { lines?: number, points?: number }): this {
+    const [linesOffset, pointsOffset] = typeof value === 'number'
+      ? [value, value]
+      : [value.lines ?? 0, value.points ?? 0]
+    this.parts.linesManager.zOffset(linesOffset)
+    this.parts.pointsManager.zOffset(pointsOffset)
     return this
   }
 
