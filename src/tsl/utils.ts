@@ -99,6 +99,8 @@ export class InstancedStorage {
     this.type = type
     this.typeSize = typeSize
     this.attribute = new StorageInstancedBufferAttribute(array, typeSize)
+    if (type !== 'float')
+      throw new Error('Readonly storage is only supported for float type for now. You can create your own readonly storage buffer if you need it for other types.')
     this.storage = storage(this.attribute, type, count)
   }
 
@@ -113,6 +115,9 @@ export class InstancedStorage {
     if (this._readonlyStorage) {
       return this._readonlyStorage
     }
+
+    if (this.type !== 'float')
+      throw new Error('Readonly storage is only supported for float type for now. You can create your own readonly storage buffer if you need it for other types.')
 
     this._readonlyStorage = storage(this.attribute, this.type, this.count)
     this._readonlyStorage.access = NodeAccess.READ_ONLY
@@ -144,7 +149,7 @@ export function zOffset(object: Object3D, zOffset = 1) {
     const clampedZOffset = float(zOffset).min(d.sub(1))
 
     // Convert the forward camera direction to the local space of the current object.
-
+    // @ts-ignore this is obsolete now, was compatible with an older version of Three.js
     const v = plane1MatrixWorldInverse.mul(cameraWorldMatrix.element(int(3))).xyz.normalize().mul(clampedZOffset)
 
     // Since the object is send backward, we need to scale the position to make it appear at the right place.
