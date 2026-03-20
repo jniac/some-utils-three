@@ -1,7 +1,7 @@
 import { Texture, TextureLoader } from 'three'
 import { EXRLoader } from 'three/addons/loaders/EXRLoader.js'
 import { GLTF, GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
-import { RGBELoader } from 'three/addons/loaders/RGBELoader.js'
+import { HDRLoader } from 'three/addons/loaders/HDRLoader.js'
 
 import { Promisified, promisify } from 'some-utils-ts/misc/promisify'
 import { DestroyableObject } from 'some-utils-ts/types'
@@ -59,7 +59,7 @@ export class UnifiedLoader {
   private loaders = {
     gltf: new GLTFLoader(),
     texture: new TextureLoader(),
-    rgbeLoader: new RGBELoader(),
+    hdrLoader: new HDRLoader(),
     exrLoader: new EXRLoader(),
   }
 
@@ -73,7 +73,7 @@ export class UnifiedLoader {
     this.path = path
     // this.loaders.gltf.setPath(path)
     // this.loaders.texture.setPath(path)
-    // this.loaders.rgbeLoader.setPath(path)
+    // this.loaders.hdrLoader.setPath(path)
     // this.loaders.exrLoader.setPath(path)
   }
 
@@ -92,7 +92,7 @@ export class UnifiedLoader {
   }
 
   async loadRgbe(url: string): Promise<Texture> {
-    const texture = promisify(this.loaders.rgbeLoader.load(url, value => {
+    const texture = promisify(this.loaders.hdrLoader.load(url, value => {
       texture.resolve()
       this._onAfterLoad.call()
     }, undefined, () => {
