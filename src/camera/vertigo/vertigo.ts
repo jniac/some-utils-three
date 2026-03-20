@@ -201,19 +201,19 @@ export class Vertigo {
    * It is updated when the `update()` method is called.
    */
   state = {
-    aspect: 0,
+    aspect: NaN,
     isPerspective: true,
     /**
      * The distance from the camera to the focus point.
      */
-    distance: 0,
-    fov: 0,
-    near: 0,
-    far: 0,
+    distance: NaN,
+    fov: NaN,
+    near: NaN,
+    far: NaN,
     /**
      * The size of the focus area (in world units, takes into account the camera's zoom level).
      */
-    realSize: new Vector2(),
+    realSize: new Vector2(1, 1),
     /**
      * The camera matrix that represents the position and rotation of the camera in the world.
      */
@@ -315,6 +315,24 @@ export class Vertigo {
 
   clone(): Vertigo {
     return new Vertigo().copy(this)
+  }
+
+  /**
+   * Check if the state is valid (i.e. all the computed values are finite numbers).
+   * 
+   * Notes:
+   * - `state` is invalid by default and becomes valid after the first `update()` call. This is because the initial values of the state are set to NaN to help detect uninitialized state usage.
+   * - `state` becomes invalid when `update()` is called with invalid aspect ratio.
+   */
+  stateIsValid() {
+    const { state } = this
+    return (
+      Number.isFinite(state.aspect) &&
+      Number.isFinite(state.distance) &&
+      Number.isFinite(state.fov) &&
+      Number.isFinite(state.near) &&
+      Number.isFinite(state.far)
+    )
   }
 
   lerpVertigos(a: Vertigo, b: Vertigo, t: number): this {

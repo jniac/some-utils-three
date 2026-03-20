@@ -142,22 +142,26 @@ export class VertigoHelper extends Group {
     }
 
     // Draw the real size rectangle.
-    const { realSize: rs } = this.vertigo.state
-    this.#rect(rs.x, rs.y)
+    if (vertigo.stateIsValid()) {
+      const { realSize: rs } = this.vertigo.state
+      this.#rect(rs.x, rs.y)
 
-    const [A, B, C, D, E, F, G, H] = getFrustumCorners(vertigo.state.worldMatrix.invert(), vertigo.state.projectionMatrix)
-    debugHelper
-      .line(A, B, { color })
-      .line(B, C, { color })
-      .line(C, D, { color })
-      .line(D, A, { color })
-      .line(E, F, { color })
-      .line(F, G, { color })
-      .line(G, H, { color })
-      .line(H, E, { color })
-      .line(A, E, { color })
-      .line(B, F, { color })
-      .line(C, G, { color })
-      .line(D, H, { color })
+      const [A, B, C, D, E, F, G, H] = getFrustumCorners(vertigo.state.worldMatrixInverse, vertigo.state.projectionMatrix)
+      debugHelper
+        .line(A, B, { color })
+        .line(B, C, { color })
+        .line(C, D, { color })
+        .line(D, A, { color })
+
+        .line(E, F, { color })
+        .line(F, G, { color })
+        .line(G, H, { color })
+        .line(H, E, { color })
+
+        .line(A, E, { color })
+        .line(B, F, { color })
+        .line(C, G, { color })
+        .line(D, H, { color })
+    }
   }
 }
