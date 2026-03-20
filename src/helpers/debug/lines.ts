@@ -330,6 +330,23 @@ export class LinesManager extends BaseManager {
     return this
   }
 
+  hasNaN(): boolean {
+    for (const value of this.parts.attributes.position.array) {
+      if (isNaN(value))
+        return true
+    }
+    return false
+  }
+
+  fixNaN(): this {
+    const position = this.parts.attributes.position.array
+    for (let i = 0, len = position.length; i < len; i++) {
+      if (isNaN(position[i]))
+        position[i] = 0
+    }
+    return this
+  }
+
   zOffset(amount: number): this {
     if (this.parts.lines.material instanceof CustomLineMaterial) {
       this.parts.lines.material.uniforms.uZOffset.value = amount

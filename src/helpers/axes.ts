@@ -36,7 +36,7 @@ function parseOptions(options: Options): [size: number, axesOptions: AxesOptions
 }
 
 export class AxesHelper extends Mesh<BufferGeometry, AutoLitMaterial> {
-  constructor(size: number)
+  constructor(size?: number)
   constructor(axesOptions: AxesOptions)
   constructor(preset: AxesPreset)
   constructor(options: Options = 1) {
