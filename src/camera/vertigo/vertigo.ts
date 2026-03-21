@@ -473,7 +473,10 @@ export class Vertigo {
       // but it has to be fixed one day or another.
       // const near = this.nearMin / this.zoom
       // const far = near + this.before + this.after
-      near = -this.before
+      //
+      // NOTE 2: near = 0 from debug view (vertigo helper) seems ok, but zoom 
+      // has not been tested
+      near = 0
       far = this.after + this.before
 
       const mHeight = realHeight / 2
