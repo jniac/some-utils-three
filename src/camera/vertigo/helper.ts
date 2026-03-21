@@ -100,17 +100,28 @@ export class VertigoHelper extends Group {
     this.parts = VertigoHelper.createParts(this)
   }
 
+  #rect_private = {
+    points: [
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+    ],
+  }
   #rect(width: number, height: number) {
     const { color } = this
     const { debugHelper, matrix } = this.parts
-    const points = [
-      new Vector3(width / 2, height / 2, 0),
-      new Vector3(-width / 2, height / 2, 0),
-      new Vector3(-width / 2, -height / 2, 0),
-      new Vector3(width / 2, -height / 2, 0),
-    ]
+    const { screenOffset: off, zoom } = this.vertigo
+    const { points } = this.#rect_private
+
+    points[0].set(+ width / 2, + height / 2, 0).addScaledVector(off, -1 / zoom)
+    points[1].set(- width / 2, + height / 2, 0).addScaledVector(off, -1 / zoom)
+    points[2].set(- width / 2, - height / 2, 0).addScaledVector(off, -1 / zoom)
+    points[3].set(+ width / 2, - height / 2, 0).addScaledVector(off, -1 / zoom)
+
     for (const point of points)
       point.applyMatrix4(matrix)
+
     debugHelper.polygon(points, { color })
   }
 
@@ -141,27 +152,18 @@ export class VertigoHelper extends Group {
       this.#rect(sx2, sy2)
     }
 
-    // Draw the real size rectangle.
     if (vertigo.stateIsValid()) {
+      // Draw the real size rectangle.
       const { realSize: rs } = this.vertigo.state
       this.#rect(rs.x, rs.y)
 
       const [A, B, C, D, E, F, G, H] = getFrustumCorners(vertigo.state.worldMatrixInverse, vertigo.state.projectionMatrix)
       debugHelper
-        .line(A, B, { color })
-        .line(B, C, { color })
-        .line(C, D, { color })
-        .line(D, A, { color })
-
-        .line(E, F, { color })
-        .line(F, G, { color })
-        .line(G, H, { color })
-        .line(H, E, { color })
-
-        .line(A, E, { color })
-        .line(B, F, { color })
-        .line(C, G, { color })
-        .line(D, H, { color })
+        .segments([
+          A, B, B, C, C, D, D, A,
+          E, F, F, G, G, H, H, E,
+          A, E, B, F, C, G, D, H,
+        ], { color })
     }
   }
 }
