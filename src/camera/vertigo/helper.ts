@@ -101,7 +101,17 @@ export class VertigoHelper extends Group {
   }
 
   #onTick_private = {
-    points: [
+    rectPoints: [
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+    ],
+    cornerPoints: [
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
       new Vector3(),
       new Vector3(),
       new Vector3(),
@@ -113,17 +123,18 @@ export class VertigoHelper extends Group {
     const { screenOffset, zoom } = vertigo
     const { x: sx, y: sy } = vertigo.size
     const { x: rsx, y: rsy } = vertigo.state.realSize
-    const pointSize = .1666 / zoom
 
-    const { points } = this.#onTick_private
+    const pointSize = .1666 / zoom
+    const r = this.vertigo.size.length() * .01 / zoom
+
+    const { rectPoints, cornerPoints } = this.#onTick_private
 
     const { debugHelper, matrix, plane, planeWrapper } = this.parts
 
     planeWrapper.position.copy(vertigo.focus)
     planeWrapper.rotation.copy(vertigo.rotation)
-    const padding = .1
     plane.position
-      .set(-sx / 2 + padding, sy / 2 - padding, 0)
+      .set(-sx / 2 + r * 3, sy / 2 - r * 3, 0)
       .multiplyScalar(1 / vertigo.zoom)
       .addScaledVector(vertigo.screenOffset, -1 / vertigo.zoom)
     plane.scale.setScalar(1 / vertigo.zoom)
@@ -138,40 +149,79 @@ export class VertigoHelper extends Group {
     debugHelper.setTransformMatrix(matrix)
 
     // The "size" rectangle
-    points[0].set(+ sx / 2, + sy / 2, 0)
-    points[1].set(- sx / 2, + sy / 2, 0)
-    points[2].set(- sx / 2, - sy / 2, 0)
-    points[3].set(+ sx / 2, - sy / 2, 0)
-    for (const point of points)
+    rectPoints[0].set(+ sx / 2, + sy / 2, 0)
+    rectPoints[1].set(- sx / 2, + sy / 2, 0)
+    rectPoints[2].set(- sx / 2, - sy / 2, 0)
+    rectPoints[3].set(+ sx / 2, - sy / 2, 0)
+    for (const point of rectPoints)
       point.multiplyScalar(1 / zoom).addScaledVector(screenOffset, -1 / zoom)
-    debugHelper.polygon(points, { color })
-    debugHelper.setTransformMatrix(matrix)
+    debugHelper.polygon(rectPoints, { color })
+
+    // The corners of the "size" rectangle
+    {
+      const padding = r * .75
+      const size = r * 3
+
+      rectPoints[0].x += -padding
+      rectPoints[0].y += -padding
+      cornerPoints[0].copy(rectPoints[0])
+      cornerPoints[1].copy(rectPoints[0])
+      cornerPoints[0].x += -size
+      cornerPoints[1].y += -size
+
+      rectPoints[1].x += padding
+      rectPoints[1].y += -padding
+      cornerPoints[2].copy(rectPoints[1])
+      cornerPoints[3].copy(rectPoints[1])
+      cornerPoints[2].x += size
+      cornerPoints[3].y += -size
+
+      rectPoints[2].x += padding
+      rectPoints[2].y += padding
+      cornerPoints[4].copy(rectPoints[2])
+      cornerPoints[5].copy(rectPoints[2])
+      cornerPoints[4].x += size
+      cornerPoints[5].y += size
+
+      rectPoints[3].x += -padding
+      rectPoints[3].y += padding
+      cornerPoints[6].copy(rectPoints[3])
+      cornerPoints[7].copy(rectPoints[3])
+      cornerPoints[6].x += -size
+      cornerPoints[7].y += size
+
+      debugHelper.segments([
+        cornerPoints[0], rectPoints[0], rectPoints[0], cornerPoints[1],
+        cornerPoints[2], rectPoints[1], rectPoints[1], cornerPoints[3],
+        cornerPoints[4], rectPoints[2], rectPoints[2], cornerPoints[5],
+        cornerPoints[6], rectPoints[3], rectPoints[3], cornerPoints[7],
+      ], { color })
+    }
 
     // The "unzoomed size" rectangle
     if (zoom !== 1) {
-      points[0].set(+ sx / 2, + sy / 2, 0)
-      points[1].set(- sx / 2, + sy / 2, 0)
-      points[2].set(- sx / 2, - sy / 2, 0)
-      points[3].set(+ sx / 2, - sy / 2, 0)
-      for (const point of points)
+      rectPoints[0].set(+ sx / 2, + sy / 2, 0)
+      rectPoints[1].set(- sx / 2, + sy / 2, 0)
+      rectPoints[2].set(- sx / 2, - sy / 2, 0)
+      rectPoints[3].set(+ sx / 2, - sy / 2, 0)
+      for (const point of rectPoints)
         point.addScaledVector(screenOffset, -1 / zoom)
-      debugHelper.polygon(points, { color, opacity: .5 })
+      debugHelper.polygon(rectPoints, { color, opacity: .15 })
     }
 
     // The "real size" rectangle
     if (vertigo.stateIsValid()) {
-      points[0].set(+ rsx / 2, + rsy / 2, 0)
-      points[1].set(- rsx / 2, + rsy / 2, 0)
-      points[2].set(- rsx / 2, - rsy / 2, 0)
-      points[3].set(+ rsx / 2, - rsy / 2, 0)
-      for (const point of points)
+      rectPoints[0].set(+ rsx / 2, + rsy / 2, 0)
+      rectPoints[1].set(- rsx / 2, + rsy / 2, 0)
+      rectPoints[2].set(- rsx / 2, - rsy / 2, 0)
+      rectPoints[3].set(+ rsx / 2, - rsy / 2, 0)
+      for (const point of rectPoints)
         point.addScaledVector(screenOffset, -1 / zoom)
-      debugHelper.polygon(points, { color })
-      debugHelper.points(points, { color, size: pointSize })
+      debugHelper.polygon(rectPoints, { color })
+      debugHelper.points(rectPoints, { color, size: pointSize })
     }
 
     // The focus
-    const r = this.vertigo.size.length() * .01 / zoom
     debugHelper.circle({ center: 0, radius: r }, { color })
     debugHelper.segments([
       [r, 0, 0],
