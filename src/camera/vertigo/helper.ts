@@ -68,7 +68,7 @@ export class VertigoHelper extends Group {
   static createParts(instance: VertigoHelper) {
     const planeWrapper = setup(new Group(), instance)
     const plane = setup(new Mesh(
-      new PlaneGeometry(1, .25),
+      new PlaneGeometry(1, .25).translate(0.5, -0.125, 0),
       new MeshBasicMaterial({
         color: instance.color,
         alphaMap: texture(),
@@ -78,7 +78,7 @@ export class VertigoHelper extends Group {
     ), planeWrapper)
 
     const debugHelper = setup(new DebugHelper(), instance)
-    debugHelper.renderOrder = 1e9
+    debugHelper.onTop()
 
     return {
       plane,
@@ -100,7 +100,7 @@ export class VertigoHelper extends Group {
     this.parts = VertigoHelper.createParts(this)
   }
 
-  #rect_private = {
+  #onTick_private = {
     points: [
       new Vector3(),
       new Vector3(),
@@ -108,33 +108,25 @@ export class VertigoHelper extends Group {
       new Vector3(),
     ],
   }
-  #rect(width: number, height: number) {
-    const { color } = this
-    const { debugHelper, matrix } = this.parts
-    const { screenOffset: off, zoom } = this.vertigo
-    const { points } = this.#rect_private
-
-    points[0].set(+ width / 2, + height / 2, 0).addScaledVector(off, -1 / zoom)
-    points[1].set(- width / 2, + height / 2, 0).addScaledVector(off, -1 / zoom)
-    points[2].set(- width / 2, - height / 2, 0).addScaledVector(off, -1 / zoom)
-    points[3].set(+ width / 2, - height / 2, 0).addScaledVector(off, -1 / zoom)
-
-    for (const point of points)
-      point.applyMatrix4(matrix)
-
-    debugHelper.polygon(points, { color })
-  }
-
   onTick() {
     const { vertigo, color } = this
+    const { screenOffset, zoom } = vertigo
     const { x: sx, y: sy } = vertigo.size
+    const { x: rsx, y: rsy } = vertigo.state.realSize
+    const pointSize = .1666 / zoom
+
+    const { points } = this.#onTick_private
 
     const { debugHelper, matrix, plane, planeWrapper } = this.parts
 
     planeWrapper.position.copy(vertigo.focus)
     planeWrapper.rotation.copy(vertigo.rotation)
     const padding = .1
-    plane.position.set(-sx / 2 + .5 + padding, sy / 2 - .125 - padding, 0)
+    plane.position
+      .set(-sx / 2 + padding, sy / 2 - padding, 0)
+      .multiplyScalar(1 / vertigo.zoom)
+      .addScaledVector(vertigo.screenOffset, -1 / vertigo.zoom)
+    plane.scale.setScalar(1 / vertigo.zoom)
 
     makeMatrix4({
       position: vertigo.focus,
@@ -143,20 +135,62 @@ export class VertigoHelper extends Group {
 
     debugHelper.clear()
 
-    this.#rect(sx, sy)
+    debugHelper.setTransformMatrix(matrix)
 
-    // Draw the zoomed "ideal" rectangle if zoom is not 1.
-    if (vertigo.zoom !== 1) {
-      const sx2 = sx / vertigo.zoom
-      const sy2 = sy / vertigo.zoom
-      this.#rect(sx2, sy2)
+    // The "size" rectangle
+    points[0].set(+ sx / 2, + sy / 2, 0)
+    points[1].set(- sx / 2, + sy / 2, 0)
+    points[2].set(- sx / 2, - sy / 2, 0)
+    points[3].set(+ sx / 2, - sy / 2, 0)
+    for (const point of points)
+      point.multiplyScalar(1 / zoom).addScaledVector(screenOffset, -1 / zoom)
+    debugHelper.polygon(points, { color })
+    debugHelper.setTransformMatrix(matrix)
+
+    // The "unzoomed size" rectangle
+    if (zoom !== 1) {
+      points[0].set(+ sx / 2, + sy / 2, 0)
+      points[1].set(- sx / 2, + sy / 2, 0)
+      points[2].set(- sx / 2, - sy / 2, 0)
+      points[3].set(+ sx / 2, - sy / 2, 0)
+      for (const point of points)
+        point.addScaledVector(screenOffset, -1 / zoom)
+      debugHelper.polygon(points, { color, opacity: .5 })
     }
 
+    // The "real size" rectangle
     if (vertigo.stateIsValid()) {
-      // Draw the real size rectangle.
-      const { realSize: rs } = this.vertigo.state
-      this.#rect(rs.x, rs.y)
+      points[0].set(+ rsx / 2, + rsy / 2, 0)
+      points[1].set(- rsx / 2, + rsy / 2, 0)
+      points[2].set(- rsx / 2, - rsy / 2, 0)
+      points[3].set(+ rsx / 2, - rsy / 2, 0)
+      for (const point of points)
+        point.addScaledVector(screenOffset, -1 / zoom)
+      debugHelper.polygon(points, { color })
+      debugHelper.points(points, { color, size: pointSize })
+    }
 
+    // The focus
+    const r = this.vertigo.size.length() * .01 / zoom
+    debugHelper.circle({ center: 0, radius: r }, { color })
+    debugHelper.segments([
+      [r, 0, 0],
+      [r * 3, 0, 0],
+      [-r, 0, 0],
+      [-r * 3, 0, 0],
+      [0, r, 0],
+      [0, r * 3, 0],
+      [0, -r, 0],
+      [0, -r * 3, 0],
+    ], { color })
+
+    debugHelper.point(0, { color, size: pointSize })
+    debugHelper.point(vertigo.focus.clone().multiplyScalar(1 / zoom).negate(), { color, size: pointSize })
+
+    debugHelper.resetTransformMatrix()
+
+    // The frustum cone
+    if (vertigo.stateIsValid()) {
       const [A, B, C, D, E, F, G, H] = getFrustumCorners(vertigo.state.worldMatrixInverse, vertigo.state.projectionMatrix)
       debugHelper
         .segments([
