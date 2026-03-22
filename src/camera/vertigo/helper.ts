@@ -134,8 +134,7 @@ export class VertigoHelper extends Group {
     planeWrapper.position.copy(vertigo.focus)
     planeWrapper.rotation.copy(vertigo.rotation)
     plane.position
-      .set(-sx / 2 + r * 3, sy / 2 - r * 3, 0)
-      .multiplyScalar(1 / vertigo.zoom)
+      .set(-sx / 2 / vertigo.zoom + r * 1.5, sy / 2 / vertigo.zoom - r * 1.5, 0)
       .addScaledVector(vertigo.screenOffset, -1 / vertigo.zoom)
     plane.scale.setScalar(1 / vertigo.zoom)
 
@@ -156,6 +155,14 @@ export class VertigoHelper extends Group {
     for (const point of rectPoints)
       point.multiplyScalar(1 / zoom).addScaledVector(screenOffset, -1 / zoom)
     debugHelper.polygon(rectPoints, { color })
+
+    {
+      // The title
+      // Disabled since text() do not support alignment yet, so it is not well positioned.
+      // const p = new Vector3(-sx / 2 / zoom + r * 1.5, sy / 2 / zoom - r * 1.5, 0)
+      //   .addScaledVector(screenOffset, -1 / zoom)
+      // debugHelper.text(p, `Zoom`, { color, size: 1 / zoom })
+    }
 
     // The corners of the "size" rectangle
     {
@@ -235,7 +242,7 @@ export class VertigoHelper extends Group {
     ], { color })
 
     debugHelper.point(0, { color, size: pointSize })
-    debugHelper.point(vertigo.focus.clone().multiplyScalar(1 / zoom).negate(), { color, size: pointSize })
+    debugHelper.point(vertigo.focus.clone().negate(), { color, size: pointSize })
 
     debugHelper.resetTransformMatrix()
 

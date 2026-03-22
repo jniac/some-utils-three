@@ -381,11 +381,19 @@ export class Vertigo {
     return this.lerpVertigos(this, other, t)
   }
 
-  ndcToScreen<T extends Vector2Like>(ndc: Vector2Like, out: T = ndc as T): T {
+  /**
+   * Convert normalized device coordinates (NDC) to vertigo screen coordinates.
+   */
+  ndcToVertigoScreen<T extends Vector2Like>(ndc: Vector2Like, out: T = ndc as T): T {
     out.x = ndc.x * this.state.realSize.x * .5
     out.y = ndc.y * this.state.realSize.y * .5
     return out
   }
+
+  /**
+   * @deprecated Use `ndcToVertigoScreen` instead. This is an alias for backward compatibility, but it will be removed in the future.
+   */
+  ndcToScreen = this.ndcToVertigoScreen
 
   /**
    * Computes the focus plane of the vertigo camera.

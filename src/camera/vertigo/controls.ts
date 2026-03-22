@@ -1,4 +1,4 @@
-import { Camera, ColorRepresentation, Euler, Group, Plane, Quaternion, Ray, Vector2, Vector2Like, Vector3 } from 'three'
+import { Camera, ColorRepresentation, Euler, Group, Object3D, Plane, Quaternion, Ray, Raycaster, Vector2, Vector2Like, Vector3 } from 'three'
 
 import { handleHtmlElementEvent } from 'some-utils-dom/handle/element-event'
 import { handlePointer, PointerButton } from 'some-utils-dom/handle/pointer'
@@ -21,12 +21,34 @@ const _plane = new Plane()
 const _ray = new Ray()
 const _v0 = new Vector3()
 const _v1 = new Vector3()
+const _raycaster = new Raycaster()
+const _pointer = new Vector2()
 
 function _updateVectorXYZ(rotation: Euler) {
   _quaternion.setFromEuler(rotation)
   _vectorX.set(1, 0, 0).applyQuaternion(_quaternion)
   _vectorY.set(0, 1, 0).applyQuaternion(_quaternion)
   _vectorZ.crossVectors(_vectorX, _vectorY)
+}
+
+function findIntersection(pointer: Vector2Like, camera: Camera, root: Object3D) {
+  _pointer.set(pointer.x, pointer.y)
+  _raycaster.setFromCamera(_pointer, camera)
+  const queue = [root]
+  while (queue.length > 0) {
+    const object = queue.shift()!
+    const intersects = _raycaster.intersectObject(object, false)
+    if (intersects.length > 0) {
+      return intersects[0]
+    }
+    for (const child of object.children) {
+      if (child.userData.helper)
+        continue
+      queue.push(child)
+    }
+  }
+  return null
+
 }
 
 const controlInputs = [
@@ -119,6 +141,10 @@ export class VertigoControls implements DestroyableObject {
   #state = {
     enabled: true,
     interactive: true,
+
+    rootForRaycast: null as Object3D | null,
+    cameraForRaycast: null as Camera | null,
+
     alternativeActivationCount: 0,
     alternativeIsActive: false,
     /**
@@ -365,7 +391,10 @@ export class VertigoControls implements DestroyableObject {
     this.currentVertigo.zoom = newZoom
   }
 
-  initialize(element: HTMLElement | string = document.body): this {
+  initialize(
+    element: HTMLElement | string = document.body,
+    rootForRaycast: Object3D | null = null,
+  ): this {
     if (typeof element === 'string')
       element = document.querySelector(element) as HTMLElement
 
@@ -373,6 +402,7 @@ export class VertigoControls implements DestroyableObject {
       throw new Error(`Invalid element: ${element}`)
 
     this.element = element
+    this.#state.rootForRaycast = rootForRaycast
     return this
   }
 
@@ -395,6 +425,28 @@ export class VertigoControls implements DestroyableObject {
         pointer.set(x, y)
       },
       dragButton: ~0,
+      onDown: info => {
+        // WIIIIIPP
+        if (info.modifiers.altKey) {
+          const offset = new Vector3()
+          this.vertigo.ndcToVertigoScreen(pointer, offset)
+          this.vertigo.focus.copy(offset)
+          this.vertigo.screenOffset.copy(offset).multiplyScalar(this.vertigo.zoom)
+
+          const { rootForRaycast, cameraForRaycast } = this.#state
+          if (rootForRaycast && cameraForRaycast) {
+            const intersection = findIntersection(pointer, cameraForRaycast, rootForRaycast)
+            if (intersection) {
+              console.log('intersection', intersection.object, ...intersection.point)
+              const direction = new Vector3(0, 0, -1).applyEuler(this.vertigo.rotation)
+              const delta = intersection.point.clone().sub(this.vertigo.focus).projectOnVector(direction).length()
+              const scalar = (this.vertigo.state.distance + delta) / this.vertigo.state.distance
+              this.vertigo.focus.addScaledVector(direction, delta)
+              this.vertigo.size.multiplyScalar(scalar)
+            }
+          }
+        }
+      },
       onDrag: info => {
         if (this.#state.enabled === false)
           return
@@ -402,18 +454,19 @@ export class VertigoControls implements DestroyableObject {
         if (this.#state.interactive === false)
           return
 
-        const scalar = info.altKey ? .2 : info.shiftKey ? 5 : 1
         const type = info.button === PointerButton.Left && info.touchCount <= 1
           ? 'orbit'
           : 'pan'
         switch (type) {
           case 'orbit': {
+            const scalar = 1
             if (matchControlInput(info, this.orbitInputs)) {
               this.orbit(info.delta.y * -.01 * scalar, info.delta.x * -.01 * scalar)
             }
             break
           }
           case 'pan': {
+            const scalar = info.altKey ? .2 : info.shiftKey ? 5 : 1
             if (matchControlInput(info, this.panInputs)) {
               this.pan(info.delta.x * -.025 * scalar, info.delta.y * .025 * scalar)
             }
@@ -544,6 +597,8 @@ export class VertigoControls implements DestroyableObject {
 
     this.currentDampedVertigo
       .apply(camera, aspect)
+
+    this.#state.cameraForRaycast = camera
   }
 
   /**
