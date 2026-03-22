@@ -1,17 +1,20 @@
-import { Camera, ColorRepresentation, Euler, Group, Object3D, Plane, Quaternion, Ray, Raycaster, Vector2, Vector2Like, Vector3 } from 'three'
+
+import { Camera, ColorRepresentation, Euler, Group, Object3D, Plane, Quaternion, Ray, Vector2, Vector2Like, Vector3 } from 'three'
 
 import { handleHtmlElementEvent } from 'some-utils-dom/handle/element-event'
 import { handlePointer, PointerButton } from 'some-utils-dom/handle/pointer'
-import { Animation } from 'some-utils-ts/animation'
 import { clamp } from 'some-utils-ts/math/basic'
 import { intersectLineWithPlane } from 'some-utils-ts/math/geom/geom3'
 import { calculateExponentialDecayLerpRatio } from 'some-utils-ts/math/misc/exponential-decay'
 import { DestroyableInstance } from 'some-utils-ts/misc/destroy'
 import { DestroyableObject } from 'some-utils-ts/types'
 
-import { fromPlaneDeclaration, fromVector3Declaration, PlaneDeclaration, Vector3Declaration } from '../../declaration'
-import { VertigoHelper } from './helper'
-import { Vertigo, VertigoProps } from './vertigo'
+import { fromPlaneDeclaration, PlaneDeclaration } from '../../../declaration'
+import { VertigoHelper } from '../helper'
+import { Vertigo, VertigoProps } from '../vertigo'
+import { createActions } from './action'
+import { ControlInput, ControlInputString, matchControlInput, parseInputs } from './input'
+import { findIntersection } from './utils'
 
 const _quaternion = new Quaternion()
 const _vectorX = new Vector3()
@@ -21,8 +24,6 @@ const _plane = new Plane()
 const _ray = new Ray()
 const _v0 = new Vector3()
 const _v1 = new Vector3()
-const _raycaster = new Raycaster()
-const _pointer = new Vector2()
 
 function _updateVectorXYZ(rotation: Euler) {
   _quaternion.setFromEuler(rotation)
@@ -31,62 +32,7 @@ function _updateVectorXYZ(rotation: Euler) {
   _vectorZ.crossVectors(_vectorX, _vectorY)
 }
 
-function findIntersection(pointer: Vector2Like, camera: Camera, root: Object3D) {
-  _pointer.set(pointer.x, pointer.y)
-  _raycaster.setFromCamera(_pointer, camera)
-  const queue = [root]
-  while (queue.length > 0) {
-    const object = queue.shift()!
-    const intersects = _raycaster.intersectObject(object, false)
-    if (intersects.length > 0) {
-      return intersects[0]
-    }
-    for (const child of object.children) {
-      if (child.userData.helper)
-        continue
-      queue.push(child)
-    }
-  }
-  return null
-
-}
-
-const controlInputs = [
-  'shift',
-  'alt',
-  'control',
-  'meta',
-] as const
-
-type ControlInput = typeof controlInputs[number]
-
-type ControlInputString =
-  | ''
-  | `${ControlInput}`
-  | `${ControlInput}+${ControlInput}`
-  | `${ControlInput}+${ControlInput}+${ControlInput}`
-  | `${ControlInput}+${ControlInput}+${ControlInput}+${ControlInput}`
-
-function matchControlInput(
-  object: { altKey: boolean, ctrlKey: boolean, shiftKey: boolean, metaKey: boolean },
-  keys: ControlInput[],
-) {
-  return keys.every(key => (object as any)[`${key}Key`])
-}
-
-function parseInputs(inputs: string) {
-  const parts = inputs.split('+')
-  return parts.filter(part => {
-    if (part === '') {
-      return false
-    }
-    const ok = controlInputs.includes(part as ControlInput)
-    if (!ok) {
-      console.warn(`Invalid input: ${part}`)
-    }
-    return ok
-  }) as ControlInput[]
-}
+export const __private__ = Symbol('private')
 
 /**
  * The VertigoControls allows to control a "Vertigo" camera from pointer / wheel 
@@ -136,147 +82,121 @@ export class VertigoControls implements DestroyableObject {
   /**
    * A group to hold helpers or other objects related to the vertigo controls.
    */
-  group = new Group()
+  group = new Group();
 
-  #state = {
-    enabled: true,
-    interactive: true,
+  [__private__] = {
+    state: {
+      enabled: true,
+      interactive: true,
 
-    rootForRaycast: null as Object3D | null,
-    cameraForRaycast: null as Camera | null,
+      rootForRaycast: null as Object3D | null,
+      cameraForRaycast: null as Camera | null,
 
-    alternativeActivationCount: 0,
-    alternativeIsActive: false,
+      alternativeActivationCount: 0,
+      alternativeIsActive: false,
+      /**
+       * Was the vertigo controls started when entering the alternative vertigo?
+       */
+      alternativeWasStarted: false,
+      /**
+       * The alternative vertigo controls is for exploring the scene without affecting
+       * the main vertigo controls. The movement of the alternative vertigo controls
+       * are free (eg: not constrained by the focus plane).
+       */
+      alternativeVertigo: new Vertigo(),
+      alternativeDampedVertigo: new Vertigo(),
+      /**
+       * If true, we are currently in the alternative vertigo controls, but going back
+       * to the primary vertigo controls.
+       */
+      alternativeExiting: false,
+      alternativeHelperColor: 'red' as ColorRepresentation,
+      alternativeHelper: null as VertigoHelper | null,
+
+      startDestroyableInstance: new DestroyableInstance(),
+    },
+
     /**
-     * Was the vertigo controls started when entering the alternative vertigo?
+     * Is the alternative vertigo active and is it not exiting?
      */
-    alternativeWasStarted: false,
-    /**
-     * The alternative vertigo controls is for exploring the scene without affecting
-     * the main vertigo controls. The movement of the alternative vertigo controls
-     * are free (eg: not constrained by the focus plane).
-     */
-    alternativeVertigo: new Vertigo(),
-    alternativeDampedVertigo: new Vertigo(),
-    /**
-     * If true, we are currently in the alternative vertigo controls, but going back
-     * to the primary vertigo controls.
-     */
-    alternativeExiting: false,
-    alternativeHelperColor: 'red' as ColorRepresentation,
-    alternativeHelper: null as VertigoHelper | null,
+    alternativeIsActiveAndNotExiting: (): boolean => {
+      const { state } = this[__private__]
+      return state.alternativeIsActive && state.alternativeExiting === false
+    },
 
-    startDestroyableInstance: new DestroyableInstance(),
+    doEnterAlternative: () => {
+      const { state } = this[__private__]
+
+      state.alternativeExiting = false
+
+      if (!state.alternativeIsActive) {
+        state.alternativeIsActive = true
+        state.alternativeDampedVertigo.copy(this.dampedVertigo)
+
+        const helper = new VertigoHelper(this.vertigo, { color: state.alternativeHelperColor })
+        this.group.add(helper)
+        state.alternativeHelper = helper
+
+        // If this is the first time entering alternative, copy the vertigo state.
+        if (state.alternativeActivationCount === 0) {
+          state.alternativeVertigo.copy(this.vertigo)
+          state.alternativeVertigo.after *= 2 // Make the alternative vertigo render a bit longer.
+          state.alternativeDampedVertigo.copy(this.dampedVertigo)
+        }
+        state.alternativeActivationCount++
+      }
+    },
+
+    doExitAlternative: () => {
+      const { state } = this[__private__]
+      state.alternativeIsActive = false
+      state.alternativeExiting = false
+      if (state.alternativeHelper) {
+        this.group.remove(state.alternativeHelper)
+        state.alternativeHelper = null
+      }
+    },
   }
 
   get currentVertigo() {
-    return this.#state.alternativeIsActive
-      ? this.#state.alternativeVertigo
+    const { state } = this[__private__]
+    return state.alternativeIsActive
+      ? state.alternativeVertigo
       : this.vertigo
   }
 
   get currentDampedVertigo() {
-    return this.#state.alternativeIsActive
-      ? this.#state.alternativeDampedVertigo
+    const { state } = this[__private__]
+    return state.alternativeIsActive
+      ? state.alternativeDampedVertigo
       : this.dampedVertigo
   }
 
   get alternativeIsActive() {
-    return this.#alternativeIsActiveAndNotExiting()
+    return this[__private__].alternativeIsActiveAndNotExiting()
   }
 
   set alternativeIsActive(value: boolean) {
     if (value) {
-      this.#doEnterAlternative()
+      this[__private__].doEnterAlternative()
     } else {
-      this.#doExitAlternative()
+      this[__private__].doExitAlternative()
     }
   }
 
   get alternativeHelperColor() {
-    return this.#state.alternativeHelperColor
+    return this[__private__].state.alternativeHelperColor
   }
 
   set alternativeHelperColor(color: ColorRepresentation) {
-    this.#state.alternativeHelperColor = color
+    this[__private__].state.alternativeHelperColor = color
   }
 
   inputConfig = {
     wheel: 'zoom' as 'zoom' | 'dolly',
   }
 
-  actions = {
-    togglePerspective: () => {
-      const perspective = this.currentVertigo.perspective > .5 ? 0 : 1
-      Animation
-        .tween({
-          target: [this.currentVertigo, 'perspective'],
-          to: { perspective },
-          duration: 1,
-          ease: 'inOut3',
-        })
-    },
-    focus: (focusPosition: Vector3Declaration) => {
-      Animation
-        .tween({
-          target: this.currentVertigo.focus,
-          to: fromVector3Declaration(focusPosition),
-          duration: 1,
-          ease: 'inOut3',
-        })
-    },
-    rotate: (pitch: number, yaw: number, roll: number) => {
-      const qStart = new Quaternion().setFromEuler(this.currentVertigo.rotation)
-      const qEnd = new Quaternion().setFromEuler(new Euler(pitch, yaw, roll, 'YXZ'))
-      const q = new Quaternion()
-      Animation
-        .during({
-          target: [this.currentVertigo, 'rotation'],
-          duration: 1,
-        })
-        .onUpdate(({ progress }) => {
-          q.slerpQuaternions(qStart, qEnd, Animation.ease('inOut3')(progress))
-          this.currentVertigo.rotation.setFromQuaternion(q)
-        })
-    },
-    enterAlternative: () => {
-      this.#state.alternativeWasStarted = this.started
-      this.start() // ensure started
-      this.#doEnterAlternative()
-    },
-    exitAlternative: () => {
-      if (this.#state.alternativeWasStarted === false) {
-        this.stop() // stop if was not started before
-      }
-      this.#state.alternativeExiting = true
-    },
-    toggleAlternative: (active?: boolean) => {
-      active ??= !this.#alternativeIsActiveAndNotExiting()
-      if (active) {
-        this.actions.enterAlternative()
-      } else {
-        this.actions.exitAlternative()
-      }
-    },
-    positiveXAlign: () => {
-      this.actions.rotate(0, Math.PI / 2, 0)
-    },
-    negativeXAlign: () => {
-      this.actions.rotate(0, -Math.PI / 2, 0)
-    },
-    positiveYAlign: () => {
-      this.actions.rotate(-Math.PI / 2, 0, 0)
-    },
-    negativeYAlign: () => {
-      this.actions.rotate(Math.PI / 2, 0, 0)
-    },
-    positiveZAlign: () => {
-      this.actions.rotate(0, 0, 0)
-    },
-    negativeZAlign: () => {
-      this.actions.rotate(0, Math.PI, 0)
-    },
-  }
+  actions = createActions(this)
 
   panInputs: ControlInput[] = []
   parsePanInputs(inputs: string) {
@@ -300,7 +220,7 @@ export class VertigoControls implements DestroyableObject {
     if (this.#destroyed)
       return
     this.#destroyed = true
-    this.#state.startDestroyableInstance.destroy()
+    this[__private__].state.startDestroyableInstance.destroy()
   }
 
   set(props: VertigoProps) {
@@ -316,10 +236,10 @@ export class VertigoControls implements DestroyableObject {
    * 
    * For disabling only the interaction but keeping the vertigo active, use `interactive` instead.
    */
-  get enabled() { return this.#state.enabled }
+  get enabled() { return this[__private__].state.enabled }
   set enabled(value: boolean) { this.setEnabled(value) }
   setEnabled(enabled: boolean) {
-    this.#state.enabled = enabled
+    this[__private__].state.enabled = enabled
   }
 
   /**
@@ -330,10 +250,10 @@ export class VertigoControls implements DestroyableObject {
    * 
    * For completely disabling the controls, use `enabled` instead.
    */
-  get interactive() { return this.#state.interactive }
+  get interactive() { return this[__private__].state.interactive }
   set interactive(value: boolean) { this.setInteractive(value) }
   setInteractive(interactive: boolean) {
-    this.#state.interactive = interactive
+    this[__private__].state.interactive = interactive
   }
 
   pan(x: number, y: number) {
@@ -402,7 +322,7 @@ export class VertigoControls implements DestroyableObject {
       throw new Error(`Invalid element: ${element}`)
 
     this.element = element
-    this.#state.rootForRaycast = rootForRaycast
+    this[__private__].state.rootForRaycast = rootForRaycast
     return this
   }
 
@@ -433,7 +353,7 @@ export class VertigoControls implements DestroyableObject {
           this.vertigo.focus.copy(offset)
           this.vertigo.screenOffset.copy(offset).multiplyScalar(this.vertigo.zoom)
 
-          const { rootForRaycast, cameraForRaycast } = this.#state
+          const { rootForRaycast, cameraForRaycast } = this[__private__].state
           if (rootForRaycast && cameraForRaycast) {
             const intersection = findIntersection(pointer, cameraForRaycast, rootForRaycast)
             if (intersection) {
@@ -448,10 +368,10 @@ export class VertigoControls implements DestroyableObject {
         }
       },
       onDrag: info => {
-        if (this.#state.enabled === false)
+        if (this[__private__].state.enabled === false)
           return
 
-        if (this.#state.interactive === false)
+        if (this[__private__].state.interactive === false)
           return
 
         const type = info.button === PointerButton.Left && info.touchCount <= 1
@@ -476,10 +396,10 @@ export class VertigoControls implements DestroyableObject {
       },
       wheelPreventDefault: true,
       onWheel: info => {
-        if (this.#state.enabled === false)
+        if (this[__private__].state.enabled === false)
           return
 
-        if (this.#state.interactive === false)
+        if (this[__private__].state.interactive === false)
           return
 
         switch (this.inputConfig.wheel) {
@@ -511,7 +431,7 @@ export class VertigoControls implements DestroyableObject {
   start(element: HTMLElement = this.element ?? document.body): this {
     if (this.started === false) {
       this.started = true
-      this.#state.startDestroyableInstance.onDestroy(this.#doStart(element))
+      this[__private__].state.startDestroyableInstance.onDestroy(this.#doStart(element))
     }
     return this
   }
@@ -521,8 +441,8 @@ export class VertigoControls implements DestroyableObject {
       this.started = false
       // Destroy the start destroyable instance to clean up the event listeners
       // and recreate it for the next start.
-      this.#state.startDestroyableInstance.destroy()
-      this.#state.startDestroyableInstance = new DestroyableInstance()
+      this[__private__].state.startDestroyableInstance.destroy()
+      this[__private__].state.startDestroyableInstance = new DestroyableInstance()
     }
   }
 
@@ -534,62 +454,32 @@ export class VertigoControls implements DestroyableObject {
     }
   }
 
-  /**
-   * Is the alternative vertigo active and is it not exiting?
-   */
-  #alternativeIsActiveAndNotExiting(): boolean {
-    return this.#state.alternativeIsActive && this.#state.alternativeExiting === false
-  }
-
-  #doEnterAlternative() {
-    this.#state.alternativeExiting = false
-
-    if (!this.#state.alternativeIsActive) {
-      this.#state.alternativeIsActive = true
-      this.#state.alternativeDampedVertigo.copy(this.dampedVertigo)
-
-      const helper = new VertigoHelper(this.vertigo, { color: this.#state.alternativeHelperColor })
-      this.group.add(helper)
-      this.#state.alternativeHelper = helper
-
-      // If this is the first time entering alternative, copy the vertigo state.
-      if (this.#state.alternativeActivationCount === 0) {
-        this.#state.alternativeVertigo.copy(this.vertigo)
-        this.#state.alternativeVertigo.after *= 2 // Make the alternative vertigo render a bit longer.
-        this.#state.alternativeDampedVertigo.copy(this.dampedVertigo)
-      }
-      this.#state.alternativeActivationCount++
-    }
-  }
-
-  #doExitAlternative() {
-    this.#state.alternativeIsActive = false
-    this.#state.alternativeExiting = false
-    if (this.#state.alternativeHelper) {
-      this.group.remove(this.#state.alternativeHelper)
-      this.#state.alternativeHelper = null
-    }
-  }
-
   update(camera: Camera, aspect: number, deltaTime = 1 / 60) {
-    if (this.#state.enabled === false)
+    const { state, doExitAlternative } = this[__private__]
+    if (state.enabled === false)
       return
 
     const t = calculateExponentialDecayLerpRatio(this.dampingDecayFactor, deltaTime)
     this.vertigo.update(aspect)
 
-    if (this.#state.alternativeExiting) {
+    // Alternative update:
+    if (state.alternativeExiting) {
       this.dampedVertigo
         .lerp(this.vertigo, t)
-      this.#state.alternativeDampedVertigo
+
+      state.alternativeDampedVertigo
         .lerp(this.vertigo, t)
-      _v0.setFromMatrixPosition(this.#state.alternativeDampedVertigo.state.worldMatrix)
+
+      _v0.setFromMatrixPosition(state.alternativeDampedVertigo.state.worldMatrix)
       _v1.setFromMatrixPosition(this.dampedVertigo.state.worldMatrix)
+
       const sqDistance = _v0.distanceToSquared(_v1)
-      if (sqDistance < .1) // Lower threshold produces weird visual artifacts (line going aligning with the screen plane).
-        this.#doExitAlternative()
+      // Lower threshold produces weird visual artifacts (line going aligning with the screen plane).
+      if (sqDistance < .1)
+        doExitAlternative()
     }
 
+    // Normal update:
     else {
       this.currentDampedVertigo
         .lerp(this.currentVertigo, t)
@@ -598,7 +488,7 @@ export class VertigoControls implements DestroyableObject {
     this.currentDampedVertigo
       .apply(camera, aspect)
 
-    this.#state.cameraForRaycast = camera
+    this[__private__].state.cameraForRaycast = camera
   }
 
   /**
