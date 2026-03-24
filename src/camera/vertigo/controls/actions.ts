@@ -129,9 +129,9 @@ export function createActions(instance: VertigoControls) {
 
       const vertigo = getVertigo(target)
 
-      const { sceneRoot: rootForRaycast, currentCamera: cameraForRaycast } = instance[__private__].state
-      if (rootForRaycast && cameraForRaycast) {
-        const intersection = findIntersection(_pointer, cameraForRaycast, rootForRaycast)
+      const { sceneRoot, currentCamera } = instance[__private__].state
+      if (sceneRoot && currentCamera) {
+        const intersection = findIntersection(_pointer, currentCamera, sceneRoot)
         if (intersection) {
           const direction = new Vector3(0, 0, -1).applyEuler(vertigo.rotation)
           const delta = intersection.point.clone().sub(vertigo.focus).projectOnVector(direction)

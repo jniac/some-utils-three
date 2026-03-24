@@ -290,10 +290,12 @@ export class VertigoControls implements DestroyableObject {
   }
 
   dolly(delta: number) {
-    const cameraPosition = _v0.setFromMatrixPosition(this.currentVertigo.state.worldMatrix)
-    const direction = _v1.copy(this.currentVertigo.focus).sub(cameraPosition).normalize()
-    const zoomFactor = 1 / this.currentVertigo.zoom
-    this.currentVertigo.focus.addScaledVector(direction, -delta * zoomFactor)
+    const vertigo = this.currentVertigo
+    vertigo.update()
+    const cameraPosition = _v0.setFromMatrixPosition(vertigo.state.worldMatrix)
+    const direction = _v1.copy(vertigo.focus).sub(cameraPosition).normalize()
+    const zoomFactor = 1 / vertigo.zoom
+    vertigo.focus.addScaledVector(direction, -delta * zoomFactor)
   }
 
   orbit(pitch: number, yaw: number) {
@@ -416,9 +418,9 @@ export class VertigoControls implements DestroyableObject {
         if (state.enabled === false || state.interactive === false)
           return
 
+        const newZoom = this.currentVertigo.zoom * (1 - info.delta.y * .001)
         switch (this.inputConfig.wheel) {
           case 'zoom': {
-            const newZoom = this.currentVertigo.zoom * (1 - info.delta.y * .001)
             // Change the perspective amount.
             if (info.event.altKey && info.event.shiftKey) {
               const perspective = this.currentVertigo.perspective * (1 - info.delta.y * .001)
@@ -431,7 +433,12 @@ export class VertigoControls implements DestroyableObject {
             break
           }
           case 'dolly': {
-            this.dolly(info.delta.y * .01)
+            if (this.vertigo.state.isPerspective) {
+              this.dolly(info.delta.y * .01)
+            } else {
+              // ⚠️ Back to "zoom" behavior when in orthographic mode, because dolly doesn't make sense in orthographic mode.
+              this.zoomAt(newZoom, { x: 0, y: 0 })
+            }
             break
           }
         }
@@ -514,7 +521,11 @@ export class VertigoControls implements DestroyableObject {
       }
 
       state.focusMarker.visible = true
-      state.focusMarker.position.copy(this.vertigo.focus)
+      if (state.alternativeIsActive === false) {
+        state.focusMarker.position.copy(this.vertigo.focus)
+      } else {
+        state.focusMarker.position.copy(state.alternativeVertigo.focus)
+      }
     } else {
       if (state.focusMarker) {
         state.focusMarker.visible = false

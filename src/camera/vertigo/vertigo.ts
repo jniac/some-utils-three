@@ -201,7 +201,7 @@ export class Vertigo {
    * It is updated when the `update()` method is called.
    */
   state = {
-    aspect: NaN,
+    aspect: 1,
     isPerspective: true,
     /**
      * The distance from the camera to the focus point.
@@ -453,8 +453,10 @@ export class Vertigo {
       fov = fovEpsilon
     }
 
-    const distance = desiredHeight / 2 / Math.tan(fov / 2) // Important! Distance should be computed from the desired height, not the real height
     const isPerspective = fov >= fovEpsilon
+    const distance = isPerspective
+      ? desiredHeight / 2 / Math.tan(fov / 2) // Important! Distance should be computed from the desired height, not the real height
+      : this.before // ⚠️ F*** important, orthographic distance should be set from the "before" property, not from the computed distance (Infinity).
 
     // this.computedNdcScalar.set(heightScalar * aspect, heightScalar)
     // this.computedSize.set(realHeight * aspect, realHeight)
@@ -470,12 +472,11 @@ export class Vertigo {
     worldMatrix.makeRotationFromEuler(this.rotation)
 
     const me = worldMatrix.elements
-    const backward = isPerspective ? distance : this.before + this.nearMin
 
     const { _v0, _v1 } = Vertigo.shared
     _v0
       .set(me[8], me[9], me[10]) // The forward vector
-      .multiplyScalar(backward)
+      .multiplyScalar(distance)
       .add(this.focus)
 
     // Apply the screen offset:
