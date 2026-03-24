@@ -137,8 +137,9 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
   }
 
   static #setTextAt = { v: new Vector3() }
-  setTextAt(index: number, text: string, options: SetTextOption = {}) {
-    this.data.setTextAt(index, text, { ...this.options.textDefaults, ...options })
+  setTextAt(index: number, text: string, userOptions: SetTextOption = {}) {
+    const options = { ...this.options.textDefaults, ...userOptions }
+    this.data.setTextAt(index, text, options)
 
     this.setMatrixAt(index, makeMatrix4(options).premultiply(this.transformMatrix))
     this.instanceMatrix.needsUpdate = true
