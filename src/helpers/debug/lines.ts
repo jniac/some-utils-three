@@ -755,6 +755,16 @@ export class LinesManager extends BaseManager {
       }
     }
 
+    if (this.transformIsIdentity === false) {
+      const m = this.transformMatrix
+      for (let i = 0; i < positions.length; i += 3) {
+        _v0
+          .fromArray(positions, i)
+          .applyMatrix4(m)
+          .toArray(positions, i)
+      }
+    }
+
     const { index } = this.state
     this.parts.attributes.position.array.set(positions, index * 3)
     this.parts.attributes.color.array.set(colors, index * 3)

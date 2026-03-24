@@ -215,6 +215,14 @@ export class Vertigo {
      */
     realSize: new Vector2(1, 1),
     /**
+     * Or "unoffset focus": the focus point without any offset applied (the real center of the camera's focus plane).
+     */
+    focusPlaneCenter: new Vector3(),
+    /**
+     * The screen offset in world space.
+     */
+    worldScreenOffset: new Vector3(),
+    /**
      * The camera matrix that represents the position and rotation of the camera in the world.
      */
     worldMatrix: new Matrix4(),
@@ -324,7 +332,7 @@ export class Vertigo {
    * - `state` is invalid by default and becomes valid after the first `update()` call. This is because the initial values of the state are set to NaN to help detect uninitialized state usage.
    * - `state` becomes invalid when `update()` is called with invalid aspect ratio.
    */
-  stateIsValid() {
+  isStateValid() {
     const { state } = this
     return (
       Number.isFinite(state.aspect) &&
@@ -390,6 +398,18 @@ export class Vertigo {
     return out
   }
 
+  worldToNdc(worldPos: Vector3Declaration, out: Vector3 = new Vector3()): Vector3 {
+    const { worldMatrixInverse, projectionMatrix } = this.state
+    fromVector3Declaration(worldPos, out)
+      .applyMatrix4(worldMatrixInverse)
+      .applyMatrix4(projectionMatrix)
+    return out
+  }
+
+  worldToVertigoScreen(worldPos: Vector3Declaration, out: Vector3 = new Vector3()): Vector3 {
+    return this.ndcToVertigoScreen(this.worldToNdc(worldPos, out), out)
+  }
+
   /**
    * @deprecated Use `ndcToVertigoScreen` instead. This is an alias for backward compatibility, but it will be removed in the future.
    */
@@ -409,6 +429,14 @@ export class Vertigo {
     return out
   }
 
+  /**
+   * Update the internal state of the vertigo camera based on the current settings and the aspect ratio.
+   * 
+   * Notes:
+   * - If the new aspect ratio is not given, it will use the previous aspect ratio. 
+   *   This allows to update the state when the settings change without having to 
+   *   provide the aspect ratio again (useful for intermediate steps).
+   */
   update(newAspect = this.state.aspect): this {
     const sizeAspect = this.size.x / this.size.y
     const aspectAspect = sizeAspect / newAspect
@@ -432,6 +460,8 @@ export class Vertigo {
     // this.computedSize.set(realHeight * aspect, realHeight)
 
     const {
+      focusPlaneCenter: unoffsetFocus,
+      worldScreenOffset,
       worldMatrix,
       worldMatrixInverse,
       projectionMatrix,
@@ -449,9 +479,18 @@ export class Vertigo {
       .add(this.focus)
 
     // Apply the screen offset:
-    _v0.addScaledVector(_v1.set(me[0], me[1], me[2]), -this.screenOffset.x / this.zoom)
-    _v0.addScaledVector(_v1.set(me[4], me[5], me[6]), -this.screenOffset.y / this.zoom)
-    _v0.addScaledVector(_v1.set(me[8], me[9], me[10]), -this.screenOffset.z / this.zoom)
+    // _v0.addScaledVector(_v1.set(me[0], me[1], me[2]), -this.screenOffset.x / this.zoom)
+    // _v0.addScaledVector(_v1.set(me[4], me[5], me[6]), -this.screenOffset.y / this.zoom)
+    // _v0.addScaledVector(_v1.set(me[8], me[9], me[10]), -this.screenOffset.z / this.zoom)
+    worldScreenOffset
+      .set(0, 0, 0)
+      .addScaledVector(_v1.set(me[0], me[1], me[2]), -this.screenOffset.x / this.zoom)
+      .addScaledVector(_v1.set(me[4], me[5], me[6]), -this.screenOffset.y / this.zoom)
+      .addScaledVector(_v1.set(me[8], me[9], me[10]), -this.screenOffset.z / this.zoom)
+    _v0.add(worldScreenOffset)
+
+    // Hm.
+    unoffsetFocus.copy(this.focus).add(worldScreenOffset)
 
     // Apply the position:
     me[12] = _v0.x

@@ -19,14 +19,17 @@ export class BaseManager {
   }
 
   transformMatrix = new Matrix4()
+  transformIsIdentity = true
 
   setTransformMatrix(matrix: Matrix4): this {
     this.transformMatrix.copy(matrix)
+    this.transformIsIdentity = false
     return this
   }
 
   resetTransformMatrix(): this {
     this.transformMatrix.identity()
+    this.transformIsIdentity = true
     return this
   }
 

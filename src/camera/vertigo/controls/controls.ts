@@ -12,9 +12,9 @@ import { DestroyableObject } from 'some-utils-ts/types'
 import { fromPlaneDeclaration, PlaneDeclaration } from '../../../declaration'
 import { VertigoHelper } from '../helper'
 import { Vertigo, VertigoProps } from '../vertigo'
-import { createActions } from './action'
+import { createActions } from './actions'
 import { ControlInput, ControlInputString, matchControlInput, parseInputs } from './input'
-import { findIntersection } from './utils'
+import { PointMarker } from './utils'
 
 const _quaternion = new Quaternion()
 const _vectorX = new Vector3()
@@ -89,8 +89,8 @@ export class VertigoControls implements DestroyableObject {
       enabled: true,
       interactive: true,
 
-      rootForRaycast: null as Object3D | null,
-      cameraForRaycast: null as Camera | null,
+      sceneRoot: null as Object3D | null,
+      currentCamera: null as Camera | null,
 
       alternativeActivationCount: 0,
       alternativeIsActive: false,
@@ -114,6 +114,10 @@ export class VertigoControls implements DestroyableObject {
       alternativeHelper: null as VertigoHelper | null,
 
       startDestroyableInstance: new DestroyableInstance(),
+
+      isShowingFocusMarker: false,
+
+      focusMarker: null as PointMarker | null,
     },
 
     /**
@@ -155,6 +159,16 @@ export class VertigoControls implements DestroyableObject {
         this.group.remove(state.alternativeHelper)
         state.alternativeHelper = null
       }
+    },
+
+    showFocusMarker: () => {
+      const { state } = this[__private__]
+      state.isShowingFocusMarker = true
+    },
+
+    hideFocusMarker: () => {
+      const { state } = this[__private__]
+      state.isShowingFocusMarker = false
     },
   }
 
@@ -276,9 +290,10 @@ export class VertigoControls implements DestroyableObject {
   }
 
   dolly(delta: number) {
-    _updateVectorXYZ(this.currentVertigo.rotation)
+    const cameraPosition = _v0.setFromMatrixPosition(this.currentVertigo.state.worldMatrix)
+    const direction = _v1.copy(this.currentVertigo.focus).sub(cameraPosition).normalize()
     const zoomFactor = 1 / this.currentVertigo.zoom
-    this.currentVertigo.focus.addScaledVector(_vectorZ, delta * zoomFactor)
+    this.currentVertigo.focus.addScaledVector(direction, -delta * zoomFactor)
   }
 
   orbit(pitch: number, yaw: number) {
@@ -313,7 +328,7 @@ export class VertigoControls implements DestroyableObject {
 
   initialize(
     element: HTMLElement | string = document.body,
-    rootForRaycast: Object3D | null = null,
+    sceneRoot: Object3D | null = null,
   ): this {
     if (typeof element === 'string')
       element = document.querySelector(element) as HTMLElement
@@ -322,7 +337,7 @@ export class VertigoControls implements DestroyableObject {
       throw new Error(`Invalid element: ${element}`)
 
     this.element = element
-    this[__private__].state.rootForRaycast = rootForRaycast
+    this[__private__].state.sceneRoot = sceneRoot
     return this
   }
 
@@ -336,7 +351,9 @@ export class VertigoControls implements DestroyableObject {
       },
     })
 
+    const { state, showFocusMarker, hideFocusMarker } = this[__private__]
     const pointer = new Vector2()
+    const modifiers = { altKey: false }
     yield handlePointer(element, {
       onChange: info => {
         const rect = element.getBoundingClientRect()
@@ -345,33 +362,24 @@ export class VertigoControls implements DestroyableObject {
         pointer.set(x, y)
       },
       dragButton: ~0,
-      onDown: info => {
-        // WIIIIIPP
-        if (info.modifiers.altKey) {
-          const offset = new Vector3()
-          this.vertigo.ndcToVertigoScreen(pointer, offset)
-          this.vertigo.focus.copy(offset)
-          this.vertigo.screenOffset.copy(offset).multiplyScalar(this.vertigo.zoom)
-
-          const { rootForRaycast, cameraForRaycast } = this[__private__].state
-          if (rootForRaycast && cameraForRaycast) {
-            const intersection = findIntersection(pointer, cameraForRaycast, rootForRaycast)
-            if (intersection) {
-              console.log('intersection', intersection.object, ...intersection.point)
-              const direction = new Vector3(0, 0, -1).applyEuler(this.vertigo.rotation)
-              const delta = intersection.point.clone().sub(this.vertigo.focus).projectOnVector(direction).length()
-              const scalar = (this.vertigo.state.distance + delta) / this.vertigo.state.distance
-              this.vertigo.focus.addScaledVector(direction, delta)
-              this.vertigo.size.multiplyScalar(scalar)
-            }
-          }
+      onPressStart: info => {
+        modifiers.altKey = info.modifiers.altKey
+        if (modifiers.altKey) {
+          this.actions.adjustFocusFromPointer(pointer, 'current')
+          showFocusMarker()
+        }
+      },
+      onPressStop: info => {
+        if (modifiers.altKey) {
+          this.actions.resetFocusAndScreenOffset('current')
+          hideFocusMarker()
         }
       },
       onDrag: info => {
-        if (this[__private__].state.enabled === false)
+        if (state.enabled === false)
           return
 
-        if (this[__private__].state.interactive === false)
+        if (state.interactive === false)
           return
 
         const type = info.button === PointerButton.Left && info.touchCount <= 1
@@ -395,24 +403,29 @@ export class VertigoControls implements DestroyableObject {
         }
       },
       wheelPreventDefault: true,
-      onWheel: info => {
-        if (this[__private__].state.enabled === false)
+      onWheelStart: info => {
+        if (state.enabled === false || state.interactive === false)
           return
 
-        if (this[__private__].state.interactive === false)
+        if (info.event.altKey && !info.event.shiftKey) {
+          showFocusMarker()
+          this.actions.adjustFocusFromPointer(pointer)
+        }
+      },
+      onWheel: info => {
+        if (state.enabled === false || state.interactive === false)
           return
 
         switch (this.inputConfig.wheel) {
           case 'zoom': {
             const newZoom = this.currentVertigo.zoom * (1 - info.delta.y * .001)
-            if (info.event.altKey) {
-              if (info.event.shiftKey) {
-                const perspective = this.currentVertigo.perspective * (1 - info.delta.y * .001)
-                this.currentVertigo.perspective = clamp(perspective, 0, 10)
-              } else {
-                this.zoomAt(newZoom, pointer)
-              }
-            } else {
+            // Change the perspective amount.
+            if (info.event.altKey && info.event.shiftKey) {
+              const perspective = this.currentVertigo.perspective * (1 - info.delta.y * .001)
+              this.currentVertigo.perspective = clamp(perspective, 0, 10)
+            }
+            // Change the zoom with fixed focus point.
+            else {
               this.zoomAt(newZoom, { x: 0, y: 0 })
             }
             break
@@ -422,6 +435,10 @@ export class VertigoControls implements DestroyableObject {
             break
           }
         }
+      },
+      onWheelEnd: info => {
+        hideFocusMarker()
+        this.actions.resetFocusAndScreenOffset()
       },
     })
   }
@@ -488,7 +505,21 @@ export class VertigoControls implements DestroyableObject {
     this.currentDampedVertigo
       .apply(camera, aspect)
 
-    this[__private__].state.cameraForRaycast = camera
+    this[__private__].state.currentCamera = camera
+
+    if (state.isShowingFocusMarker) {
+      if (state.focusMarker === null) {
+        state.focusMarker = new PointMarker()
+        this.group.add(state.focusMarker)
+      }
+
+      state.focusMarker.visible = true
+      state.focusMarker.position.copy(this.vertigo.focus)
+    } else {
+      if (state.focusMarker) {
+        state.focusMarker.visible = false
+      }
+    }
   }
 
   /**

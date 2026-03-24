@@ -1,68 +1,20 @@
 import { ColorRepresentation, DoubleSide, Group, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Texture, Vector3 } from 'three'
 
+import { DashedGrid } from '../../helpers/dashed-grid'
 import { DebugHelper } from '../../helpers/debug'
 import { makeMatrix4 } from '../../utils/make'
 import { setup } from '../../utils/tree'
 import { Vertigo } from './vertigo'
 
-function texture() {
-  const create = () => {
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')!
-    canvas.width = 1024
-    canvas.height = 256
-    ctx.fillStyle = 'white'
-    ctx.font = '200px Fira Code'
-    ctx.textBaseline = 'top'
-    ctx.fillText('Vertigo', 20, 20)
-
-    const texture = new Texture(canvas)
-    texture.needsUpdate = true
-
-    return texture
-  }
-
-  let texture: Texture | undefined
-  return texture ??= create()
+const defaultOptions = {
+  color: <ColorRepresentation>'#ffff00',
+  /**
+   * If a grid should be drawn, and if so, its step.
+   */
+  grid: <false | number>1,
 }
 
-/**
- * Returns the corners of the frustum in world space.
- * 
- * Note:
- * - For performance reasons, the returned points are always the same instances, 
- *   so you should clone them if you want to keep them.
- */
-const getFrustumCorners = (() => {
-  const ndcCorners = [
-    new Vector3(-1, -1, -1), // near bottom-left
-    new Vector3(1, -1, -1), // near bottom-right
-    new Vector3(1, 1, -1), // near top-right
-    new Vector3(-1, 1, -1), // near top-left
-    new Vector3(-1, -1, 1), // far bottom-left
-    new Vector3(1, -1, 1), // far bottom-right
-    new Vector3(1, 1, 1), // far top-right
-    new Vector3(-1, 1, 1), // far top-left
-  ]
-
-  const corners = ndcCorners.map(v => v.clone())
-
-  const viewProjectionMatrixInverse = new Matrix4()
-
-  return function (matrixWorldInverse: Matrix4, projectionMatrix: Matrix4) {
-    viewProjectionMatrixInverse
-      .multiplyMatrices(projectionMatrix, matrixWorldInverse)
-      .invert()
-
-    for (let i = 0; i < ndcCorners.length; i++) {
-      corners[i]
-        .copy(ndcCorners[i])
-        .applyMatrix4(viewProjectionMatrixInverse)
-    }
-
-    return corners
-  }
-})()
+type Options = typeof defaultOptions
 
 export class VertigoHelper extends Group {
   static createParts(instance: VertigoHelper) {
@@ -70,7 +22,7 @@ export class VertigoHelper extends Group {
     const plane = setup(new Mesh(
       new PlaneGeometry(1, .25).translate(0.5, -0.125, 0),
       new MeshBasicMaterial({
-        color: instance.color,
+        color: instance.options.color,
         alphaMap: texture(),
         transparent: true,
         side: DoubleSide,
@@ -80,23 +32,33 @@ export class VertigoHelper extends Group {
     const debugHelper = setup(new DebugHelper(), instance)
     debugHelper.onTop()
 
+    const dashedGrid = instance.options.grid
+      ? setup(new DashedGrid(), instance)
+      : null
+
     return {
       plane,
       planeWrapper,
       debugHelper,
+      dashedGrid,
       matrix: new Matrix4(),
     }
   }
 
   parts: ReturnType<typeof VertigoHelper.createParts>
 
-  color: ColorRepresentation
+  options: Options
   vertigo: Vertigo
 
-  constructor(vertigo: Vertigo, { color = <ColorRepresentation>'#ffff00' } = {}) {
+  userData = {
+    helper: true,
+    ignoreRaycast: true,
+  }
+
+  constructor(vertigo: Vertigo, options?: Partial<Options>) {
     super()
-    this.color = color
     this.vertigo = vertigo
+    this.options = { ...defaultOptions, ...options }
     this.parts = VertigoHelper.createParts(this)
   }
 
@@ -119,7 +81,8 @@ export class VertigoHelper extends Group {
     ],
   }
   onTick() {
-    const { vertigo, color } = this
+    const { vertigo, options } = this
+    const { color, grid } = options
     const { screenOffset, zoom } = vertigo
     const { x: sx, y: sy } = vertigo.size
     const { x: rsx, y: rsy } = vertigo.state.realSize
@@ -217,7 +180,7 @@ export class VertigoHelper extends Group {
     }
 
     // The "real size" rectangle
-    if (vertigo.stateIsValid()) {
+    if (vertigo.isStateValid()) {
       rectPoints[0].set(+ rsx / 2, + rsy / 2, 0)
       rectPoints[1].set(- rsx / 2, + rsy / 2, 0)
       rectPoints[2].set(- rsx / 2, - rsy / 2, 0)
@@ -226,6 +189,23 @@ export class VertigoHelper extends Group {
         point.addScaledVector(screenOffset, -1 / zoom)
       debugHelper.polygon(rectPoints, { color })
       debugHelper.points(rectPoints, { color, size: pointSize })
+    }
+
+    if (grid) {
+      const { dashedGrid } = this.parts
+      if (!dashedGrid)
+        throw new Error('dashedGrid is not created, but grid option is truthy. What happened?')
+
+      dashedGrid
+        .setProps({
+          color: options.color,
+          size: vertigo.state.realSize,
+          dashSize: 1,
+          dashRatio: 1 / 8,
+        })
+        .update()
+      dashedGrid.rotation.copy(vertigo.rotation)
+      dashedGrid.position.copy(vertigo.state.focusPlaneCenter)
     }
 
     // The focus
@@ -247,7 +227,7 @@ export class VertigoHelper extends Group {
     debugHelper.resetTransformMatrix()
 
     // The frustum cone
-    if (vertigo.stateIsValid()) {
+    if (vertigo.isStateValid()) {
       const [A, B, C, D, E, F, G, H] = getFrustumCorners(vertigo.state.worldMatrixInverse, vertigo.state.projectionMatrix)
       debugHelper
         .segments([
@@ -258,3 +238,62 @@ export class VertigoHelper extends Group {
     }
   }
 }
+
+function texture() {
+  const create = () => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')!
+    canvas.width = 1024
+    canvas.height = 256
+    ctx.fillStyle = 'white'
+    ctx.font = '200px Fira Code'
+    ctx.textBaseline = 'top'
+    ctx.fillText('Vertigo', 20, 20)
+
+    const texture = new Texture(canvas)
+    texture.needsUpdate = true
+
+    return texture
+  }
+
+  let texture: Texture | undefined
+  return texture ??= create()
+}
+
+/**
+ * Returns the corners of the frustum in world space.
+ * 
+ * Note:
+ * - For performance reasons, the returned points are always the same instances, 
+ *   so you should clone them if you want to keep them.
+ */
+const getFrustumCorners = (() => {
+  const ndcCorners = [
+    new Vector3(-1, -1, -1), // near bottom-left
+    new Vector3(1, -1, -1), // near bottom-right
+    new Vector3(1, 1, -1), // near top-right
+    new Vector3(-1, 1, -1), // near top-left
+    new Vector3(-1, -1, 1), // far bottom-left
+    new Vector3(1, -1, 1), // far bottom-right
+    new Vector3(1, 1, 1), // far top-right
+    new Vector3(-1, 1, 1), // far top-left
+  ]
+
+  const corners = ndcCorners.map(v => v.clone())
+
+  const viewProjectionMatrixInverse = new Matrix4()
+
+  return function (matrixWorldInverse: Matrix4, projectionMatrix: Matrix4) {
+    viewProjectionMatrixInverse
+      .multiplyMatrices(projectionMatrix, matrixWorldInverse)
+      .invert()
+
+    for (let i = 0; i < ndcCorners.length; i++) {
+      corners[i]
+        .copy(ndcCorners[i])
+        .applyMatrix4(viewProjectionMatrixInverse)
+    }
+
+    return corners
+  }
+})()
