@@ -4,6 +4,11 @@ import { ShaderForge } from 'some-utils-three/shader-forge'
 import { getMinusX, getMinusY, getMinusZ, getPlusX, getPlusY, getPlusZ } from './xyz'
 
 export class BoxLineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
+  userData = {
+    helper: true,
+    ignoreRaycast: true,
+  }
+
   constructor(options?: {
     divisions?: number,
     interiorOpacity?: number,

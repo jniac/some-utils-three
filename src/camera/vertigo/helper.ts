@@ -1,6 +1,6 @@
 import { ColorRepresentation, DoubleSide, Group, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Texture, Vector3 } from 'three'
 
-import { DashedGrid } from '../../helpers/dashed-grid'
+import { DashedGridHelper } from '../../helpers/dashed-grid'
 import { DebugHelper } from '../../helpers/debug'
 import { makeMatrix4 } from '../../utils/make'
 import { setup } from '../../utils/tree'
@@ -33,7 +33,7 @@ export class VertigoHelper extends Group {
     debugHelper.onTop()
 
     const dashedGrid = instance.options.grid
-      ? setup(new DashedGrid(), instance)
+      ? setup(new DashedGridHelper(), instance)
       : null
 
     return {

@@ -50,7 +50,7 @@ export type LineGridProps = typeof defaultLineGridProps
 /**
  * A dashed grid, centered on the origin and lying on the XY plane.
  */
-export class DashedGrid extends Group {
+export class DashedGridHelper extends Group {
   props: LineGridProps
 
   positionArray: Float32Array
