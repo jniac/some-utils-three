@@ -135,6 +135,18 @@ export class Pointer {
   intersections: Intersection[] = []
 
   /**
+   * The current object under the pointer (first intersection). Updated on each frame.
+   */
+  currentDomTarget: HTMLElement | null = null
+
+  /**
+   * Return true if the current DOM target of the pointer is the (three) canvas element. Updated on each frame.
+   */
+  get currentDomTargetIsCanvas() {
+    return this.currentDomTarget === this.domElement
+  }
+
+  /**
    * Return true if the pointer button is currently pressed.
    */
   buttonDown(button = PointerButton.Left) {
@@ -392,6 +404,7 @@ export class Pointer {
 
     const onPointerMove = (event: PointerEvent) => {
       updatePointerPosition(event)
+      this.currentDomTarget = event.target as HTMLElement
     }
 
     const onPointerDown = (event: PointerEvent) => {
