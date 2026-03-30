@@ -396,9 +396,10 @@ export class VertigoControls implements DestroyableObject {
             break
           }
           case 'pan': {
-            const scalar = info.altKey ? .2 : info.shiftKey ? 5 : 1
             if (matchControlInput(info, this.panInputs)) {
-              this.pan(info.delta.x * -.025 * scalar, info.delta.y * .025 * scalar)
+              const modifierScalar = info.altKey ? .2 : info.shiftKey ? 5 : 1
+              const scalar = modifierScalar * this.vertigo.size.length() * .0025 / Math.sqrt(this.vertigo.zoom)
+              this.pan(info.delta.x * -scalar, info.delta.y * scalar)
             }
             break
           }
@@ -434,7 +435,8 @@ export class VertigoControls implements DestroyableObject {
           }
           case 'dolly': {
             if (this.vertigo.state.isPerspective) {
-              this.dolly(info.delta.y * .01)
+              const scalar = this.vertigo.size.length() * .001 / Math.sqrt(this.vertigo.zoom)
+              this.dolly(info.delta.y * scalar)
             } else {
               // ⚠️ Back to "zoom" behavior when in orthographic mode, because dolly doesn't make sense in orthographic mode.
               this.zoomAt(newZoom, { x: 0, y: 0 })
