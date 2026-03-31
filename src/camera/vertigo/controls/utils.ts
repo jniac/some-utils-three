@@ -3,14 +3,6 @@ import { BufferGeometry, Camera, GreaterDepth, Group, Intersection, Object3D, Po
 const _raycaster = new Raycaster()
 const _pointer = new Vector2()
 
-function defaultIgnoreObject(object: Object3D) {
-  if (object.userData.helper)
-    return true
-  if (object.userData.isHelper)
-    return true
-  return false
-}
-
 /**
  * Returns the first intersection of the pointer with the objects in the scene, or null if there is no intersection.
  * 
@@ -21,7 +13,7 @@ export function findIntersection(
   pointer: Vector2Like,
   camera: Camera,
   root: Object3D,
-  ignore: (object: Object3D) => boolean = defaultIgnoreObject,
+  ignore: (object: Object3D) => boolean,
 ): Intersection | null {
   _pointer.set(pointer.x, pointer.y)
   _raycaster.setFromCamera(_pointer, camera)

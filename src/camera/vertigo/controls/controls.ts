@@ -32,6 +32,18 @@ function _updateVectorXYZ(rotation: Euler) {
   _vectorZ.crossVectors(_vectorX, _vectorY)
 }
 
+export function defaultRaycastIgnore(object: Object3D) {
+  if (object.userData.helper)
+    return true
+  if (object.userData.isHelper)
+    return true
+  if ((object as any).isPoints)
+    return true
+  if ((object as any).isLineSegments)
+    return true
+  return false
+}
+
 export const __private__ = Symbol('private')
 
 /**
@@ -39,14 +51,25 @@ export const __private__ = Symbol('private')
  * input.
  * 
  * @example
+ * ```
  * const controls = new VertigoControls({
  *   size: 20,
  *   perspective: .5,
  * })
  * controls.initialize('canvas')
  * controls.start()
+ * ```
+ * 
+ * Notes:
+ * - By default the controls ignores certain objects (eg: helpers) for raycasting. 
+ *   You can customize this behavior with `setRaycastIgnore()`.
  */
 export class VertigoControls implements DestroyableObject {
+  /**
+   * The default raycast ignore function.
+   */
+  static get defaultRaycastIgnore() { return defaultRaycastIgnore }
+
   /**
    * The decay factor for the vertigo controls (expresses the missing part after 1 second).
    * 
@@ -118,6 +141,8 @@ export class VertigoControls implements DestroyableObject {
       isShowingFocusMarker: false,
 
       focusMarker: null as PointMarker | null,
+
+      raycastIgnore: defaultRaycastIgnore,
     },
 
     /**
@@ -241,6 +266,13 @@ export class VertigoControls implements DestroyableObject {
     this.currentVertigo.set(props)
     this.currentDampedVertigo.set(props)
     return this
+  }
+
+  /**
+   * Sets the function to determine which objects should be ignored by raycasting.
+   */
+  setRaycastIgnore(raycastIgnore: (object: Object3D) => boolean) {
+    this[__private__].state.raycastIgnore = raycastIgnore
   }
 
   /**
