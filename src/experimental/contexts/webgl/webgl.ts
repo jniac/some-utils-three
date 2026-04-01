@@ -14,6 +14,12 @@ import { RenderFrameOptions, ThreeBaseContext } from '../base'
 import { ThreeContextType, TickPhase } from '../types'
 import { BasicPipeline } from './pipelines/BasicPipeline'
 
+const defaultProps = {
+  useStencil: true,
+}
+
+type Props = typeof defaultProps
+
 /**
  * A context that provides a WebGLRenderer, a Scene, a Camera, and a Ticker.
  */
@@ -23,14 +29,17 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     return this.instances[this.instances.length - 1]
   }
 
-  renderer = new WebGLRenderer()
+  props: Props
+
+  renderer: WebGLRenderer
+
   perspectiveCamera = new PerspectiveCamera()
   orthographicCamera = new OrthographicCamera()
   camera = this.perspectiveCamera
 
   gizmoScene = new Scene()
 
-  pipeline = new BasicPipeline(this.renderer, this.scene, this.gizmoScene, this.perspectiveCamera)
+  pipeline: BasicPipeline
 
   private internal = {
     destroyables: [] as Destroyable[],
@@ -48,11 +57,22 @@ export class ThreeWebGLContext extends ThreeBaseContext {
   // loader, even before it is eventually created here.
   loader = UnifiedLoader.get('three')
 
-  constructor() {
+  constructor(userProps?: Partial<Props>) {
     super(ThreeContextType.WebGL)
+    this.props = { ...defaultProps, ...userProps }
     this.camera.position.set(0, 1, 10)
     this.camera.lookAt(0, 0, 0)
     ThreeWebGLContext.instances.push(this)
+
+    this.renderer = new WebGLRenderer()
+
+    this.pipeline = new BasicPipeline(
+      this.renderer,
+      this.scene,
+      this.gizmoScene,
+      this.perspectiveCamera,
+      { useStencil: this.props.useStencil },
+    )
   }
 
   protected override _onSetScene(): void {

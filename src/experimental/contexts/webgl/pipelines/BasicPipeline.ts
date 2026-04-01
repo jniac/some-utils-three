@@ -1,4 +1,4 @@
-import { Object3D, PerspectiveCamera, Scene, Vector2, WebGLRenderer } from 'three'
+import { Object3D, PerspectiveCamera, Scene, Vector2, WebGLRenderer, WebGLRenderTarget } from 'three'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
@@ -12,6 +12,10 @@ import { Tick } from 'some-utils-ts/ticker'
 import { DestroyableObject } from 'some-utils-ts/types'
 
 import { PassMetadata, PassType, PipelineBase } from './types'
+
+type Props = {
+  useStencil: boolean
+}
 
 /**
  * A basic rendering pipeline that still allows for some customization. Already includes:
@@ -46,8 +50,20 @@ export class BasicPipeline implements PipelineBase {
 
   get passes() { return this.composer.passes }
 
-  constructor(renderer: WebGLRenderer, scene: Scene, gizmoScene: Scene, camera: PerspectiveCamera) {
-    const composer = new EffectComposer(renderer)
+  constructor(
+    renderer: WebGLRenderer,
+    scene: Scene,
+    gizmoScene: Scene,
+    camera: PerspectiveCamera,
+    props: Props
+  ) {
+    const { width, height } = renderer.getSize(new Vector2())
+      .multiplyScalar(renderer.getPixelRatio())
+
+    const renderTarget = new WebGLRenderTarget(width, height, {
+      stencilBuffer: props.useStencil,
+    })
+    const composer = new EffectComposer(renderer, renderTarget)
     const passMap = new Map<Pass, PassMetadata>()
 
     const mainRender = new RenderPass(scene, camera)
