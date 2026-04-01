@@ -37,6 +37,10 @@ export function defaultRaycastIgnore(object: Object3D) {
     return true
   if (object.userData.isHelper)
     return true
+  if (object.userData.ignoreRaycast)
+    return true
+  if (object.userData.isMask)
+    return true
   if ((object as any).isPoints)
     return true
   if ((object as any).isLineSegments)
@@ -232,7 +236,7 @@ export class VertigoControls implements DestroyableObject {
   }
 
   inputConfig = {
-    wheel: 'zoom' as 'zoom' | 'dolly',
+    wheel: 'dolly' as 'zoom' | 'dolly',
   }
 
   actions = createActions(this)
@@ -271,8 +275,10 @@ export class VertigoControls implements DestroyableObject {
   /**
    * Sets the function to determine which objects should be ignored by raycasting.
    */
-  setRaycastIgnore(raycastIgnore: (object: Object3D) => boolean) {
-    this[__private__].state.raycastIgnore = raycastIgnore
+  setRaycastIgnore(raycastIgnore: ((object: Object3D) => boolean) | 'default') {
+    this[__private__].state.raycastIgnore = raycastIgnore === 'default'
+      ? VertigoControls.defaultRaycastIgnore
+      : raycastIgnore
   }
 
   /**
