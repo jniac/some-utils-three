@@ -140,6 +140,13 @@ export function createActions(instance: VertigoControls) {
           vertigo.focus.add(delta)
           vertigo.size.multiplyScalar(scalar)
           vertigo.update()
+
+          // Damped vertigo direct update:
+          // `focus` and `size` must not be damped when adjusting the focus from the pointer, 
+          // otherwise it creates a weird elastic effect.
+          instance.dampedVertigo.focus.copy(vertigo.focus)
+          instance.dampedVertigo.size.copy(vertigo.size)
+          instance.dampedVertigo.update()
         }
       }
 
