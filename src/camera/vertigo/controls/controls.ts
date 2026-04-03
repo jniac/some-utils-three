@@ -236,7 +236,7 @@ export class VertigoControls implements DestroyableObject {
   }
 
   inputConfig = {
-    wheel: 'dolly' as 'zoom' | 'dolly',
+    wheel: 'zoom' as 'zoom' | 'dolly',
   }
 
   actions = createActions(this)
