@@ -255,7 +255,7 @@ class DebugHelper extends Group {
         this.parts.pointsManager.point(rect.center, { color: options?.color, ...options, ...(options?.center === true ? {} : options?.center) })
       }
       if (corners) {
-        const { minX, minY, maxX, maxY } = rect
+        const { minX, minY, maxX, maxY } = rect.shrink(options?.inset ?? 0)
         const corners: [number, number][] = [
           [minX, minY],
           [maxX, minY],
