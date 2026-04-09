@@ -7,6 +7,7 @@ import {
   TriangleIntersection
 } from './intersection-triangle'
 
+import { probe42 } from './probe-array'
 import { Culling, IntersectionMode } from './types'
 
 const _cache = {
