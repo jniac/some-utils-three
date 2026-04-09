@@ -47,9 +47,10 @@ class AutoLitMaterial extends MeshBasicMaterial {
           vAutoLitWorldNormal: 'vec3',
         })
         .vertex.mainAfterAll(/* glsl */`
-          vAutoLitWorldNormal = mat3(modelMatrix) * normal;
           #ifdef USE_INSTANCING
-            vAutoLitWorldNormal = mat3(instanceMatrix) * vAutoLitWorldNormal;
+            vAutoLitWorldNormal = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
+          #else
+            vAutoLitWorldNormal = normalize(mat3(modelMatrix) * normal);
           #endif
         `)
         .fragment.before('map_fragment', /* glsl */`
