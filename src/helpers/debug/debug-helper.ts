@@ -251,18 +251,18 @@ class DebugHelper extends Group {
       if (rect.hasNaN())
         return this
 
-      if (center) {
-        this.parts.pointsManager.point(rect.center, { color: options?.color, ...options, ...(options?.center === true ? {} : options?.center) })
-      }
+      if (center)
+        this.parts.pointsManager.point(rect.center, { ...options, ...(center === true ? {} : center) })
+
       if (corners) {
         const { minX, minY, maxX, maxY } = rect.shrink(options?.inset ?? 0)
-        const corners: [number, number][] = [
+        const data: [number, number][] = [
           [minX, minY],
           [maxX, minY],
           [maxX, maxY],
           [minX, maxY],
         ]
-        this.parts.pointsManager.points(corners, { color: options?.color, ...options, ...(options?.corners === true ? {} : options?.corners) })
+        this.parts.pointsManager.points(data, { ...options, ...(corners === true ? {} : corners) })
       }
     }
     return this
