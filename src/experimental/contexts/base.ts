@@ -137,9 +137,12 @@ export class ThreeBaseContext {
   constructor(type: ThreeContextType) {
     this.type = type
     this.#internal.now = performance.now()
-    Message.on<ThreeBaseContext>(ThreeBaseContext, message => {
-      message.setPayload(this)
-    })
+
+    // Message support:
+    // #1 - Dispatch an instance of this context so that it can be awaited/required elsewhere.
+    Message.dispatchInstance(ThreeBaseContext, this)
+    // #2 - Older support for direct listeners on the class (to be removed eventually).
+    Message.on<ThreeBaseContext>(ThreeBaseContext, message => { message.setPayload(this) })
   }
 
   setSize(newSize: Partial<{
