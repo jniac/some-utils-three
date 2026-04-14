@@ -189,3 +189,5 @@ export function createActions(instance: VertigoControls) {
 
   return actions
 }
+
+export type VertigoControlsActions = ReturnType<typeof createActions>

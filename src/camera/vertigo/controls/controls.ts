@@ -12,7 +12,7 @@ import { DestroyableObject } from 'some-utils-ts/types'
 import { fromPlaneDeclaration, PlaneDeclaration } from '../../../declaration'
 import { VertigoHelper } from '../helper'
 import { Vertigo, VertigoProps } from '../vertigo'
-import { createActions } from './actions'
+import { createActions, VertigoControlsActions } from './actions'
 import { ControlInput, ControlInputString, matchControlInput, parseInputs } from './input'
 import { PointMarker } from './utils'
 
@@ -40,6 +40,8 @@ export function defaultRaycastIgnore(object: Object3D) {
   if (object.userData.ignoreRaycast)
     return true
   if (object.userData.isMask)
+    return true
+  if (object.userData.isSky)
     return true
   if ((object as any).isPoints)
     return true
@@ -239,7 +241,7 @@ export class VertigoControls implements DestroyableObject {
     wheel: 'zoom' as 'zoom' | 'dolly',
   }
 
-  actions = createActions(this)
+  actions: VertigoControlsActions
 
   panInputs: ControlInput[] = []
   parsePanInputs(inputs: string) {
@@ -255,6 +257,7 @@ export class VertigoControls implements DestroyableObject {
     this.currentVertigo.set(props)
     this.currentDampedVertigo.set(props)
     this.group.name = 'VertigoControls-Helper'
+    this.actions = createActions(this)
   }
 
   #destroyed = false

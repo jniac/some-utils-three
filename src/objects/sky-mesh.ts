@@ -3,6 +3,11 @@ import { BackSide, IcosahedronGeometry, Mesh, MeshBasicMaterial, MeshBasicMateri
 const geometry = new IcosahedronGeometry(1, 4)
 
 export class SkyMesh extends Mesh {
+  userData = {
+    isSky: true,
+    ignoreRaycast: true,
+  }
+
   constructor(props?: MeshBasicMaterialParameters) {
     const material = new MeshBasicMaterial({
       color: '#0c529d',
