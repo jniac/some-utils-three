@@ -15,6 +15,7 @@ const defaultOptions = {
 
     return chunks.join(' ')
   },
+  highlight: <((node: Object3D) => boolean) | Object3D | Object3D[] | undefined>undefined,
 }
 
 type Options = Partial<typeof defaultOptions>
@@ -47,13 +48,28 @@ function isLeaf(node: Object3D): boolean {
   return node.children.length === 0
 }
 
+function isHighlighted(node: Object3D, options: typeof defaultOptions): boolean {
+  if (options.highlight === undefined)
+    return false
+  if (typeof options.highlight === 'function')
+    return options.highlight(node)
+  if (Array.isArray(options.highlight))
+    return options.highlight.includes(node)
+  return options.highlight === node
+}
+
 function nodeToTreeString(node: Object3D, options: typeof defaultOptions): string {
   const indent = allAncestorsOf(node)
     .map(p => isLastChild(p, options) ? '  ' : '│ ')
     .join('')
   const parentRelation = isLastChild(node, options) === false ? '├─' : '└─'
   const childrenIndicator = isLeaf(node) ? '─' : '┬'
-  return `${indent}${parentRelation}${childrenIndicator}─ ${options.toString(node)}`
+
+  const highlight = isHighlighted(node, options)
+  const highlightStart = highlight ? '\x1b[30m\x1b[43m' : ''
+  const highlightEnd = highlight ? '\x1b[0m 👈' : ''
+
+  return `${indent}${parentRelation}${childrenIndicator}─ ${highlightStart}${options.toString(node)}${highlightEnd}`
 }
 
 function totalDescendantCount(node: Object3D): number {

@@ -33,6 +33,8 @@ function _updateVectorXYZ(rotation: Euler) {
 }
 
 export function defaultRaycastIgnore(object: Object3D) {
+  if (object.visible === false) // of course 😅
+    return true
   if (object.userData.helper)
     return true
   if (object.userData.isHelper)
