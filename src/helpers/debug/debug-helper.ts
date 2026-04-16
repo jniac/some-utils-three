@@ -276,7 +276,26 @@ class DebugHelper extends Group {
     return this
   }
 
-  static basis_defaultOptions = {
+  static rayDefaultOptions = {
+    length: 100,
+    color: '#fff',
+  }
+  ray(
+    rayArg: { origin: Vector3Declaration, direction: Vector3Declaration } | [origin: Vector3Declaration, direction: Vector3Declaration],
+    options?: Partial<typeof DebugHelper.rayDefaultOptions>,
+  ): this {
+    const [origin, direction] = (Array.isArray(rayArg)
+      ? rayArg
+      : [rayArg.origin, rayArg.direction]
+    ).map(v => fromVector3Declaration(v))
+    const { length, color } = { ...DebugHelper.rayDefaultOptions, ...options }
+    const end = origin.clone().addScaledVector(direction, length)
+    this.line(origin, end, { color })
+    this.point(origin, { color, shape: 'circle', size: .1 })
+    return this
+  }
+
+  static basisDefaultOptions = {
     size: 1,
     pointSizeRatio: .2,
     pointSize: <number | undefined>undefined,
@@ -293,7 +312,7 @@ class DebugHelper extends Group {
       bitangent: Vector3Declaration,
       normal: Vector3Declaration,
     ],
-    options?: Partial<typeof DebugHelper.basis_defaultOptions>,
+    options?: Partial<typeof DebugHelper.basisDefaultOptions>,
   ): this {
     const [origin, tangent, bitangent, normal] = basis.map(v => fromVector3Declaration(v))
     const {
@@ -301,7 +320,7 @@ class DebugHelper extends Group {
       pointSizeRatio,
       pointSize = size * pointSizeRatio,
       colors,
-    } = { ...DebugHelper.basis_defaultOptions, ...options }
+    } = { ...DebugHelper.basisDefaultOptions, ...options }
     const A = origin.clone().addScaledVector(tangent, size)
     const B = origin.clone().addScaledVector(bitangent, size)
     const C = origin.clone().addScaledVector(normal, size)
