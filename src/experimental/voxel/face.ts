@@ -1,6 +1,6 @@
-import { Vector3 } from 'three'
+import { Ray, Vector3 } from 'three'
 
-import { Direction, defaultDirectionTangent } from './core'
+import { Direction, crossDirection, defaultDirectionBitangent, defaultDirectionTangent, directionToVector } from './core'
 
 let _i = 0
 let _x = 0, _y = 0, _z = 0
@@ -114,27 +114,224 @@ const _normal = {
   },
 }
 
-export class Face {
-  position: Vector3
-  direction: Direction
-  tangent: Direction
+const _v0 = new Vector3()
+const _v1 = new Vector3()
+const _v2 = new Vector3()
+
+class FaceIntersection {
+  constructor(
+    /**
+     * The face that was intersected by the ray.
+     */
+    public face: Face,
+    /**
+     * The distance from the ray origin to the intersection point along the ray direction.
+     */
+    public distance: number,
+    /**
+     * The ray origin used for the intersection test.
+     */
+    public origin: Vector3,
+    /**
+     * The ray direction used for the intersection test.
+     */
+    public direction: Vector3,
+  ) { }
+  /**
+   * Returns the intersection point of the ray with the face.
+   * @param out Optional vector to store the intersection point.
+   * @returns The intersection point.
+   */
+  point(out = new Vector3()): Vector3 {
+    return out.copy(this.origin).addScaledVector(this.direction, this.distance)
+  }
+}
+
+function computeFacePlaneIntersectionT(face: Face, origin: Vector3, direction: Vector3): number | null {
+  const f_o = face.origin(_v0)
+  const f_n = face.normal(_v1)
+  const denom = f_n.dot(direction)
+  if (Math.abs(denom) < 1e-6) {
+    // Ray is parallel to the face plane
+    return null
+  }
+  const d = f_n.dot(f_o)
+  const t = (d - f_n.dot(origin)) / denom
+  if (t < 0) {
+    // Intersection is behind the ray origin
+    return null
+  }
+  return t
+}
+
+function computeFaceIntersection(
+  face: Face,
+  origin: Vector3,
+  direction: Vector3,
+): FaceIntersection | null {
+  const t = computeFacePlaneIntersectionT(face, origin, direction)
+  if (t === null) {
+    return null
+  }
+  const intersectionPoint = _v0.copy(origin).addScaledVector(direction, t)
+  const localPoint = _v1.subVectors(intersectionPoint, face.origin(_v2))
+  const u = localPoint.dot(directionToVector(face.tangentDirection))
+  const v = localPoint.dot(directionToVector(face.bitangentDirection))
+  if (u < 0 || u > 1 || v < 0 || v > 1) {
+    // Intersection point is outside the face bounds
+    return null
+  }
+  return new FaceIntersection(face, t, origin.clone(), direction.clone())
+}
+
+class Face {
+  voxel: Vector3
+  normalDirection: Direction
+  tangentDirection: Direction
+
+  get bitangentDirection(): Direction {
+    return crossDirection(this.normalDirection, this.tangentDirection)
+  }
 
   constructor(
-    position: Vector3,
-    direction: Direction,
-    tangent: Direction = defaultDirectionTangent[direction]
+    voxel: Vector3,
+    normalDirection: Direction,
+    tangentDirection: Direction = defaultDirectionTangent[normalDirection]
   ) {
-    this.position = position
-    this.direction = direction
-    this.tangent = tangent
+    this.voxel = voxel
+    this.normalDirection = normalDirection
+    this.tangentDirection = tangentDirection
   }
 
   clone(): this {
-    return new (this.constructor as any)(this.position.clone(), this.direction, this.tangent)
+    return new (this.constructor as any)(this.voxel.clone(), this.normalDirection, this.tangentDirection)
   }
 
-  positionToArray<T extends number[] | Float32Array>(out: T, offset = 0): T {
-    const { position, direction } = this
+  origin(out = new Vector3()): Vector3 {
+    out.copy(this.voxel)
+    switch (this.normalDirection) {
+      case Direction.R:
+        return out.add(directionToVector(this.normalDirection)).sub(directionToVector(this.tangentDirection))
+      case Direction.L:
+        return out
+      case Direction.U:
+        return out.add(directionToVector(this.normalDirection)).sub(directionToVector(this.bitangentDirection))
+      case Direction.D:
+        return out
+      case Direction.F:
+        return out.add(directionToVector(this.normalDirection))
+      case Direction.B:
+        return out.sub(directionToVector(this.tangentDirection))
+      case Direction.Invalid:
+        throw new Error('Invalid face direction')
+    }
+  }
+
+  tangent(out = new Vector3()): Vector3 {
+    return out.copy(directionToVector(this.tangentDirection))
+  }
+
+  bitangent(out = new Vector3): Vector3 {
+    const bitangentDirection = defaultDirectionBitangent[this.normalDirection]
+    return out.copy(directionToVector(bitangentDirection))
+  }
+
+  normal(out = new Vector3()): Vector3 {
+    return out.copy(directionToVector(this.normalDirection))
+  }
+
+  min(out = new Vector3()): Vector3 {
+    const { voxel, normalDirection: direction } = this
+    out.copy(voxel)
+    switch (direction) {
+      case Direction.R:
+        out.x += 1
+        break
+      case Direction.U:
+        out.y += 1
+        break
+      case Direction.F:
+        out.z += 1
+        break
+    }
+    return out
+  }
+
+  max(out = new Vector3()): Vector3 {
+    const { voxel, normalDirection: direction } = this
+    out.set(voxel.x + 1, voxel.y + 1, voxel.z + 1)
+    switch (direction) {
+      case Direction.L:
+        out.x -= 1
+        break
+      case Direction.D:
+        out.y -= 1
+        break
+      case Direction.B:
+        out.z -= 1
+        break
+    }
+    return out
+  }
+
+  /**
+   * Returns the 't' parameter of the ray-plane intersection, or null if there is no intersection or the ray is parallel to the plane.
+   * 
+   * Notes:
+   * - ⚠️ This method only checks for intersection with the plane of the face, not whether the intersection point is within the face bounds. Use `rayIntersection` for that.
+   */
+  rayPlaneIntersectionT(origin: Vector3, direction: Vector3): number | null
+  rayPlaneIntersectionT(ray: Ray): number | null
+  rayPlaneIntersectionT(...args: [Vector3, Vector3] | [Ray]): number | null {
+    if (args.length === 1) {
+      const ray = args[0]
+      return computeFacePlaneIntersectionT(this, ray.origin, ray.direction)
+    } else {
+      const [origin, direction] = args
+      return computeFacePlaneIntersectionT(this, origin, direction)
+    }
+  }
+
+  isBackfacing(rayDirection: Vector3): boolean {
+    const normal = directionToVector(this.normalDirection)
+    return normal.dot(rayDirection) > 0
+  }
+
+  static rayIntersectionDefaultOptions = {
+    backfaceCulling: true,
+  }
+  /**
+   * Returns the intersection of the ray with the face, or null if there is no intersection.
+   */
+  rayIntersection(origin: Vector3, direction: Vector3, options?: Partial<typeof Face.rayIntersectionDefaultOptions>): FaceIntersection | null
+  rayIntersection(ray: Ray, options?: Partial<typeof Face.rayIntersectionDefaultOptions>): FaceIntersection | null
+  rayIntersection(...args: any[]): FaceIntersection | null {
+    const parseArgs = () => {
+      if (args[0] instanceof Ray) {
+        const [ray, options] = args as [Ray, Partial<typeof Face.rayIntersectionDefaultOptions>?]
+        return { origin: ray.origin, direction: ray.direction, options }
+      } else {
+        const [origin, direction, options] = args as [Vector3, Vector3, Partial<typeof Face.rayIntersectionDefaultOptions>?]
+        return { origin, direction, options }
+      }
+    }
+    const { origin, direction, options } = parseArgs()
+    const { backfaceCulling } = { ...Face.rayIntersectionDefaultOptions, ...options }
+    if (backfaceCulling && this.isBackfacing(direction)) {
+      return null
+    }
+    return computeFaceIntersection(this, origin, direction)
+  }
+
+  /**
+   * Dumps the face's vertex positions into the provided array, starting at the given offset.
+   * The vertices are ordered in a way that they form two triangles covering the face.
+   */
+  positionToArray(): number[]
+  positionToArray(out: Float32Array, offset?: number): Float32Array
+  positionToArray<T extends number[] | Float32Array>(out?: T, offset = 0): T {
+    const { voxel: position, normalDirection: direction } = this
+    out ??= [] as unknown as T
     _array = out
     _i = offset
     _x = position.x
@@ -182,7 +379,7 @@ export class Face {
   }
 
   normalToArray<T extends number[] | Float32Array>(out: T, offset = 0): T {
-    const { direction } = this
+    const { normalDirection: direction } = this
     _array = out
     _i = offset
     switch (direction) {
@@ -214,3 +411,5 @@ export class Face {
     return out
   }
 }
+
+export { Face, type FaceIntersection }

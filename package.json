@@ -30,7 +30,8 @@
     "rimraf": "^6.0.1",
     "three": ">=0.176.0",
     "tsc-watch": "^6.2.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.4"
   },
   "exports": {
     "./*": {

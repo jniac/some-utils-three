@@ -34,7 +34,18 @@ export enum Direction {
    * Backward (Z-)
    */
   B = Axis.Z + 1,
+
+  Invalid = 255,
 }
+
+export const directions: Direction[] = [
+  Direction.R,
+  Direction.L,
+  Direction.U,
+  Direction.D,
+  Direction.F,
+  Direction.B,
+]
 
 export enum DirectionFlags {
   None = 0b000000,
@@ -48,15 +59,72 @@ export enum DirectionFlags {
   B = 1 << Direction.B,
 }
 
-export const defaultDirectionTangent: Record<Direction, Direction> = [
-  Direction.B,
-  Direction.F,
-  Direction.R,
-  Direction.L,
-  Direction.R,
-  Direction.L,
+const crossDirectionTable: Direction[][] = [
+  // R
+  [
+    Direction.Invalid, // R
+    Direction.Invalid, // L
+    Direction.F,       // U
+    Direction.B,       // D
+    Direction.D,       // F
+    Direction.U,       // B
+  ],
+  // L
+  [
+    Direction.Invalid, // R
+    Direction.Invalid, // L
+    Direction.B,       // U
+    Direction.F,       // D
+    Direction.U,       // F
+    Direction.D,       // B
+  ],
+  // U
+  [
+    Direction.B,       // R
+    Direction.F,       // L
+    Direction.Invalid, // U
+    Direction.Invalid, // D
+    Direction.R,       // F
+    Direction.L,       // B
+  ],
+  // D
+  [
+    Direction.F,       // R
+    Direction.B,       // L
+    Direction.Invalid, // U
+    Direction.Invalid, // D
+    Direction.L,       // F
+    Direction.R,       // B
+  ],
+  // F
+  [
+    Direction.U,       // R
+    Direction.D,       // L
+    Direction.L,       // U
+    Direction.R,       // D
+    Direction.Invalid, // F
+    Direction.Invalid, // B
+  ],
+  // B
+  [
+    Direction.D,       // R
+    Direction.U,       // L
+    Direction.R,       // U
+    Direction.L,       // D
+    Direction.Invalid, // F
+    Direction.Invalid, // B
+  ],
 ]
 
+export const defaultDirectionTangent: Record<Direction, Direction> = {
+  [Direction.R]: Direction.B,
+  [Direction.L]: Direction.F,
+  [Direction.U]: Direction.R,
+  [Direction.D]: Direction.R,
+  [Direction.F]: Direction.R,
+  [Direction.B]: Direction.L,
+  [Direction.Invalid]: Direction.Invalid,
+}
 
 export const defaultDirectionBitangent: Direction[] = [
   Direction.U,
@@ -81,8 +149,33 @@ export function oppositeDirection(dir: Direction): Direction {
   return dir ^ 1 as Direction
 }
 
+export function crossDirection(a: Direction, b: Direction): Direction {
+  return crossDirectionTable[a][b]
+}
+
 export function directionToVector(dir: Direction): Vector3 {
   return directionVectors[dir]
+}
+
+export function vectorToDirection(vec: Vector3): Direction {
+  const { x, y, z } = vec
+  const absX = Math.abs(x)
+  const absY = Math.abs(y)
+  const absZ = Math.abs(z)
+
+  if (absX >= absY) {
+    if (absX >= absZ) {
+      return x === 0 ? Direction.Invalid : x > 0 ? Direction.R : Direction.L
+    } else {
+      return z === 0 ? Direction.Invalid : z > 0 ? Direction.F : Direction.B
+    }
+  } else {
+    if (absY >= absZ) {
+      return y === 0 ? Direction.Invalid : y > 0 ? Direction.U : Direction.D
+    } else {
+      return z === 0 ? Direction.Invalid : z > 0 ? Direction.F : Direction.B
+    }
+  }
 }
 
 export const CHUNK_COORDS_SIZE = 1624 // even-floor((2 ** 32) ** (1/3))

@@ -186,8 +186,8 @@ export class Chunk {
                 }
               }
               if (!adjacentIsFull) {
-                _face.position.set(offx + x, offy + y, offz + z)
-                _face.direction = direction
+                _face.voxel.set(offx + x, offy + y, offz + z)
+                _face.normalDirection = direction
                 yield _face
               }
             }
