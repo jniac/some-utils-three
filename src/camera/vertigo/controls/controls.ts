@@ -1,7 +1,7 @@
 
-import { Camera, ColorRepresentation, Euler, Group, Object3D, Plane, Quaternion, Ray, Vector2, Vector2Like, Vector3 } from 'three'
+import { Camera, ColorRepresentation, Euler, Group, Intersection, Object3D, Plane, Quaternion, Ray, Vector2, Vector2Like, Vector3 } from 'three'
 
-import { handleHtmlElementEvent } from 'some-utils-dom/handle/element-event'
+import { handleElementEvent } from 'some-utils-dom/handle/element-event'
 import { handlePointer, PointerButton } from 'some-utils-dom/handle/pointer'
 import { clamp } from 'some-utils-ts/math/basic'
 import { intersectLineWithPlane } from 'some-utils-ts/math/geom/geom3'
@@ -120,6 +120,11 @@ export class VertigoControls implements DestroyableObject {
 
       sceneRoot: null as Object3D | null,
       currentCamera: null as Camera | null,
+      /**
+       * 
+       */
+      downIntersection: null as Intersection | null,
+      lastDownIntersection: null as Intersection | null,
 
       alternativeActivationCount: 0,
       alternativeIsActive: false,
@@ -236,6 +241,11 @@ export class VertigoControls implements DestroyableObject {
   set alternativeHelperColor(color: ColorRepresentation) {
     this[__private__].state.alternativeHelperColor = color
   }
+
+  /** Down intersection (for debug purpose) */
+  get downIntersection() { return this[__private__].state.downIntersection }
+  /** Last down intersection (for debug purpose) */
+  get lastDownIntersection() { return this[__private__].state.lastDownIntersection }
 
   inputConfig = {
     wheel: 'zoom' as 'zoom' | 'dolly',
@@ -388,7 +398,7 @@ export class VertigoControls implements DestroyableObject {
    * @param element The element to attach the pointer events to is the one provided by `initialize()` by default. But you can provide a different one here.
    */
   *#doStart(element: HTMLElement = this.element ?? document.body) {
-    yield handleHtmlElementEvent(element, {
+    yield handleElementEvent(element, {
       contextmenu: event => {
         event.preventDefault()
       },
