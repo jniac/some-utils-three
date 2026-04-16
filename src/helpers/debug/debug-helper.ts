@@ -276,6 +276,45 @@ class DebugHelper extends Group {
     return this
   }
 
+  static basis_defaultOptions = {
+    size: 1,
+    pointSizeRatio: .2,
+    pointSize: <number | undefined>undefined,
+    colors: <[ColorRepresentation, ColorRepresentation, ColorRepresentation]>[
+      '#f03',
+      '#0c6',
+      '#30f',
+    ],
+  }
+  basis(
+    basis: [
+      origin: Vector3Declaration,
+      tangent: Vector3Declaration,
+      bitangent: Vector3Declaration,
+      normal: Vector3Declaration,
+    ],
+    options?: Partial<typeof DebugHelper.basis_defaultOptions>,
+  ): this {
+    const [origin, tangent, bitangent, normal] = basis.map(v => fromVector3Declaration(v))
+    const {
+      size,
+      pointSizeRatio,
+      pointSize = size * pointSizeRatio,
+      colors,
+    } = { ...DebugHelper.basis_defaultOptions, ...options }
+    const A = origin.clone().addScaledVector(tangent, size)
+    const B = origin.clone().addScaledVector(bitangent, size)
+    const C = origin.clone().addScaledVector(normal, size)
+    const [colorA, colorB, colorC] = colors
+    this.line(origin, A, { color: colorA })
+    this.point(A, { color: colorA, shape: 'circle', size: pointSize })
+    this.line(origin, B, { color: colorB })
+    this.point(B, { color: colorB, shape: 'circle', size: pointSize })
+    this.line(origin, C, { color: colorC })
+    this.point(C, { color: colorC, shape: 'circle', size: pointSize })
+    return this
+  }
+
   static #debugTriangle_private = {
     A: new Vector3(),
     B: new Vector3(),
