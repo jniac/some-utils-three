@@ -71,6 +71,22 @@ export class World {
     return count
   }
 
+  computePlainVoxelCount(
+    voxelIsFullDelegate = <(data: DataView) => boolean>(data => data.getUint8(0) !== 0)
+  ) {
+    let count = 0
+    for (const superChunk of this.superChunks.values()) {
+      for (const chunk of superChunk.values()) {
+        for (const state of chunk.voxelStates()) {
+          if (voxelIsFullDelegate(state)) {
+            count++
+          }
+        }
+      }
+    }
+    return count
+  }
+
   *enumerateChunks() {
     for (const [superChunkIndex, superChunk] of this.superChunks) {
       for (const [chunkIndex, chunk] of superChunk) {

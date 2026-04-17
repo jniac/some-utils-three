@@ -143,7 +143,10 @@ export class Chunk {
   }
 
   /**
-   * NOTE: the face object is reused for each iteration, so it should not be modified, nor stored.
+   * Generates all visible faces of the voxels in the chunk.
+   * 
+   * Notes:
+   * - ⚠️ The yielded face object is reused for each iteration, so it should not be modified, nor stored.
    */
   *allVoxelFaces({
     offset: { x: offx, y: offy, z: offz } = <Vector3Like>{ x: 0, y: 0, z: 0 },
@@ -197,11 +200,23 @@ export class Chunk {
     }
   }
 
-  *allGreedyBounds({
+  /**
+   * Generates all greedy boxes in the chunk.
+   * 
+   * Notes:
+   * - ⚠️ The yielded box instance is reused for each iteration, so it should not be modified, nor stored.
+   * - The boxes are represented as Box3 with integer min and max coordinates.
+   * - The boxes are generated using a greedy algorithm, so they may not be optimal.
+   * - The boxes are guaranteed to be non-overlapping.
+   * - The boxes are generated in an arbitrary order.
+   */
+  *allGreedyBoxes({
     voxelIsFullDelegate = defaultVoxelIsFullDelegate,
   } = {}) {
     const { sizeX, sizeXY, sizeY, sizeZ, voxelState, voxelStateByteSize } = this
     const visited = new Uint8Array(this.sizeXYZ)
+
+    const box = new Box3()
     for (let z = 0; z < sizeZ; z++) {
       for (let y = 0; y < sizeY; y++) {
         for (let x = 0; x < sizeX; x++) {
@@ -210,61 +225,88 @@ export class Chunk {
           const data = new DataView(voxelState, index * voxelStateByteSize, voxelStateByteSize)
           if (voxelIsFullDelegate(data)) {
             let maxX = x, maxY = y, maxZ = z
-            // Expand in X direction
-            while (maxX + 1 < sizeX) {
-              const nextIndex = maxX + 1 + y * sizeX + z * sizeXY
-              if (visited[nextIndex]) break
-              const nextData = new DataView(voxelState, nextIndex * voxelStateByteSize, voxelStateByteSize)
-              if (!voxelIsFullDelegate(nextData)) break
-              maxX++
-            }
-            // Expand in Y direction
+
+            let canExpandX = true
             let canExpandY = true
-            while (canExpandY && maxY + 1 < sizeY) {
-              for (let i = x; i <= maxX; i++) {
-                const nextIndex = i + (maxY + 1) * sizeX + z * sizeXY
-                if (visited[nextIndex]) {
-                  canExpandY = false
-                  break
-                }
-                const nextData = new DataView(voxelState, nextIndex * voxelStateByteSize, voxelStateByteSize)
-                if (!voxelIsFullDelegate(nextData)) {
-                  canExpandY = false
-                  break
-                }
-              }
-              if (canExpandY) maxY++
-            }
-            // Expand in Z direction
             let canExpandZ = true
-            while (canExpandZ && maxZ + 1 < sizeZ) {
-              for (let j = y; j <= maxY; j++) {
-                for (let i = x; i <= maxX; i++) {
-                  const nextIndex = i + j * sizeX + (maxZ + 1) * sizeXY
-                  if (visited[nextIndex]) {
-                    canExpandZ = false
-                    break
-                  }
-                  const nextData = new DataView(voxelState, nextIndex * voxelStateByteSize, voxelStateByteSize)
-                  if (!voxelIsFullDelegate(nextData)) {
-                    canExpandZ = false
-                    break
+
+            while (canExpandX || canExpandY || canExpandZ) {
+
+              // --- Try expand X ---
+              if (canExpandX && maxX + 1 < sizeX) {
+                let valid = true
+                for (let j = y; j <= maxY && valid; j++) {
+                  for (let k = z; k <= maxZ; k++) {
+                    const idx = (maxX + 1) + j * sizeX + k * sizeXY
+                    if (visited[idx]) { valid = false; break }
+                    const data = new DataView(voxelState, idx * voxelStateByteSize, voxelStateByteSize)
+                    if (!voxelIsFullDelegate(data)) { valid = false; break }
                   }
                 }
-                if (!canExpandZ) break
+                if (valid) {
+                  maxX++
+                } else {
+                  canExpandX = false
+                }
+              } else {
+                canExpandX = false
               }
-              if (canExpandZ) maxZ++
+
+              // --- Try expand Y ---
+              if (canExpandY && maxY + 1 < sizeY) {
+                let valid = true
+                for (let i = x; i <= maxX && valid; i++) {
+                  for (let k = z; k <= maxZ; k++) {
+                    const idx = i + (maxY + 1) * sizeX + k * sizeXY
+                    if (visited[idx]) { valid = false; break }
+                    const data = new DataView(voxelState, idx * voxelStateByteSize, voxelStateByteSize)
+                    if (!voxelIsFullDelegate(data)) { valid = false; break }
+                  }
+                }
+                if (valid) {
+                  maxY++
+                } else {
+                  canExpandY = false
+                }
+              } else {
+                canExpandY = false
+              }
+
+              // --- Try expand Z ---
+              if (canExpandZ && maxZ + 1 < sizeZ) {
+                let valid = true
+                for (let i = x; i <= maxX && valid; i++) {
+                  for (let j = y; j <= maxY; j++) {
+                    const idx = i + j * sizeX + (maxZ + 1) * sizeXY
+                    if (visited[idx]) { valid = false; break }
+                    const data = new DataView(voxelState, idx * voxelStateByteSize, voxelStateByteSize)
+                    if (!voxelIsFullDelegate(data)) { valid = false; break }
+                  }
+                }
+                if (valid) {
+                  maxZ++
+                } else {
+                  canExpandZ = false
+                }
+              } else {
+                canExpandZ = false
+              }
             }
+
+            box.min.set(x, y, z)
+            box.max.set(maxX + 1, maxY + 1, maxZ + 1)
+
             // Mark visited
-            for (let k = z; k <= maxZ; k++) {
-              for (let j = y; j <= maxY; j++) {
-                for (let i = x; i <= maxX; i++) {
-                  const nextIndex = i + j * sizeX + k * sizeXY
-                  visited[nextIndex] = 1
+            for (let k = box.min.z; k < box.max.z; k++) {
+              for (let j = box.min.y; j < box.max.y; j++) {
+                for (let i = box.min.x; i < box.max.x; i++) {
+                  const idx = i + j * sizeX + k * sizeXY
+                  visited[idx] = 1
                 }
               }
             }
-            yield { min: new Vector3(x, y, z), max: new Vector3(maxX + 1, maxY + 1, maxZ + 1) }
+
+            yield box
           }
         }
       }

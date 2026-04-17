@@ -204,8 +204,15 @@ class Face {
     this.tangentDirection = tangentDirection
   }
 
+  copy(other: Face): this {
+    this.voxel.copy(other.voxel)
+    this.normalDirection = other.normalDirection
+    this.tangentDirection = other.tangentDirection
+    return this
+  }
+
   clone(): this {
-    return new (this.constructor as any)(this.voxel.clone(), this.normalDirection, this.tangentDirection)
+    return new (this.constructor as any).copy(this)
   }
 
   origin(out = new Vector3()): Vector3 {
