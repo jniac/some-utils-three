@@ -13,7 +13,7 @@ type WorldMountState = {
   world: World
   superChunkIndex: number
   chunkIndex: number
-  position: Vector3
+  worldPosition: Vector3
   adjacentChunksIndexes: readonly WorldIndexes[]
 }
 
@@ -47,9 +47,9 @@ export class Chunk {
   }
 
   mount(world: World, superChunkIndex: number, chunkIndex: number) {
-    const position = world.metrics.fromIndexes(superChunkIndex, chunkIndex, 0)
+    const worldPosition = world.metrics.fromIndexes(superChunkIndex, chunkIndex, 0)
     const adjacentChunksIndexes = world.metrics.getAdjacentChunkIndexes(superChunkIndex, chunkIndex)
-    this.mountState = { world, superChunkIndex, chunkIndex, position, adjacentChunksIndexes }
+    this.mountState = { world, superChunkIndex, chunkIndex, worldPosition, adjacentChunksIndexes }
   }
 
   unmount() {
@@ -145,7 +145,7 @@ export class Chunk {
   /**
    * NOTE: the face object is reused for each iteration, so it should not be modified, nor stored.
    */
-  *voxelFaces({
+  *allVoxelFaces({
     offset: { x: offx, y: offy, z: offz } = <Vector3Like>{ x: 0, y: 0, z: 0 },
     voxelIsFullDelegate = defaultVoxelIsFullDelegate,
     /**
@@ -191,6 +191,80 @@ export class Chunk {
                 yield _face
               }
             }
+          }
+        }
+      }
+    }
+  }
+
+  *allGreedyBounds({
+    voxelIsFullDelegate = defaultVoxelIsFullDelegate,
+  } = {}) {
+    const { sizeX, sizeXY, sizeY, sizeZ, voxelState, voxelStateByteSize } = this
+    const visited = new Uint8Array(this.sizeXYZ)
+    for (let z = 0; z < sizeZ; z++) {
+      for (let y = 0; y < sizeY; y++) {
+        for (let x = 0; x < sizeX; x++) {
+          const index = x + y * sizeX + z * sizeXY
+          if (visited[index]) continue
+          const data = new DataView(voxelState, index * voxelStateByteSize, voxelStateByteSize)
+          if (voxelIsFullDelegate(data)) {
+            let maxX = x, maxY = y, maxZ = z
+            // Expand in X direction
+            while (maxX + 1 < sizeX) {
+              const nextIndex = maxX + 1 + y * sizeX + z * sizeXY
+              if (visited[nextIndex]) break
+              const nextData = new DataView(voxelState, nextIndex * voxelStateByteSize, voxelStateByteSize)
+              if (!voxelIsFullDelegate(nextData)) break
+              maxX++
+            }
+            // Expand in Y direction
+            let canExpandY = true
+            while (canExpandY && maxY + 1 < sizeY) {
+              for (let i = x; i <= maxX; i++) {
+                const nextIndex = i + (maxY + 1) * sizeX + z * sizeXY
+                if (visited[nextIndex]) {
+                  canExpandY = false
+                  break
+                }
+                const nextData = new DataView(voxelState, nextIndex * voxelStateByteSize, voxelStateByteSize)
+                if (!voxelIsFullDelegate(nextData)) {
+                  canExpandY = false
+                  break
+                }
+              }
+              if (canExpandY) maxY++
+            }
+            // Expand in Z direction
+            let canExpandZ = true
+            while (canExpandZ && maxZ + 1 < sizeZ) {
+              for (let j = y; j <= maxY; j++) {
+                for (let i = x; i <= maxX; i++) {
+                  const nextIndex = i + j * sizeX + (maxZ + 1) * sizeXY
+                  if (visited[nextIndex]) {
+                    canExpandZ = false
+                    break
+                  }
+                  const nextData = new DataView(voxelState, nextIndex * voxelStateByteSize, voxelStateByteSize)
+                  if (!voxelIsFullDelegate(nextData)) {
+                    canExpandZ = false
+                    break
+                  }
+                }
+                if (!canExpandZ) break
+              }
+              if (canExpandZ) maxZ++
+            }
+            // Mark visited
+            for (let k = z; k <= maxZ; k++) {
+              for (let j = y; j <= maxY; j++) {
+                for (let i = x; i <= maxX; i++) {
+                  const nextIndex = i + j * sizeX + k * sizeXY
+                  visited[nextIndex] = 1
+                }
+              }
+            }
+            yield { min: new Vector3(x, y, z), max: new Vector3(maxX + 1, maxY + 1, maxZ + 1) }
           }
         }
       }

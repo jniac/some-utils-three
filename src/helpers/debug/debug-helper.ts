@@ -581,6 +581,11 @@ class DebugHelper extends Group {
 
   /**
    * Makes visible the occluded parts of the helper by rendering them faded / on top.
+   * 
+   * Notes:
+   * - ⚠️ Depending on the brightess of the rendered scene, the "xray" color may not be visible enough. 
+   * - ➡️ "Amount" of "xray" can be provided: `helper.xray(0.5)`
+   * - ☑️ The default amount of "xray" is `0.1`.
    */
   xray(amountArg?: false | number | { lines?: false | number, points?: false | number }): this {
     const [linesAmount, pointsAmount] = typeof amountArg === 'object'

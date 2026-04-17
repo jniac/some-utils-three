@@ -1,6 +1,7 @@
-import { Box3, BufferAttribute, BufferGeometry } from 'three'
+import { Box3, BufferAttribute, BufferGeometry, Vector3 } from 'three'
 
 import { Face } from '../face'
+import { World } from '../world'
 
 class ResizableFloat32Array {
   array = new Float32Array(0)
@@ -25,9 +26,21 @@ class ResizableFloat32Array {
 const _position = new ResizableFloat32Array(256 * 3)
 const _normal = new ResizableFloat32Array(256 * 3)
 
-export function createNaiveVoxelGeometry(faces: Iterable<Face> | (() => Generator<Face>), {
-  geometry = new BufferGeometry(),
-} = {}) {
+export function createNaiveVoxelGeometry(
+  faces: Iterable<Face> | (() => Generator<Face>),
+  {
+    /**
+     * An offset applied to the position of each vertex. 
+     * 
+     * Useful for chunk geometries, where each chunk's geometry can be created with a local position and then offset to the correct world position.
+     */
+    positionOffset = new Vector3(),
+    /**
+     * If provided, this geometry will be mutated and returned. Otherwise, a new geometry will be created.
+     */
+    geometry = new BufferGeometry(),
+  } = {},
+) {
   const iterableFaces = typeof faces === 'function' ? faces() : faces
 
   const FACE_STRIDE = 2 * 3 * 3 // 2 triangles * 3 vertices * 3 components
@@ -45,7 +58,7 @@ export function createNaiveVoxelGeometry(faces: Iterable<Face> | (() => Generato
     const size = faceCount * FACE_STRIDE
     _position.ensureSize(size + FACE_STRIDE)
     _normal.ensureSize(size + FACE_STRIDE)
-    face.positionToArray(_position.array, size)
+    face.positionToArray(_position.array, size, positionOffset)
 
     for (let i = 0; i < FACE_STRIDE; i += 3) {
       const x = _position.array[size + i]
@@ -73,4 +86,16 @@ export function createNaiveVoxelGeometry(faces: Iterable<Face> | (() => Generato
   }
 
   return geometry
+}
+
+export function createNaiveChunkGeometries(world: World): BufferGeometry[] {
+  const geometries: BufferGeometry[] = []
+
+  for (const { chunk } of world.enumerateChunks()) {
+    const { worldPosition } = chunk.mountState!
+    const geometry = createNaiveVoxelGeometry(chunk.allVoxelFaces(), { positionOffset: worldPosition })
+    geometries.push(geometry)
+  }
+
+  return geometries
 }

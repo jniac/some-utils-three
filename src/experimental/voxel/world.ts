@@ -14,7 +14,7 @@ function isDataViewZeroed(dataView: DataView) {
 
 const defaultWorldProps = {
   metrics: new WorldMetrics(16, 16, 16, 1024, 1024, 1024, 1024, 1024, 1024),
-  voxelStateByteSize: 4,
+  voxelStateByteSize: 4, // Enough for 32 bits of data per voxel, which should be sufficient for most use cases
 }
 
 export class World {
@@ -34,6 +34,33 @@ export class World {
     this.metrics = metrics.clone()
     this.voxelStateByteSize = voxelStateByteSize
     this.emptyVoxelState = new DataView(new ArrayBuffer(voxelStateByteSize))
+  }
+
+  /**
+   * Creates a new voxel state. 
+   * 
+   * Notes:
+   * - The state can be initialized with an array of u32 values or an ArrayBuffer. 
+   * - If no data is provided, the state will be initialized with zeros.
+   */
+  createVoxelState(...args: number[] | [data: ArrayBufferLike]): DataView {
+    const state = new DataView(new ArrayBuffer(this.voxelStateByteSize))
+    if (args.length === 1 && args[0] instanceof ArrayBuffer) {
+      new Uint8Array(state.buffer).set(new Uint8Array(args[0]))
+    } else if (args.length > 0) {
+      (args as number[]).forEach((value, index) => {
+        state.setUint32(index, value)
+      })
+    }
+    return state
+  }
+
+  voxelStateToString(state: DataView) {
+    let str = ''
+    for (let i = 0; i < state.byteLength; i++) {
+      str += state.getUint8(i).toString(16).padStart(2, '0')
+    }
+    return str
   }
 
   computeChunkCount() {
@@ -239,7 +266,7 @@ export class World {
           const chunk = this.tryGetChunk(x, y, z)
           if (chunk) {
             offset.set(x * chunkSizeX, y * chunkSizeY, z * chunkSizeZ)
-            yield* chunk.voxelFaces({ offset, voxelIsFullDelegate })
+            yield* chunk.allVoxelFaces({ offset, voxelIsFullDelegate })
           }
         }
       }

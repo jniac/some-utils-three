@@ -1,116 +1,117 @@
-import { Ray, Vector3 } from 'three'
+import { Ray, Vector3, Vector3Like } from 'three'
 
 import { Direction, crossDirection, defaultDirectionBitangent, defaultDirectionTangent, directionToVector } from './core'
 
 let _i = 0
 let _x = 0, _y = 0, _z = 0
+let _offx = 0, _offy = 0, _offz = 0
 let _array: Float32Array | number[] = []
 
-const _position = {
+const _positionDump = {
   A() {
-    _array[_i++] = _x
-    _array[_i++] = _y
-    _array[_i++] = _z
-    return _position
+    _array[_i++] = _offx + _x
+    _array[_i++] = _offy + _y
+    _array[_i++] = _offz + _z
+    return _positionDump
   },
   B() {
-    _array[_i++] = _x
-    _array[_i++] = _y
-    _array[_i++] = _z + 1
-    return _position
+    _array[_i++] = _offx + _x
+    _array[_i++] = _offy + _y
+    _array[_i++] = _offz + _z + 1
+    return _positionDump
   },
   C() {
-    _array[_i++] = _x
-    _array[_i++] = _y + 1
-    _array[_i++] = _z
-    return _position
+    _array[_i++] = _offx + _x
+    _array[_i++] = _offy + _y + 1
+    _array[_i++] = _offz + _z
+    return _positionDump
   },
   D() {
-    _array[_i++] = _x
-    _array[_i++] = _y + 1
-    _array[_i++] = _z + 1
-    return _position
+    _array[_i++] = _offx + _x
+    _array[_i++] = _offy + _y + 1
+    _array[_i++] = _offz + _z + 1
+    return _positionDump
   },
   E() {
-    _array[_i++] = _x + 1
-    _array[_i++] = _y
-    _array[_i++] = _z
-    return _position
+    _array[_i++] = _offx + _x + 1
+    _array[_i++] = _offy + _y
+    _array[_i++] = _offz + _z
+    return _positionDump
   },
   F() {
-    _array[_i++] = _x + 1
-    _array[_i++] = _y
-    _array[_i++] = _z + 1
-    return _position
+    _array[_i++] = _offx + _x + 1
+    _array[_i++] = _offy + _y
+    _array[_i++] = _offz + _z + 1
+    return _positionDump
   },
   G() {
-    _array[_i++] = _x + 1
-    _array[_i++] = _y + 1
-    _array[_i++] = _z
-    return _position
+    _array[_i++] = _offx + _x + 1
+    _array[_i++] = _offy + _y + 1
+    _array[_i++] = _offz + _z
+    return _positionDump
   },
   H() {
-    _array[_i++] = _x + 1
-    _array[_i++] = _y + 1
-    _array[_i++] = _z + 1
-    return _position
+    _array[_i++] = _offx + _x + 1
+    _array[_i++] = _offy + _y + 1
+    _array[_i++] = _offz + _z + 1
+    return _positionDump
   },
 }
 
-const _normal = {
+const _normalDump = {
   R() {
     _array[_i++] = +1
     _array[_i++] = 0
     _array[_i++] = 0
-    return _normal
+    return _normalDump
   },
   L() {
     _array[_i++] = -1
     _array[_i++] = 0
     _array[_i++] = 0
-    return _normal
+    return _normalDump
   },
   U() {
     _array[_i++] = 0
     _array[_i++] = +1
     _array[_i++] = 0
-    return _normal
+    return _normalDump
   },
   D() {
     _array[_i++] = 0
     _array[_i++] = -1
     _array[_i++] = 0
-    return _normal
+    return _normalDump
   },
   F() {
     _array[_i++] = 0
     _array[_i++] = 0
     _array[_i++] = +1
-    return _normal
+    return _normalDump
   },
   B() {
     _array[_i++] = 0
     _array[_i++] = 0
     _array[_i++] = -1
-    return _normal
+    return _normalDump
   },
   R6() {
-    return _normal.R().R().R().R().R().R()
+    return _normalDump.R().R().R().R().R().R()
   },
   L6() {
-    return _normal.L().L().L().L().L().L()
+    return _normalDump.L().L().L().L().L().L()
   },
   U6() {
-    return _normal.U().U().U().U().U().U()
+    return _normalDump.U().U().U().U().U().U()
   },
   D6() {
-    return _normal.D().D().D().D().D().D()
+    return _normalDump.D().D().D().D().D().D()
   },
   F6() {
-    return _normal.F().F().F().F().F().F()
+    return _normalDump.F().F().F().F().F().F()
   },
   B6() {
-    return _normal.B().B().B().B().B().B()
+    return _normalDump.B().B().B().B().B().B()
   },
 }
 
@@ -328,48 +329,52 @@ class Face {
    * The vertices are ordered in a way that they form two triangles covering the face.
    */
   positionToArray(): number[]
-  positionToArray(out: Float32Array, offset?: number): Float32Array
-  positionToArray<T extends number[] | Float32Array>(out?: T, offset = 0): T {
+  positionToArray(out: Float32Array, arrayOffset?: number, positionOffset?: Vector3Like): Float32Array
+  positionToArray<T extends number[] | Float32Array>(out?: T, arrayOffset = 0, positionOffset?: Vector3Like): T {
     const { voxel: position, normalDirection: direction } = this
     out ??= [] as unknown as T
     _array = out
-    _i = offset
+    _i = arrayOffset
     _x = position.x
     _y = position.y
     _z = position.z
+    _offx = positionOffset?.x ?? 0
+    _offy = positionOffset?.y ?? 0
+    _offz = positionOffset?.z ?? 0
+
     switch (direction) {
       case Direction.R: {
-        _position
+        _positionDump
           .E().G().F()
           .F().G().H()
         break
       }
       case Direction.L: {
-        _position
+        _positionDump
           .A().B().D()
           .A().D().C()
         break
       }
       case Direction.U: {
-        _position
+        _positionDump
           .D().H().G()
           .D().G().C()
         break
       }
       case Direction.D: {
-        _position
+        _positionDump
           .A().E().F()
           .A().F().B()
         break
       }
       case Direction.F: {
-        _position
+        _positionDump
           .B().F().H()
           .B().H().D()
         break
       }
       case Direction.B: {
-        _position
+        _positionDump
           .A().C().E()
           .E().C().G()
         break
@@ -384,27 +389,27 @@ class Face {
     _i = offset
     switch (direction) {
       case Direction.R: {
-        _normal.R6()
+        _normalDump.R6()
         break
       }
       case Direction.L: {
-        _normal.L6()
+        _normalDump.L6()
         break
       }
       case Direction.U: {
-        _normal.U6()
+        _normalDump.U6()
         break
       }
       case Direction.D: {
-        _normal.D6()
+        _normalDump.D6()
         break
       }
       case Direction.F: {
-        _normal.F6()
+        _normalDump.F6()
         break
       }
       case Direction.B: {
-        _normal.B6()
+        _normalDump.B6()
         break
       }
     }
