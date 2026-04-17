@@ -87,10 +87,32 @@ export class World {
     return count
   }
 
-  *enumerateChunks() {
+  static ChunkIeration = class {
+    constructor(
+      /**
+       * The index of the chunk iteration, starting from 0.
+       */
+      public i: number,
+      /**
+       * The index of the super chunk containing the chunk.
+       */
+      public superChunkIndex: number,
+      /**
+       * The index of the chunk within the super chunk.
+       */
+      public chunkIndex: number,
+      /**
+       * The chunk instance.
+       */
+      public chunk: Chunk,
+    ) { }
+  };
+
+  *enumerateChunks(): Iterable<InstanceType<typeof World.ChunkIeration>> {
+    let i = 0
     for (const [superChunkIndex, superChunk] of this.superChunks) {
       for (const [chunkIndex, chunk] of superChunk) {
-        yield { superChunkIndex, chunkIndex, chunk }
+        yield new World.ChunkIeration(i++, superChunkIndex, chunkIndex, chunk)
       }
     }
   }

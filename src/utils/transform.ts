@@ -97,6 +97,8 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
     name,
     parent,
     userData,
+
+    ...restProps
   } = { ...defaultTransformProps, ...props }
 
   fromVector3Declaration(position, target.position)
@@ -130,6 +132,13 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
 
   if (userData !== undefined) {
     Object.assign(target.userData, userData)
+  }
+
+  // Support extra props, which will be assigned to the target object.
+  // E.g. `castShadow`, `receiveShadow`, etc.
+  for (const [key, value] of Object.entries(restProps)) {
+    // @ts-expect-error
+    target[key] = value
   }
 
   return target
