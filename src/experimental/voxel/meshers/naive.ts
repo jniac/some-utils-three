@@ -47,9 +47,6 @@ export function createNaiveVoxelGeometry(
 
   const FACE_STRIDE = 2 * 3 * 3 // 2 triangles * 3 vertices * 3 components
 
-  _position.array.fill(0)
-  _normal.array.fill(0)
-
   geometry.boundingBox ??= new Box3()
   const { min, max } = geometry.boundingBox
   min.set(Infinity, Infinity, Infinity)
