@@ -590,7 +590,7 @@ class DebugHelper extends Group {
   xray(amountArg?: false | number | { lines?: false | number, points?: false | number }): this {
     const [linesAmount, pointsAmount] = typeof amountArg === 'object'
       ? [amountArg.lines ?? false, amountArg.points ?? false]
-      : [amountArg ?? .1, amountArg ?? .1]
+      : [amountArg ?? .2, amountArg ?? .2]
     this.parts.linesManager.xray(linesAmount)
     this.parts.pointsManager.xray(pointsAmount)
     return this

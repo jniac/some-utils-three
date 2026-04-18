@@ -25,6 +25,8 @@ class ResizableFloat32Array {
 
 const _position = new ResizableFloat32Array(256 * 3)
 const _normal = new ResizableFloat32Array(256 * 3)
+const _faceMin = new Vector3()
+const _faceMax = new Vector3()
 
 export function createNaiveVoxelGeometry(
   faces: Iterable<Face> | (() => Generator<Face>),
@@ -54,25 +56,26 @@ export function createNaiveVoxelGeometry(
   max.set(-Infinity, -Infinity, -Infinity)
 
   let faceCount = 0
+
   for (const face of iterableFaces) {
     const size = faceCount * FACE_STRIDE
+
+    // Update position and normal arrays
     _position.ensureSize(size + FACE_STRIDE)
     _normal.ensureSize(size + FACE_STRIDE)
     face.positionToArray(_position.array, size, positionOffset)
-
-    for (let i = 0; i < FACE_STRIDE; i += 3) {
-      const x = _position.array[size + i]
-      const y = _position.array[size + i + 1]
-      const z = _position.array[size + i + 2]
-      if (x < min.x) min.x = x
-      if (y < min.y) min.y = y
-      if (z < min.z) min.z = z
-      if (x > max.x) max.x = x
-      if (y > max.y) max.y = y
-      if (z > max.z) max.z = z
-    }
-
     face.normalToArray(_normal.array, size)
+
+    // Update bounding box
+    face.min(_faceMin)
+    face.max(_faceMax)
+    if (_faceMin.x < min.x) min.x = _faceMin.x
+    if (_faceMin.y < min.y) min.y = _faceMin.y
+    if (_faceMin.z < min.z) min.z = _faceMin.z
+    if (_faceMax.x > max.x) max.x = _faceMax.x
+    if (_faceMax.y > max.y) max.y = _faceMax.y
+    if (_faceMax.z > max.z) max.z = _faceMax.z
+
     faceCount++
   }
 
