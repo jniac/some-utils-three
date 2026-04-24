@@ -9,7 +9,7 @@ const _color3 = new Color()
  * 
  * Note:
  * - For best results, use colors in the sRGB color space.
- * - If the out parameter is not provided, an internal Color instance will be used, if you need to keep the result, provide your own Color instance or clone the result.
+ * - ⚠️ If the out parameter is not provided, an internal Color instance will be used, if you need to keep the result, provide your own Color instance or clone the result.
  */
 export function lerpColors(color1: ColorRepresentation, color2: ColorRepresentation, alpha = .5, out = _color3) {
   if (typeof color1 === 'string') {

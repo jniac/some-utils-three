@@ -73,7 +73,6 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
 
     // Frustum culling cannot be applied since each text position is defined into the data texture.
     this.frustumCulled = false
-    this.layers
 
     this.options = options
     this.atlas = atlas
