@@ -1,17 +1,13 @@
-import { Object3D, PerspectiveCamera, Scene, Vector2, WebGLRenderer, WebGLRenderTarget } from 'three'
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { PerspectiveCamera, Scene, Vector2, WebGLRenderer } from 'three'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
-import { Pass } from 'three/examples/jsm/postprocessing/Pass.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js'
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js'
 
-import { Tick } from 'some-utils-ts/ticker'
-import { DestroyableObject } from 'some-utils-ts/types'
 
-import { PassMetadata, PassType, PipelineBase } from './types'
+import { PassType, PipelineBase } from './PipelineBase'
 
 type Props = {
   useStencil: boolean
@@ -36,8 +32,7 @@ type Props = {
  * 
  * NOTE: Every object in the scene trees that has an `onTick` method will have it called before rendering.
  */
-export class BasicPipeline implements PipelineBase {
-  composer: EffectComposer
+export class BasicPipeline extends PipelineBase {
   basicPasses: {
     mainRender: RenderPass
     gizmoRender: RenderPass
@@ -46,9 +41,6 @@ export class BasicPipeline implements PipelineBase {
     fxaa: ShaderPass
     smaa: SMAAPass
   }
-  passMap: Map<Pass, PassMetadata>
-
-  get passes() { return this.composer.passes }
 
   constructor(
     renderer: WebGLRenderer,
@@ -57,48 +49,42 @@ export class BasicPipeline implements PipelineBase {
     camera: PerspectiveCamera,
     props: Props
   ) {
-    const { width, height } = renderer.getSize(new Vector2())
-      .multiplyScalar(renderer.getPixelRatio())
-
-    const renderTarget = new WebGLRenderTarget(width, height, {
+    super(renderer, {
       stencilBuffer: props.useStencil,
     })
-    const composer = new EffectComposer(renderer, renderTarget)
-    const passMap = new Map<Pass, PassMetadata>()
 
     const mainRender = new RenderPass(scene, camera)
     mainRender.clearAlpha = 0
-    passMap.set(mainRender, { type: PassType.Render, insertOrder: 0 })
-    composer.addPass(mainRender)
+    this.passMap.set(mainRender, { type: PassType.Render, insertOrder: 0 })
+    this.composer.addPass(mainRender)
 
     const gizmoRender = new RenderPass(gizmoScene, camera)
-    passMap.set(gizmoRender, { type: PassType.GizmoRender, insertOrder: 0 })
     gizmoRender.clear = false
     gizmoRender.clearDepth = false
-    composer.addPass(gizmoRender)
+    this.passMap.set(gizmoRender, { type: PassType.GizmoRender, insertOrder: 0 })
+    this.composer.addPass(gizmoRender)
 
     const outline = new OutlinePass(new Vector2(), scene, camera)
-    passMap.set(outline, { type: PassType.GizmoRender, insertOrder: 0 })
-    composer.addPass(outline)
+    this.passMap.set(outline, { type: PassType.GizmoRender, insertOrder: 0 })
+    this.composer.addPass(outline)
 
     const output = new OutputPass()
-    passMap.set(output, { type: PassType.Output, insertOrder: 0 })
-    composer.addPass(output)
+    this.passMap.set(output, { type: PassType.Output, insertOrder: 0 })
+    this.composer.addPass(output)
 
     // FXAA: Fast Approximate Anti-Aliasing
     // https://github.com/mrdoob/three.js/blob/master/examples/webgl_postprocessing_fxaa.html#L144C5-L145C1
     // FXAA is engineered to be applied towards the end of engine post processing after conversion to low dynamic range and conversion to the sRGB color space for display.
     const fxaa = new ShaderPass(FXAAShader)
-    passMap.set(fxaa, { type: PassType.Antialiasing, insertOrder: 0 })
-    composer.addPass(fxaa)
+    this.passMap.set(fxaa, { type: PassType.Antialiasing, insertOrder: 0 })
+    this.composer.addPass(fxaa)
 
     // const smaa = new SMAAPass(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio)
     const smaa = new SMAAPass()
     smaa.enabled = false
-    passMap.set(smaa, { type: PassType.Antialiasing, insertOrder: 0 })
-    composer.addPass(smaa)
+    this.passMap.set(smaa, { type: PassType.Antialiasing, insertOrder: 0 })
+    this.composer.addPass(smaa)
 
-    this.composer = composer
     this.basicPasses = {
       mainRender,
       gizmoRender,
@@ -107,109 +93,11 @@ export class BasicPipeline implements PipelineBase {
       fxaa,
       smaa,
     }
-    this.passMap = passMap
   }
 
-  /**
-   * Sort the passes internally.
-   */
-  sortPasses(): this {
-    const passes = [...this.passMap]
-    for (const [pass] of passes) {
-      this.composer.removePass(pass)
-    }
-    passes.sort((a, b) => {
-      const ma = a[1]
-      const mb = b[1]
-      if (ma.type !== mb.type) {
-        return ma.type - mb.type
-      }
-      return ma.insertOrder - mb.insertOrder
-    })
-    for (const [pass] of passes) {
-      this.composer.addPass(pass)
-    }
-    return this
-  }
-
-  *getPassesByType(type: PassType) {
-    for (const [pass, metadata] of this.passMap) {
-      if (metadata.type === type) {
-        yield [pass, metadata] as const
-      }
-    }
-  }
-
-  /**
-   * Example: adding an AO pass:
-   * ```
-   * const aoPass = new GTAOPass(three.scene, three.camera)
-   * pipeline.addPass(aoPass, { type: PassType.PostProcessing })
-   * ```
-   */
-  addPass(pass: Pass,
-    {
-      type = PassType.Render,
-      insertOrder = undefined,
-    }: Partial<PassMetadata> = {}): DestroyableObject {
-    if (insertOrder === undefined) {
-      const existingPasses = [...this.getPassesByType(type)]
-      insertOrder = (existingPasses.at(-1)?.[1]?.insertOrder ?? -1) + 1
-    }
-    this.passMap.set(pass, { type, insertOrder })
-    this.sortPasses()
-    const destroy = () => this.removePass(pass)
-    return { destroy }
-  }
-
-  removePass(pass: Pass): boolean {
-    if (!this.passMap.has(pass)) {
-      console.warn('The pass is not in the pipeline.')
-      return false
-    }
-    this.passMap.delete(pass)
-    this.composer.removePass(pass)
-    return true
-  }
-
-  setSize(width: number, height: number, pixelRatio: number): void {
-    this.composer.setSize(width, height)
-    this.composer.setPixelRatio(pixelRatio)
+  override setSize(width: number, height: number, pixelRatio: number): void {
+    super.setSize(width, height, pixelRatio)
     this.basicPasses.fxaa.uniforms['resolution'].value.set(1 / pixelRatio / width, 1 / pixelRatio / height)
     this.basicPasses.smaa.setSize(width * pixelRatio, height * pixelRatio) // Required? not sure since it implements "setSize"
-  }
-
-  /**
-   * Update all the passes that are using the previous scene with the new scene.
-   */
-  setScene(scene: Object3D): void {
-    const previousScene = this.basicPasses.mainRender.scene
-    for (const pass of this.composer.passes) {
-      if (pass instanceof RenderPass) {
-        if (pass.scene === previousScene) {
-          // @ts-ignore (Object3D is ok)
-          pass.scene = scene
-        }
-      }
-    }
-  }
-
-  render(tick: Tick): void {
-    this.composer.render(tick.deltaTime)
-  }
-
-  getPassesInfo() {
-    const lines = [`${this.constructor.name} passes info:`]
-    const { composer, passMap } = this
-    for (const [passIndex, pass] of composer.passes.entries()) {
-      const metadata = passMap.get(pass)
-      if (!metadata) {
-        lines.push(`- ${passIndex}: NO METADATA for ${pass.constructor.name}`)
-      } else {
-        const enabled = pass.enabled ? '✅' : '❌'
-        lines.push(`- ${passIndex}: ${enabled} ${PassType[metadata.type]} (insertOrder: ${metadata.insertOrder}) ${pass.constructor.name}`)
-      }
-    }
-    return lines.join('\n')
   }
 }

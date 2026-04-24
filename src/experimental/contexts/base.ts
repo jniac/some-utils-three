@@ -47,6 +47,12 @@ const defaultQueryOptions = {
 
 type QuerySelectorOptions = Partial<typeof defaultQueryOptions>
 
+export enum RenderMode {
+  Standard,
+  Depth,
+  // Normal, // For future use
+}
+
 const renderFrameOptions = {
   /**
    * Should the frame be rendered even if the context is not enabled?
@@ -86,6 +92,8 @@ export class ThreeBaseContext {
    * The camera used for rendering.
    */
   camera!: Camera
+
+  renderMode = RenderMode.Standard
 
   skipRender = false
   /**

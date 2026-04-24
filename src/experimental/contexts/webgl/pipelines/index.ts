@@ -1,3 +1,4 @@
 export * from './BasicPipeline'
-export * from './types'
+export * from './DepthPipeline'
+export * from './PipelineBase'
 

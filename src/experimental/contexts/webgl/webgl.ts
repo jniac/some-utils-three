@@ -10,9 +10,9 @@ import { Destroyable, Vector2Like } from 'some-utils-ts/types'
 import { fromVector3Declaration, Vector3Declaration } from '../../../declaration'
 import { UnifiedLoader } from '../../../loaders/unified-loader'
 import { queryDescendantsOf, QueryPredicate } from '../../../utils/tree'
-import { RenderFrameOptions, ThreeBaseContext } from '../base'
+import { RenderFrameOptions, RenderMode, ThreeBaseContext } from '../base'
 import { ThreeContextType, TickPhase } from '../types'
-import { BasicPipeline } from './pipelines/BasicPipeline'
+import { BasicPipeline, DepthPipeline, PipelineBase } from './pipelines'
 
 const defaultProps = {
   useStencil: true,
@@ -39,14 +39,24 @@ export class ThreeWebGLContext extends ThreeBaseContext {
 
   gizmoScene = new Scene()
 
-  pipeline: BasicPipeline
+  pipeline: PipelineBase
 
   private internal = {
     destroyables: [] as Destroyable[],
     orbitControls: null as null | OrbitControls,
+    depthPipeline: null as null | DepthPipeline,
+    previousPipeline: null as null | PipelineBase,
   }
 
   // Accessors:
+
+  get depthMode() {
+    return this.internal.depthPipeline !== null
+  }
+
+  set depthMode(value: boolean) {
+    this.setDepthMode(value)
+  }
 
   onTick = this.ticker.onTick.bind(this.ticker)
 
@@ -73,6 +83,35 @@ export class ThreeWebGLContext extends ThreeBaseContext {
       this.perspectiveCamera,
       { useStencil: this.props.useStencil },
     )
+
+    this.perspectiveCamera.layers.enable(1)
+    this.orthographicCamera.layers.enable(1)
+  }
+
+
+  setDepthMode(value: boolean | 'toggle' = 'toggle') {
+    if (value === 'toggle')
+      value = this.internal.depthPipeline === null
+
+    if (value === (this.internal.depthPipeline !== null))
+      return
+
+    if (value) {
+      this.internal.depthPipeline = new DepthPipeline(
+        this.renderer,
+        this.scene,
+        this.gizmoScene,
+        this.perspectiveCamera,
+      )
+      this.internal.previousPipeline = this.pipeline
+      this.pipeline = this.internal.depthPipeline
+    }
+
+    else {
+      this.internal.depthPipeline?.composer.dispose()
+      this.internal.depthPipeline = null
+      this.pipeline = this.internal.previousPipeline!
+    }
   }
 
   protected override _onSetScene(): void {
@@ -198,7 +237,16 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     super.renderFrame(tick, options)
 
     if (this.skipRender === false) {
-      this.pipeline.render(tick)
+      switch (this.renderMode) {
+        case RenderMode.Standard: {
+          this.pipeline.render(tick)
+          break
+        }
+
+        case RenderMode.Depth: {
+
+        }
+      }
     }
   };
 
