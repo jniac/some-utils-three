@@ -22,13 +22,13 @@
   "peerDependencies": {
     "some-utils-dom": "workspace:*",
     "some-utils-ts": "workspace:*",
-    "three": ">=0.176.0"
+    "three": ">=0.184.0"
   },
   "devDependencies": {
-    "@types/three": ">=0.176.0",
+    "@types/three": ">=0.184.1",
     "commander": "^14.0.1",
     "rimraf": "^6.0.1",
-    "three": ">=0.176.0",
+    "three": ">=0.184.0",
     "tsc-watch": "^6.2.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.4"

@@ -70,6 +70,7 @@ export function createTextNodeMaterial(uniforms: TextUniforms, atlas: TextHelper
     If(uOrientation.equal(0), () => {
       position.assign(positionGeometry)
     }).Else(() => {
+      // @ts-expect-error tsl is not stable yet
       position.assign(mat3(cameraWorldMatrix).mul(positionGeometry))
     })
     return position

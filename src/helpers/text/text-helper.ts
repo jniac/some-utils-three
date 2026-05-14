@@ -151,8 +151,9 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
     return this
   }
 
-  override setColorAt(index: number, color: Color): void {
+  override setColorAt(index: number, color: Color): this {
     this.data.setColorAt(index, { color })
+    return this
   }
 
   setTextColorAt(index: number, options: SetColorOptions): this {
