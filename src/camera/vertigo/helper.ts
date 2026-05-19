@@ -12,6 +12,15 @@ const defaultOptions = {
    * If a grid should be drawn, and if so, its step.
    */
   grid: <false | number>1,
+  /**
+   * Whether to draw the frustum cone.
+   */
+  frustum: <boolean | 'focus-as-far'>false,
+  /**
+   * Whether to use the focus plane as the far plane when drawing the frustum cone. 
+   * This is useful since the far plane is often very far away, which makes the frustum cone too large to be useful.
+   */
+  frustumFocusAsFar: <undefined | boolean>undefined,
 }
 
 type Options = typeof defaultOptions
@@ -62,7 +71,7 @@ export class VertigoHelper extends Group {
     this.parts = VertigoHelper.createParts(this)
   }
 
-  #onTick_private = {
+  #update_private = {
     rectPoints: [
       new Vector3(),
       new Vector3(),
@@ -79,10 +88,18 @@ export class VertigoHelper extends Group {
       new Vector3(),
       new Vector3(),
     ],
+    mat4: new Matrix4(),
   }
-  onTick() {
+  update() {
     const { vertigo, options } = this
-    const { color, grid } = options
+
+    const {
+      color,
+      grid: drawGrid,
+      frustum: drawFrustum,
+      frustumFocusAsFar: drawFrustumFocusAsFar = drawFrustum === 'focus-as-far',
+    } = options
+
     const { screenOffset, zoom } = vertigo
     const { x: sx, y: sy } = vertigo.size
     const { x: rsx, y: rsy } = vertigo.state.realSize
@@ -90,7 +107,7 @@ export class VertigoHelper extends Group {
     const pointSize = .1666 / zoom
     const r = this.vertigo.size.length() * .01 / zoom
 
-    const { rectPoints, cornerPoints } = this.#onTick_private
+    const { rectPoints, cornerPoints, mat4 } = this.#update_private
 
     const { debugHelper, matrix, plane, planeWrapper } = this.parts
 
@@ -191,7 +208,7 @@ export class VertigoHelper extends Group {
       debugHelper.points(rectPoints, { color, size: pointSize })
     }
 
-    if (grid) {
+    if (drawGrid) {
       const { dashedGrid } = this.parts
       if (!dashedGrid)
         throw new Error('dashedGrid is not created, but grid option is truthy. What happened?')
@@ -227,15 +244,41 @@ export class VertigoHelper extends Group {
     debugHelper.resetTransformMatrix()
 
     // The frustum cone
-    if (vertigo.isStateValid()) {
-      const [A, B, C, D, E, F, G, H] = getFrustumCorners(vertigo.state.worldMatrixInverse, vertigo.state.projectionMatrix)
+    if (drawFrustum && vertigo.isStateValid()) {
+      const { far: f, near: n, distance: d, projectionMatrix, worldMatrixInverse } = vertigo.state
+      const clipSpaceFar =
+        drawFrustumFocusAsFar
+          ? (f + n) / (f - n) + 2 * f * n / (f - n) / -d
+          : 1
+      mat4
+        .multiplyMatrices(projectionMatrix, worldMatrixInverse)
+        .invert()
+      const [A, B, C, D, E, F, G, H] = getFrustumCorners(mat4, -1, clipSpaceFar)
       debugHelper
         .segments([
           A, B, B, C, C, D, D, A,
           E, F, F, G, G, H, H, E,
           A, E, B, F, C, G, D, H,
         ], { color })
+
+      // Draw extra lines from the focus plane pointing to the far corners
+      if (drawFrustumFocusAsFar) {
+        const zn = (f + n) / (f - n) + 2 * f * n / (f - n) / -d * 0.9
+        const zf = (f + n) / (f - n) + 2 * f * n / (f - n) / -d * 0.7
+        const [A, B, C, D, E, F, G, H] = getFrustumCorners(mat4, zn, zf)
+        debugHelper
+          .segments([
+            A, E,
+            B, F,
+            C, G,
+            D, H,
+          ], { color })
+      }
     }
+  }
+
+  onTick() {
+    this.update()
   }
 }
 
@@ -268,31 +311,33 @@ function texture() {
  *   so you should clone them if you want to keep them.
  */
 const getFrustumCorners = (() => {
-  const ndcCorners = [
-    new Vector3(-1, -1, -1), // near bottom-left
-    new Vector3(1, -1, -1), // near bottom-right
-    new Vector3(1, 1, -1), // near top-right
-    new Vector3(-1, 1, -1), // near top-left
-    new Vector3(-1, -1, 1), // far bottom-left
-    new Vector3(1, -1, 1), // far bottom-right
-    new Vector3(1, 1, 1), // far top-right
-    new Vector3(-1, 1, 1), // far top-left
-  ]
+  const p0 = new Vector3()
+  const p1 = new Vector3()
+  const p2 = new Vector3()
+  const p3 = new Vector3()
+  const p4 = new Vector3()
+  const p5 = new Vector3()
+  const p6 = new Vector3()
+  const p7 = new Vector3()
 
-  const corners = ndcCorners.map(v => v.clone())
+  const corners = [p0, p1, p2, p3, p4, p5, p6, p7]
 
-  const viewProjectionMatrixInverse = new Matrix4()
-
-  return function (matrixWorldInverse: Matrix4, projectionMatrix: Matrix4) {
-    viewProjectionMatrixInverse
-      .multiplyMatrices(projectionMatrix, matrixWorldInverse)
-      .invert()
-
-    for (let i = 0; i < ndcCorners.length; i++) {
-      corners[i]
-        .copy(ndcCorners[i])
-        .applyMatrix4(viewProjectionMatrixInverse)
-    }
+  return function (
+    viewProjectionMatrixInverse: Matrix4,
+    clipSpaceNear = -1,
+    clipSpaceFar = 1,
+  ) {
+    const m = viewProjectionMatrixInverse
+    const zn = clipSpaceNear // The z value in clip space that corresponds to the near plane
+    const zf = clipSpaceFar // The z value in clip space that corresponds to the far plane
+    p0.set(-1, -1, zn).applyMatrix4(m) // near bottom-left
+    p1.set(+1, -1, zn).applyMatrix4(m) // near bottom-right
+    p2.set(+1, +1, zn).applyMatrix4(m) // near top-right
+    p3.set(-1, +1, zn).applyMatrix4(m) // near top-left
+    p4.set(-1, -1, zf).applyMatrix4(m) // far bottom-left
+    p5.set(+1, -1, zf).applyMatrix4(m) // far bottom-right
+    p6.set(+1, +1, zf).applyMatrix4(m) // far top-right
+    p7.set(-1, +1, zf).applyMatrix4(m) // far top-left
 
     return corners
   }
