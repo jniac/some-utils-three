@@ -37,6 +37,23 @@ const defaultProps = {
    */
   perspective: <number>1,
   /**
+   * The "subjectivity" of the camera. 
+   * - 0: objective (or "object mode"): the camera is around its focus point, 
+   *   and the focus point is the center of the camera's view.
+   * - 1: subjective (or "subject mode"): the camera is at its focus point, 
+   *   the center of the camera's view is in front of the focus point 
+   *   (distance depends on the `size` property).
+   * 
+   * Notes:
+   * - 📷 The "object mode" is very powerful, it helps reasoning about how to frame 
+   *   the objects in the scene (size, focus offset, etc.).
+   * - 👤 But sometimes you want the "subject mode" to look through the eyes of a 
+   *   subject (e.g. a character in the scene). In this case, the offset, size, 
+   *   and so on don't really matter, but they still allow us to achieve certain 
+   *   effects and perform interpolations.
+   */
+  subjectivity: <number>0,
+  /**
    * The zoom of the camera.
    * 
    * @default 1
@@ -147,6 +164,23 @@ export class Vertigo {
    */
   perspective!: number
   /**
+   * The "subjectivity" of the camera. 
+   * - 0: objective (or "object mode"): the camera is around its focus point, 
+   *   and the focus point is the center of the camera's view.
+   * - 1: subjective (or "subject mode"): the camera is at its focus point, 
+   *   the center of the camera's view is in front of the focus point 
+   *   (distance depends on the `size` property).
+   * 
+   * Notes:
+   * - 📷 The "object mode" is very powerful, it helps reasoning about how to frame 
+   *   the objects in the scene (size, focus offset, etc.).
+   * - 👤 But sometimes you want the "subject mode" to look through the eyes of a 
+   *   subject (e.g. a character in the scene). In this case, the offset, size, 
+   *   and so on don't really matter, but they still allow us to achieve certain 
+   *   effects and perform interpolations.
+   */
+  subjectivity!: number
+  /**
    * The zoom of the camera.
    */
   zoom!: number
@@ -246,8 +280,9 @@ export class Vertigo {
 
   set(props: Props): this {
     const {
-      perspective,
       fov,
+      perspective,
+      subjectivity,
       zoom,
       focus,
       screenOffset,
@@ -261,11 +296,14 @@ export class Vertigo {
       nearMin,
     } = props
 
+    if (fov !== undefined)
+      this.fov = fromAngleDeclaration(fov)
+
     if (perspective !== undefined)
       this.perspective = perspective
 
-    if (fov !== undefined)
-      this.fov = fromAngleDeclaration(fov)
+    if (subjectivity !== undefined)
+      this.subjectivity = subjectivity
 
     if (zoom !== undefined)
       this.zoom = zoom
@@ -304,8 +342,9 @@ export class Vertigo {
   }
 
   copy(other: Vertigo): this {
-    this.perspective = other.perspective
     this.fov = other.fov
+    this.perspective = other.perspective
+    this.subjectivity = other.subjectivity
     this.zoom = other.zoom
     this.focus.copy(other.focus)
     this.screenOffset.copy(other.screenOffset)
@@ -345,6 +384,7 @@ export class Vertigo {
 
   lerpVertigos(a: Vertigo, b: Vertigo, t: number): this {
     this.perspective = a.perspective + (b.perspective - a.perspective) * t
+    this.subjectivity = a.subjectivity + (b.subjectivity - a.subjectivity) * t
     this.fov = a.fov + (b.fov - a.fov) * t
 
     // Zoom interpolation:
@@ -462,7 +502,7 @@ export class Vertigo {
     // this.computedSize.set(realHeight * aspect, realHeight)
 
     const {
-      focusPlaneCenter: unoffsetFocus,
+      focusPlaneCenter,
       worldScreenOffset,
       worldMatrix,
       worldMatrixInverse,
@@ -473,10 +513,11 @@ export class Vertigo {
 
     const me = worldMatrix.elements
 
+    const s = 1 - this.subjectivity
     const { _v0, _v1 } = Vertigo.shared
     _v0
       .set(me[8], me[9], me[10]) // The forward vector
-      .multiplyScalar(distance)
+      .multiplyScalar(distance * s)
       .add(this.focus)
 
     // Apply the screen offset:
@@ -491,7 +532,11 @@ export class Vertigo {
     _v0.add(worldScreenOffset)
 
     // Hm.
-    unoffsetFocus.copy(this.focus).add(worldScreenOffset)
+    focusPlaneCenter
+      .set(me[8], me[9], me[10]) // The forward vector
+      .multiplyScalar(distance * (s - 1))
+      .add(this.focus)
+      .add(worldScreenOffset)
 
     // Apply the position:
     me[12] = _v0.x

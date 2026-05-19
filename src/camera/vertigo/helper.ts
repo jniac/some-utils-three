@@ -27,8 +27,8 @@ type Options = typeof defaultOptions
 
 export class VertigoHelper extends Group {
   static createParts(instance: VertigoHelper) {
-    const planeWrapper = setup(new Group(), instance)
-    const plane = setup(new Mesh(
+    const textPlaneWrapper = setup(new Group(), instance)
+    const textPlane = setup(new Mesh(
       new PlaneGeometry(1, .25).translate(0.5, -0.125, 0),
       new MeshBasicMaterial({
         color: instance.options.color,
@@ -36,7 +36,7 @@ export class VertigoHelper extends Group {
         transparent: true,
         side: DoubleSide,
       }),
-    ), planeWrapper)
+    ), textPlaneWrapper)
 
     const debugHelper = setup(new DebugHelper(), instance)
     debugHelper.onTop()
@@ -46,8 +46,8 @@ export class VertigoHelper extends Group {
       : null
 
     return {
-      plane,
-      planeWrapper,
+      textPlane,
+      textPlaneWrapper,
       debugHelper,
       dashedGrid,
       matrix: new Matrix4(),
@@ -109,23 +109,21 @@ export class VertigoHelper extends Group {
 
     const { rectPoints, cornerPoints, mat4 } = this.#update_private
 
-    const { debugHelper, matrix, plane, planeWrapper } = this.parts
+    const { debugHelper, matrix, textPlane, textPlaneWrapper } = this.parts
 
-    planeWrapper.position.copy(vertigo.focus)
-    planeWrapper.rotation.copy(vertigo.rotation)
-    plane.position
+    textPlaneWrapper.position.copy(vertigo.state.focusPlaneCenter)
+    textPlaneWrapper.rotation.copy(vertigo.rotation)
+    textPlane.position
       .set(-sx / 2 / vertigo.zoom + r * 1.5, sy / 2 / vertigo.zoom - r * 1.5, 0)
       .addScaledVector(vertigo.screenOffset, -1 / vertigo.zoom)
-    plane.scale.setScalar(1 / vertigo.zoom)
-
-    makeMatrix4({
-      position: vertigo.focus,
-      rotation: vertigo.rotation,
-    }, matrix)
+    textPlane.scale.setScalar(1 / vertigo.zoom)
 
     debugHelper.clear()
 
-    debugHelper.setTransformMatrix(matrix)
+    debugHelper.setTransformMatrix(makeMatrix4({
+      position: vertigo.state.focusPlaneCenter,
+      rotation: vertigo.rotation,
+    }, matrix))
 
     // The "size" rectangle
     rectPoints[0].set(+ sx / 2, + sy / 2, 0)

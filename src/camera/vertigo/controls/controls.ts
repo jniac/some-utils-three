@@ -437,6 +437,9 @@ export class VertigoControls implements DestroyableObject {
         if (state.interactive === false)
           return
 
+        if (info.touchCount > 1)
+          return
+
         const type = info.button === PointerButton.Left && info.touchCount <= 1
           ? 'orbit'
           : 'pan'
