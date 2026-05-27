@@ -1,5 +1,5 @@
 import { Vector3Declaration } from 'some-utils-ts/declaration'
-import { Color, Matrix4, Vector3 } from 'three'
+import { Color, Euler, Matrix4, Quaternion, Vector3 } from 'three'
 import { TransformDeclaration, fromTransformDeclaration, fromVector3Declaration } from '../../declaration'
 
 export const _v0 = new Vector3()
@@ -10,6 +10,8 @@ export const _v4 = new Vector3()
 export const _v5 = new Vector3()
 export const _v6 = new Vector3()
 export const _c0 = new Color()
+export const _q0 = new Quaternion()
+export const _e0 = new Euler()
 const _m0 = new Matrix4()
 
 export class Utils {

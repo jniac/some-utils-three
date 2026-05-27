@@ -7,11 +7,11 @@ import { OneOrMany } from 'some-utils-ts/types'
 import { fromOneOrMany } from 'some-utils-ts/types/utils'
 import { BufferAttribute, BufferGeometry, ColorRepresentation, GreaterDepth, LessEqualDepth, LineBasicMaterial, LineSegments } from 'three'
 
-import { TransformDeclaration, fromTransformDeclarations, fromVector3Declaration } from '../../declaration'
+import { EulerDeclaration, TransformDeclaration, fromEulerDeclaration, fromTransformDeclarations, fromVector3Declaration } from '../../declaration'
 import { ShaderForge } from '../../shader-forge'
 
 import { BaseManager } from './base'
-import { Utils, _c0, _v0, _v1, _v2, _v3, _v4, _v5, _v6 } from './shared'
+import { Utils, _c0, _e0, _q0, _v0, _v1, _v2, _v3, _v4, _v5, _v6 } from './shared'
 
 type PositionDeclaration = 'end' | 'start' | 'middle' | number
 
@@ -482,12 +482,53 @@ export class LinesManager extends BaseManager {
     return this.segments([p0, p1], options)
   }
 
-  axes(p: Vector3Declaration = 0, { size = 1 } = {}) {
+  static #axes_private = {
+    six: new Float32Array([0, 0, 0, 0, 0, 0]),
+  }
+  axes(p: Vector3Declaration = 0, {
+    size = 1,
+    rotation = null as null | EulerDeclaration,
+    quaternion = null as null | { x: number, y: number, z: number, w: number },
+  } = {}) {
+    const { six } = LinesManager.#axes_private
     const { x, y, z } = fromVector3Declaration(p, _v0)
+
+    if (rotation || quaternion) {
+      if (rotation)
+        fromEulerDeclaration(rotation, _e0)
+
+      if (quaternion)
+        _q0.copy(quaternion)
+
+      _q0.setFromEuler(_e0)
+
+      const v = _v0
+
+      v.set(size, 0, 0).applyQuaternion(_q0)
+      six.set([x, y, z, x + v.x, y + v.y, z + v.z], 0)
+      this.segmentsArray(six, { color: '#ff0033' })
+
+      v.set(0, size, 0).applyQuaternion(_q0)
+      six.set([x, y, z, x + v.x, y + v.y, z + v.z], 0)
+      this.segmentsArray(six, { color: '#00ff33' })
+
+      v.set(0, 0, size).applyQuaternion(_q0)
+      six.set([x, y, z, x + v.x, y + v.y, z + v.z], 0)
+      this.segmentsArray(six, { color: '#0033ff' })
+    }
+
+    else {
+      six.set([x, y, z, x + size, y, z], 0)
+      this.segmentsArray(six, { color: '#ff0033' })
+
+      six.set([x, y, z, x, y + size, z], 0)
+      this.segmentsArray(six, { color: '#00ff33' })
+
+      six.set([x, y, z, x, y, z + size], 0)
+      this.segmentsArray(six, { color: '#0033ff' })
+    }
+
     return this
-      .segmentsArray(new Float32Array([x, y, z, x + size, y, z]), { color: '#ff0033' })
-      .segmentsArray(new Float32Array([x, y, z, x, y + size, z]), { color: '#00ff33' })
-      .segmentsArray(new Float32Array([x, y, z, x, y, z + size]), { color: '#0033ff' })
   }
 
   polyline(p: Vector3Declaration[], options?: LineOptions) {
