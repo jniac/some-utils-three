@@ -1,6 +1,12 @@
-import { BufferGeometry, CapsuleGeometry, Color, Group, Matrix4, Mesh, MeshBasicMaterial, Plane, PlaneGeometry, Quaternion, Raycaster, TorusGeometry, Vector2, Vector3, WebGLProgramParametersWithUniforms } from 'three'
+import { BufferGeometry, Camera, CapsuleGeometry, Color, GreaterDepth, Group, Matrix4, Mesh, MeshBasicMaterial, Object3D, PerspectiveCamera, Plane, PlaneGeometry, Quaternion, Raycaster, TorusGeometry, Vector2, Vector3, WebGLProgramParametersWithUniforms, WebGLRenderer } from 'three'
 import { BufferGeometryUtils } from 'three/examples/jsm/Addons.js'
 
+import { Message } from 'some-utils-ts/message'
+import { Ticker } from 'some-utils-ts/ticker'
+import { Destroyable } from 'some-utils-ts/types'
+
+import { TickPhase } from '../experimental/contexts/types'
+import { closestPointsBetweenLines } from '../math/closestPointsBetweenLines'
 import { ShaderForge } from '../shader-forge'
 import { setVertexColors } from '../utils/geometry/vertex-colors'
 
@@ -9,7 +15,6 @@ const colors = {
   green: new Color('#22ff44'),
   blue: new Color('#1144ff'),
 }
-const colorArray = [colors.red, colors.green, colors.blue]
 
 export function createArcGeometry({
   radius = 1,
@@ -56,24 +61,48 @@ class Autolit {
 
 
 class HoverMaterial extends MeshBasicMaterial {
+  #options: { xray: boolean }
+
   uniforms = {
     ...Autolit.createUniforms(),
-    uIndexHovered: { value: -1 },
+    uHoverIndex: { value: -1 },
     uHoverBumpFactor: { value: 0.01 },
   }
 
-  constructor() {
+  constructor({ xray = false } = {}) {
     super({ vertexColors: true })
+
+    this.#options = { xray }
+
+    if (xray) {
+      this.transparent = true
+      this.opacity = 0.25
+      this.depthFunc = GreaterDepth
+    }
+
     this.onBeforeCompile = shader => {
       Autolit.enable(shader, this.uniforms)
       ShaderForge.with(shader)
+        .varying({ vHovered: 'float' })
         .vertex.replace('begin_vertex', /* glsl */`
           // Infer axe index from vertex color (red=0, green=1, blue=2)
           float axeIndex = color.r > 0.5 ? 0.0 : (color.g > 0.5 ? 1.0 : 2.0);
-          float bumpFactor = axeIndex == uIndexHovered ? uHoverBumpFactor : 0.0;
+          bool isHovered = int(axeIndex) == int(uHoverIndex);
+          float bumpFactor = isHovered ? uHoverBumpFactor : 0.0;
           vec3 transformed = position + normal * bumpFactor;
-      `)
+          vHovered = isHovered ? 1.0 : 0.0;
+        `)
+        .fragment.after('color_fragment', /* glsl */`
+          // Bump alpha on xrayed materials to make hovered part more visible
+          if (vHovered > 0.5) {
+            diffuseColor.a = 0.8;
+          }
+        `)
     }
+  }
+
+  setHoverIndex(index: number) {
+    this.uniforms.uHoverIndex.value = index
   }
 }
 
@@ -106,7 +135,10 @@ export class RotationTool extends Group {
   static normals = [new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(0, 0, 1)]
 
   static createParts(instance: RotationTool) {
-    const arcZ = createArcGeometry()
+    const radius = 1
+    const tube = 0.02
+
+    const arcZ = createArcGeometry({ radius, tube })
     const arcX = arcZ.clone().rotateY(Math.PI / 2)
     const arcY = arcZ.clone().rotateX(Math.PI / 2)
     setVertexColors(arcX, colors.red)
@@ -114,37 +146,60 @@ export class RotationTool extends Group {
     setVertexColors(arcZ, colors.blue)
     const geometry = BufferGeometryUtils.mergeGeometries([arcX, arcY, arcZ])
 
-    const mesh = new Mesh(geometry, new HoverMaterial())
-    mesh.name = 'RotationTool.mesh'
-    instance.add(mesh)
+    const arcMesh = new Mesh(geometry, new HoverMaterial())
+    arcMesh.name = 'RotationTool.arcMesh'
+    instance.add(arcMesh)
 
-    const hitArc = createArcGeometry({ radius: 1, tube: 0.05, radialSegments: 16, tubeSegments: 6 })
-    const hitArcFaceCount = hitArc.index ? hitArc.index.count / 3 : hitArc.attributes.position.count / 3
-    const hitGeometry = BufferGeometryUtils.mergeGeometries([
+    const arcXrayMesh = new Mesh(geometry, new HoverMaterial({ xray: true }))
+    arcXrayMesh.name = 'RotationTool.arcXrayMesh'
+    instance.add(arcXrayMesh)
+
+    const hitArc = createArcGeometry({ radius, tube: tube * 4, radialSegments: 16, tubeSegments: 6 })
+    const arcHitFaceCount = hitArc.index ? hitArc.index.count / 3 : hitArc.attributes.position.count / 3
+    const hitArcGeometry = BufferGeometryUtils.mergeGeometries([
       hitArc.clone().rotateY(Math.PI / 2),
       hitArc.clone().rotateX(Math.PI / 2),
       hitArc,
     ])
-    const hitMesh = new Mesh(hitGeometry, new MeshBasicMaterial({ wireframe: true, visible: false }))
-    hitMesh.name = 'RotationTool.hitMesh'
-    hitMesh.userData.isHitMesh = true
-    hitMesh.userData.isHitArea = true
-    instance.add(hitMesh)
+    const arcHitMesh = new Mesh(hitArcGeometry, new MeshBasicMaterial({ wireframe: true, visible: false }))
+    arcHitMesh.name = 'RotationTool.arcHitMesh'
+    arcHitMesh.userData.isHitMesh = true
+    arcHitMesh.userData.isHitArea = true
+    instance.add(arcHitMesh)
 
-    const capsuleY = new CapsuleGeometry(0.01, 0.2, 4, 8)
-    const capsuleX = capsuleY.clone().rotateZ(Math.PI / 2)
-    const capsuleZ = capsuleY.clone().rotateX(Math.PI / 2)
-    setVertexColors(capsuleX, colors.red)
-    setVertexColors(capsuleY, colors.green)
-    setVertexColors(capsuleZ, colors.blue)
-    const capsule = BufferGeometryUtils.mergeGeometries([
-      capsuleX.translate(1.15, 0, 0),
-      capsuleY.translate(0, 1.15, 0),
-      capsuleZ.translate(0, 0, 1.15),
+    const axisY = new CapsuleGeometry(tube * 2, 0.2, 4, 8)
+    const axisX = axisY.clone().rotateZ(Math.PI / 2)
+    const axisZ = axisY.clone().rotateX(Math.PI / 2)
+    setVertexColors(axisX, colors.red)
+    setVertexColors(axisY, colors.green)
+    setVertexColors(axisZ, colors.blue)
+    const axisGeometry = BufferGeometryUtils.mergeGeometries([
+      axisX.translate(1.2, 0, 0),
+      axisY.translate(0, 1.2, 0),
+      axisZ.translate(0, 0, 1.2),
     ])
-    const capsuleMesh = new Mesh(capsule, new HoverMaterial())
-    capsuleMesh.name = 'RotationTool.capsuleMesh'
-    instance.add(capsuleMesh)
+    const axisMesh = new Mesh(axisGeometry, new HoverMaterial())
+    axisMesh.name = 'RotationTool.axisMesh'
+    instance.add(axisMesh)
+
+    const axisXrayMesh = new Mesh(axisGeometry, new HoverMaterial({ xray: true }))
+    axisXrayMesh.name = 'RotationTool.axisXrayMesh'
+    instance.add(axisXrayMesh)
+
+    const hitAxisY = new CapsuleGeometry(tube * 4, 0.2, 4, 8)
+    const hitAxisX = hitAxisY.clone().rotateZ(Math.PI / 2)
+    const hitAxisZ = hitAxisY.clone().rotateX(Math.PI / 2)
+    const axisHitFaceCount = hitAxisY.index ? hitAxisY.index.count / 3 : hitAxisY.attributes.position.count / 3
+    const hitAxisGeometry = BufferGeometryUtils.mergeGeometries([
+      hitAxisX.translate(1.2, 0, 0),
+      hitAxisY.translate(0, 1.2, 0),
+      hitAxisZ.translate(0, 0, 1.2),
+    ])
+    const axisHitMesh = new Mesh(hitAxisGeometry, new MeshBasicMaterial({ wireframe: true, visible: false }))
+    axisHitMesh.name = 'RotationTool.axisHitMesh'
+    axisHitMesh.userData.isHitMesh = true
+    axisHitMesh.userData.isHitArea = true
+    instance.add(axisHitMesh)
 
     const discGeometry = new PlaneGeometry(2, 2)
     const discMeshX = new Mesh(discGeometry, new DiscMaterial(colors.red))
@@ -159,10 +214,16 @@ export class RotationTool extends Group {
     discMeshZ.name = 'RotationTool.discMeshZ'
 
     return {
-      mesh,
-      hitArcFaceCount,
-      hitMesh,
+      arcMesh,
+      arcXrayMesh,
+      arcHitFaceCount,
+      arcHitMesh,
       discMeshes: [discMeshX, discMeshY, discMeshZ],
+
+      axisMesh,
+      axisXrayMesh,
+      axisHitFaceCount,
+      axisHitMesh,
     }
   }
 
@@ -176,16 +237,31 @@ export class RotationTool extends Group {
     parts: RotationTool.createParts(this),
     raycaster: new Raycaster(),
     state: {
+      pointer: {
+        isDown: false,
+        dom: new Vector2(),
+        ndc: new Vector2(),
+      },
       plane: new Plane(),
-      down: false,
-      status: 'idle' as 'idle' | 'dragging',
-      activeAxe: -1,
+      pressing: false,
+      status: 'idle' as 'idle' | 'arc-dragging' | 'axis-dragging',
+      arcActiveAxe: -1,
+      axisActiveAxe: -1,
       startQuaternion: new Quaternion(),
       startWorldMatrix: new Matrix4(),
       startWorldMatrixInverse: new Matrix4(),
-      startAngle: 0,
+      startArcAngle: 0,
+      startAxisDistance: 0,
       angleStep: 0,
+
+      renderer: null as WebGLRenderer | null,
+      camera: null as Camera | null,
+
+      target: null as Object3D | null,
+      targetStartQuaternion: new Quaternion(),
+      targetStartPosition: new Vector3(),
     },
+    destroyables: <Destroyable[]>[],
   }
 
   constructor() {
@@ -193,112 +269,203 @@ export class RotationTool extends Group {
     this.#initialize()
   }
 
-  #initialize() {
-    const { parts, state, raycaster } = this.#private
-    const { mesh, hitArcFaceCount, hitMesh } = parts
+  attach(object: Object3D): this {
+    this.#private.state.target = object
+    object.getWorldPosition(this.position)
+    object.getWorldQuaternion(this.quaternion)
+    return this
+  }
 
-    const pointer = {
-      isDown: false,
-      dom: new Vector2(),
-      ndc: new Vector2(),
-    }
+  #initialize() {
+    const { parts, state } = this.#private
+
     document.addEventListener('pointermove', event => {
-      pointer.dom.set(event.clientX, event.clientY)
+      state.pointer.dom.set(event.clientX, event.clientY)
       state.angleStep = event.shiftKey ? 15 : 0
     })
     document.addEventListener('pointerdown', event => {
-      pointer.dom.set(event.clientX, event.clientY)
-      pointer.isDown = true
+      state.pointer.dom.set(event.clientX, event.clientY)
+      state.pointer.isDown = true
     })
     document.addEventListener('pointerup', () => {
-      pointer.isDown = false
+      state.pointer.isDown = false
     })
 
-    mesh.onBeforeRender = (renderer, scene, camera) => {
-      const domRect = renderer.domElement.getBoundingClientRect()
-      pointer.ndc.set(
-        ((pointer.dom.x - domRect.left) / domRect.width) * 2 - 1,
-        -((pointer.dom.y - domRect.top) / domRect.height) * 2 + 1,
-      )
-      raycaster.setFromCamera(pointer.ndc, camera)
-      const intersects = raycaster.intersectObject(hitMesh, false)
-
-      const activeAxe = intersects.length > 0
-        ? Math.floor(intersects[0].faceIndex! / hitArcFaceCount)
-        : -1
-
-      const isPressingEnter = pointer.isDown && !state.down
-      const isPressingLeave = !pointer.isDown && state.down
-
-      if (isPressingEnter) {
-        state.down = true
-
-        if (activeAxe >= 0) {
-          this.#enterDrag(activeAxe)
-        }
-      }
-
-      if (state.status === 'dragging') {
-        this.#updateDrag()
-        mesh.material.uniforms.uIndexHovered.value = state.activeAxe
-      } else {
-        mesh.material.uniforms.uIndexHovered.value = activeAxe
-      }
-
-      if (isPressingLeave) {
-        state.down = false
-        this.#exitDrag()
-      }
+    parts.arcMesh.onBeforeRender = (renderer, scene, camera) => {
+      state.renderer = renderer
+      state.camera = camera
     }
+
+    this.#private.destroyables.push(
+      Message.on(RotationTool, 'ATTACH', message => {
+        const object = message.assertPayload()
+        this.attach(object)
+      }),
+      Ticker.get('three').onTick({ phase: TickPhase.BeforeUpdate }, () => {
+        this.#update()
+      })
+    )
   }
 
+  #update() {
+    const { state, raycaster, parts } = this.#private
+    const { renderer, camera, pointer } = state
+    const {
+      arcMesh,
+      arcXrayMesh,
+      arcHitFaceCount,
+      arcHitMesh,
+      axisMesh,
+      axisXrayMesh,
+      axisHitMesh,
+      axisHitFaceCount,
+    } = parts
+
+    if (!renderer || !camera)
+      return
+
+    this.#updateScale(camera)
+    this.#updatePositionAndRotation()
+
+    const domRect = renderer.domElement.getBoundingClientRect()
+    pointer.ndc.set(
+      ((pointer.dom.x - domRect.left) / domRect.width) * 2 - 1,
+      -((pointer.dom.y - domRect.top) / domRect.height) * 2 + 1,
+
+    )
+    raycaster.setFromCamera(pointer.ndc, camera)
+    const intersections = raycaster.intersectObjects([arcHitMesh, axisHitMesh], false)
+
+    let arcActiveAxe = -1
+    let axisActiveAxe = -1
+    if (intersections.length > 0) {
+      const intersection = intersections[0]
+      if (intersection.object === arcHitMesh) {
+        arcActiveAxe = Math.floor(intersection.faceIndex! / arcHitFaceCount)
+      } else if (intersection.object === axisHitMesh) {
+        axisActiveAxe = Math.floor(intersection.faceIndex! / axisHitFaceCount)
+      }
+    }
+
+    const isPressingEnter = pointer.isDown && !state.pressing
+    const isPressingLeave = !pointer.isDown && state.pressing
+
+    if (isPressingEnter) {
+      state.pressing = true
+
+      if (arcActiveAxe >= 0) {
+        this.#enterArcDrag(arcActiveAxe)
+      }
+      else if (axisActiveAxe >= 0) {
+        this.#enterAxisDrag(axisActiveAxe)
+      }
+    }
+
+    switch (state.status) {
+      case 'arc-dragging':
+        this.#updateArcDrag()
+        arcMesh.material.setHoverIndex(state.arcActiveAxe)
+        arcXrayMesh.material.setHoverIndex(state.arcActiveAxe)
+        axisMesh.material.setHoverIndex(-1)
+        axisXrayMesh.material.setHoverIndex(-1)
+        break
+
+      case 'axis-dragging':
+        this.#updateAxisDrag()
+        arcMesh.material.setHoverIndex(-1)
+        arcXrayMesh.material.setHoverIndex(-1)
+        axisMesh.material.setHoverIndex(axisActiveAxe)
+        axisXrayMesh.material.setHoverIndex(axisActiveAxe)
+        break
+
+      default:
+        arcMesh.material.setHoverIndex(arcActiveAxe)
+        arcXrayMesh.material.setHoverIndex(arcActiveAxe)
+        axisMesh.material.setHoverIndex(axisActiveAxe)
+        axisXrayMesh.material.setHoverIndex(axisActiveAxe)
+        break
+    }
+
+    if (isPressingLeave) {
+      state.pressing = false
+      this.#exitArcDrag()
+      this.#exitAxisDrag()
+    }
+
+    this.updateMatrixWorld()
+  }
+
+  #getCurrentAngle_private = { v: new Vector3() }
   #getCurrentAngle(): number {
     const { state, raycaster } = this.#private
-    const intersection = raycaster.ray.intersectPlane(state.plane, new Vector3())
+    const { v } = this.#getCurrentAngle_private
+    const intersection = raycaster.ray.intersectPlane(state.plane, v)
     if (intersection) {
-      const localIntersection = intersection.clone().applyMatrix4(state.startWorldMatrixInverse)
-      switch (state.activeAxe) {
-        case 0: return Math.atan2(localIntersection.z, localIntersection.y)
-        case 1: return Math.atan2(localIntersection.x, localIntersection.z)
-        case 2: return Math.atan2(localIntersection.y, localIntersection.x)
+      v.applyMatrix4(state.startWorldMatrixInverse)
+      switch (state.arcActiveAxe) {
+        case 0: return Math.atan2(v.z, v.y)
+        case 1: return Math.atan2(v.x, v.z)
+        case 2: return Math.atan2(v.y, v.x)
       }
     }
     return 0
   }
 
-  #enterDrag(activeAxe: number) {
+  #updateScale(camera: Camera) {
+    const inViewPosition = this.getWorldPosition(new Vector3()).applyMatrix4(camera.matrixWorldInverse)
+    if (camera instanceof PerspectiveCamera) {
+      const viewHeight = 2 * Math.tan((camera.fov * Math.PI) / 180 / 2) * Math.abs(inViewPosition.z)
+      this.scale.setScalar(viewHeight / 10)
+    }
+  }
+
+  #updatePositionAndRotation() {
+    const { state } = this.#private
+    if (state.target) {
+      if (state.status !== 'arc-dragging') {
+        state.target.getWorldPosition(this.position)
+        state.target.getWorldQuaternion(this.quaternion)
+      }
+    }
+  }
+
+  #enterArcDrag(activeAxe: number) {
     const { state, parts } = this.#private
-    state.activeAxe = activeAxe
-    state.status = 'dragging'
+    state.arcActiveAxe = activeAxe
+    state.status = 'arc-dragging'
     state.startWorldMatrix.copy(this.matrixWorld)
     state.startWorldMatrixInverse.copy(this.matrixWorld).invert()
 
     state.plane.setFromNormalAndCoplanarPoint(
-      RotationTool.normals[state.activeAxe].clone().applyQuaternion(this.quaternion),
+      RotationTool.normals[state.arcActiveAxe].clone().applyQuaternion(this.quaternion),
       this.getWorldPosition(new Vector3()),
     )
     state.startQuaternion.copy(this.quaternion)
-    state.startAngle = this.#getCurrentAngle()
-    this.add(parts.discMeshes[state.activeAxe])
+    state.startArcAngle = this.#getCurrentAngle()
+    this.add(parts.discMeshes[state.arcActiveAxe])
+
+    if (state.target) {
+      state.targetStartQuaternion.copy(state.target.quaternion)
+    }
   }
 
-  #exitDrag() {
-    if (this.#private.state.status !== 'dragging')
+  #exitArcDrag() {
+    if (this.#private.state.status !== 'arc-dragging')
       return
 
     const { state, parts } = this.#private
-    const discMesh = parts.discMeshes[state.activeAxe]
+    const discMesh = parts.discMeshes[state.arcActiveAxe]
     discMesh.material.uniforms.uAngle.value = 0
     this.remove(discMesh)
     state.status = 'idle'
-    state.activeAxe = -1
+    state.arcActiveAxe = -1
   }
 
-  #updateDrag() {
+  #updateArcDrag() {
     const { state, parts } = this.#private
 
     const currentAngle = this.#getCurrentAngle()
-    let deltaAngle = currentAngle - state.startAngle
+    let deltaAngle = currentAngle - state.startArcAngle
     if (deltaAngle > Math.PI) {
       deltaAngle -= 2 * Math.PI
     } else if (deltaAngle < -Math.PI) {
@@ -307,12 +474,68 @@ export class RotationTool extends Group {
     if (state.angleStep > 0) {
       deltaAngle = Math.round(deltaAngle / (state.angleStep * (Math.PI / 180))) * (state.angleStep * (Math.PI / 180))
     }
-    const q = new Quaternion().setFromAxisAngle(RotationTool.normals[state.activeAxe], deltaAngle)
+    const q = new Quaternion().setFromAxisAngle(RotationTool.normals[state.arcActiveAxe], deltaAngle)
     this.quaternion.copy(state.startQuaternion).multiply(q)
 
-    // Prevent jittering
-    this.updateMatrixWorld(true)
+    parts.discMeshes[state.arcActiveAxe].material.uniforms.uAngle.value = -deltaAngle
 
-    parts.discMeshes[state.activeAxe].material.uniforms.uAngle.value = -deltaAngle
+    if (state.target) {
+      state.target.quaternion.copy(state.targetStartQuaternion).multiply(q)
+      state.target.updateMatrixWorld()
+    }
+  }
+
+  #getCurrentAxisDistance_private = { v1: new Vector3(), v2: new Vector3() }
+  #getCurrentAxisDistance(): number {
+    const { state, raycaster } = this.#private
+    const { v1, v2 } = this.#getCurrentAxisDistance_private
+    v1.setFromMatrixPosition(state.startWorldMatrix)
+    v2.setFromMatrixColumn(state.startWorldMatrix, state.axisActiveAxe)
+    const { t1 } = closestPointsBetweenLines(v1, v2, raycaster.ray.origin, raycaster.ray.direction)
+    return t1
+  }
+
+  #enterAxisDrag(activeAxe: number) {
+    const { state } = this.#private
+    state.axisActiveAxe = activeAxe
+    state.status = 'axis-dragging'
+    state.startWorldMatrix.copy(this.matrixWorld)
+    state.startWorldMatrixInverse.copy(this.matrixWorld).invert()
+    state.startAxisDistance = this.#getCurrentAxisDistance()
+
+    if (state.target) {
+      state.target.getWorldPosition(state.targetStartPosition)
+    }
+  }
+
+  #exitAxisDrag() {
+    if (this.#private.state.status !== 'axis-dragging')
+      return
+
+    const { state } = this.#private
+    state.status = 'idle'
+    state.axisActiveAxe = -1
+  }
+
+  #updateAxisDrag_private = { v1: new Vector3(), v2: new Vector3(), m: new Matrix4() }
+  #updateAxisDrag() {
+    const { v1, v2, m } = this.#updateAxisDrag_private
+    const { state } = this.#private
+    const distance = this.#getCurrentAxisDistance()
+    const delta = distance - this.#private.state.startAxisDistance
+    v1.setFromMatrixPosition(state.startWorldMatrix)
+    v2.setFromMatrixColumn(state.startWorldMatrix, state.axisActiveAxe)
+    v1.addScaledVector(v2, delta)
+    this.position.copy(v1)
+
+    if (state.target) {
+      const parent = state.target.parent
+      if (parent) {
+        m.copy(parent.matrixWorld).invert()
+        v1.applyMatrix4(m)
+        state.target.position.copy(v1)
+        state.target.updateMatrixWorld()
+      }
+    }
   }
 }
