@@ -5,7 +5,7 @@ import { getMinusX, getMinusY, getMinusZ, getPlusX, getPlusY, getPlusZ } from '.
 
 export class BoxLineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
   userData = {
-    helper: true,
+    isHelper: true,
     ignoreRaycast: true,
   }
 

@@ -50,7 +50,7 @@ class DebugHelper extends Group {
     }
   }
 
-  userData = { helper: true }
+  userData = { isHelper: true }
 
   parts: ReturnType<typeof DebugHelper.createParts>
 

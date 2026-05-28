@@ -1,5 +1,5 @@
 
-import { Camera, ColorRepresentation, Euler, Group, Intersection, Object3D, Plane, Quaternion, Ray, Vector2, Vector2Like, Vector3 } from 'three'
+import { Camera, ColorRepresentation, Euler, Group, Intersection, Object3D, Plane, Quaternion, Ray, Raycaster, Vector2, Vector2Like, Vector3 } from 'three'
 
 import { handleElementEvent } from 'some-utils-dom/handle/element-event'
 import { handlePointer, PointerButton } from 'some-utils-dom/handle/pointer'
@@ -50,6 +50,25 @@ export function defaultRaycastIgnore(object: Object3D) {
   if ((object as any).isLineSegments)
     return true
   return false
+}
+
+export function raycastOnInteractiveTools(raycaster: Raycaster, sceneRoot: Object3D | null) {
+  const objectsToRaycast = [] as Object3D[]
+  sceneRoot?.traverse(object => {
+    if ('isPoints' in object || 'isLineSegments' in object || 'isTextHelper' in object)
+      return
+    objectsToRaycast.push(object)
+  })
+  const intersections = raycaster.intersectObjects(objectsToRaycast, false)
+  const onInteractiveTools = intersections.some(intersection => {
+    let scope = intersection.object
+    while (scope) {
+      if (scope.visible && scope.userData.isInteractiveTool)
+        return true
+      scope = scope.parent!
+    }
+  })
+  return onInteractiveTools
 }
 
 export const __private__ = Symbol('private')
@@ -119,6 +138,7 @@ export class VertigoControls implements DestroyableObject {
     state: {
       enabled: true,
       interactive: true,
+      ignoreCurrentDrag: false,
 
       sceneRoot: null as Object3D | null,
       currentCamera: null as Camera | null,
@@ -409,14 +429,26 @@ export class VertigoControls implements DestroyableObject {
     const { state, showFocusMarker, hideFocusMarker } = this[__private__]
     const pointer = new Vector2()
     const modifiers = { altKey: false }
+    const raycaster = new Raycaster()
     yield handlePointer(element, {
       onChange: info => {
         const rect = element.getBoundingClientRect()
         const x = (info.localPosition.x - rect.x) / rect.width * 2 - 1
         const y = -((info.localPosition.y - rect.y) / rect.height * 2 - 1)
         pointer.set(x, y)
+        if (state.currentCamera) {
+          raycaster.setFromCamera(pointer, state.currentCamera)
+        }
       },
       dragButton: ~0,
+      onDown: () => {
+        if (raycastOnInteractiveTools(raycaster, state.sceneRoot)) {
+          state.ignoreCurrentDrag = true
+        }
+      },
+      onUp: () => {
+        state.ignoreCurrentDrag = false
+      },
       onPressStart: info => {
         modifiers.altKey = info.modifiers.altKey
         if (modifiers.altKey) {
@@ -435,6 +467,9 @@ export class VertigoControls implements DestroyableObject {
           return
 
         if (state.interactive === false)
+          return
+
+        if (state.ignoreCurrentDrag)
           return
 
         if (info.touchCount > 1)

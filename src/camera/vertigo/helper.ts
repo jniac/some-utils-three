@@ -60,7 +60,7 @@ export class VertigoHelper extends Group {
   vertigo: Vertigo
 
   userData = {
-    helper: true,
+    isHelper: true,
     ignoreRaycast: true,
   }
 

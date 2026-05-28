@@ -74,7 +74,7 @@ export class PointMarker extends Group {
   isPointMarker = true
 
   userData: Record<string, any> = {
-    helper: true,
+    isHelper: true,
     ignoreRaycast: true,
   }
 

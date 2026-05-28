@@ -322,7 +322,7 @@ export class Pointer {
      */
     const skip = (child: Object3D) =>
       isMesh(child) === false
-      || ((child.userData.helper === true || child.visible === false) && child.userData.pointerArea !== true)
+      || ((child.userData.isHelper === true || child.visible === false) && child.userData.pointerArea !== true)
 
     for (const { node } of allDescendantsOf(root, { skip, prune })) {
       this.raycaster.intersectObject(node, false, intersections)

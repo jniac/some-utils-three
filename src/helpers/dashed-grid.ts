@@ -62,7 +62,7 @@ export class DashedGridHelper extends Group {
   occludedLine: LineSegments<BufferGeometry, DashedLineMaterial>
 
   userData = {
-    helper: true,
+    isHelper: true,
     ignoreRaycast: true,
   }
 

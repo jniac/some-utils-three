@@ -27,9 +27,11 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
 
   // Mark as helper object
   userData: Record<string, any> = {
-    helper: true,
+    isHelper: true,
     ignorePointer: true,
   }
+
+  isTextHelper = true
 
   readonly textOffsetInstanceAttribute: InstancedBufferAttribute
 
