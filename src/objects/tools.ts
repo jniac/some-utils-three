@@ -10,10 +10,10 @@ import { closestPointsBetweenLines } from '../math/closestPointsBetweenLines'
 import { ShaderForge } from '../shader-forge'
 import { setVertexColors } from '../utils/geometry/vertex-colors'
 
-const colors = {
-  red: new Color('#ff0044'),
-  green: new Color('#22ff44'),
-  blue: new Color('#1144ff'),
+export const axisColors = {
+  X: new Color('#ff0044'),
+  Y: new Color('#22ff44'),
+  Z: new Color('#1144ff'),
 }
 
 export function createArcGeometry({
@@ -21,7 +21,6 @@ export function createArcGeometry({
   radialSegments = 64,
   tube = .01,
   tubeSegments = 12,
-  color = colors.blue,
 } = {}): BufferGeometry {
   const geometry = new TorusGeometry(radius, tube, tubeSegments, radialSegments)
   return geometry
@@ -140,9 +139,9 @@ export class TransformTool extends Group {
     const arcZ = createArcGeometry({ radius, tube })
     const arcX = arcZ.clone().rotateY(Math.PI / 2)
     const arcY = arcZ.clone().rotateX(Math.PI / 2)
-    setVertexColors(arcX, colors.red)
-    setVertexColors(arcY, colors.green)
-    setVertexColors(arcZ, colors.blue)
+    setVertexColors(arcX, axisColors.X)
+    setVertexColors(arcY, axisColors.Y)
+    setVertexColors(arcZ, axisColors.Z)
     const geometry = BufferGeometryUtils.mergeGeometries([arcX, arcY, arcZ])
 
     const arcMesh = new Mesh(geometry, new HoverMaterial())
@@ -169,9 +168,9 @@ export class TransformTool extends Group {
     const axisY = new CapsuleGeometry(tube * 2, 0.2, 4, 8)
     const axisX = axisY.clone().rotateZ(Math.PI / 2)
     const axisZ = axisY.clone().rotateX(Math.PI / 2)
-    setVertexColors(axisX, colors.red)
-    setVertexColors(axisY, colors.green)
-    setVertexColors(axisZ, colors.blue)
+    setVertexColors(axisX, axisColors.X)
+    setVertexColors(axisY, axisColors.Y)
+    setVertexColors(axisZ, axisColors.Z)
     const axisGeometry = BufferGeometryUtils.mergeGeometries([
       axisX.translate(1.2, 0, 0),
       axisY.translate(0, 1.2, 0),
@@ -201,15 +200,15 @@ export class TransformTool extends Group {
     instance.add(axisHitMesh)
 
     const discGeometry = new PlaneGeometry(2, 2)
-    const discMeshX = new Mesh(discGeometry, new DiscMaterial(colors.red))
+    const discMeshX = new Mesh(discGeometry, new DiscMaterial(axisColors.X))
     discMeshX.name = 'TransformTool.discMeshX'
     discMeshX.rotation.set(0, -Math.PI / 2, 0)
     discMeshX.scale.set(1, -1, 1)
-    const discMeshY = new Mesh(discGeometry, new DiscMaterial(colors.green))
+    const discMeshY = new Mesh(discGeometry, new DiscMaterial(axisColors.Y))
     discMeshY.name = 'TransformTool.discMeshY'
     discMeshY.rotation.set(Math.PI / 2, 0, 0)
     discMeshY.scale.set(1, -1, 1)
-    const discMeshZ = new Mesh(discGeometry, new DiscMaterial(colors.blue))
+    const discMeshZ = new Mesh(discGeometry, new DiscMaterial(axisColors.Z))
     discMeshZ.name = 'TransformTool.discMeshZ'
 
     return {
@@ -398,10 +397,11 @@ export class TransformTool extends Group {
         break
 
       default:
-        arcMesh.material.setHoverIndex(arcActiveAxe)
-        arcXrayMesh.material.setHoverIndex(arcActiveAxe)
-        axisMesh.material.setHoverIndex(axisActiveAxe)
-        axisXrayMesh.material.setHoverIndex(axisActiveAxe)
+        // When not dragging (pointer.isDown === false), hover the intersected axe (if any)
+        arcMesh.material.setHoverIndex(pointer.isDown ? -1 : arcActiveAxe)
+        arcXrayMesh.material.setHoverIndex(pointer.isDown ? -1 : arcActiveAxe)
+        axisMesh.material.setHoverIndex(pointer.isDown ? -1 : axisActiveAxe)
+        axisXrayMesh.material.setHoverIndex(pointer.isDown ? -1 : axisActiveAxe)
         break
     }
 

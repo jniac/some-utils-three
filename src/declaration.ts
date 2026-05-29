@@ -1,4 +1,4 @@
-import { Euler, Matrix4, Object3D, Quaternion, Vector2, Vector3, Vector4 } from 'three'
+import { Euler, Matrix4, Object3D, Quaternion, QuaternionLike, Vector2, Vector3, Vector4 } from 'three'
 
 import * as agnostic from 'some-utils-ts/declaration'
 import {
@@ -36,6 +36,21 @@ export {
   toVector4Declaration
 } from 'some-utils-ts/declaration'
 
+type QuaternionDeclaration = [number, number, number, number] | Quaternion | QuaternionLike
+
+function fromQuaternionDeclaration(arg: QuaternionDeclaration, out = new Quaternion()): Quaternion {
+  if (arg instanceof Quaternion) {
+    return out.copy(arg)
+  }
+  if (Array.isArray(arg) && arg.length === 4) {
+    return out.set(arg[0], arg[1], arg[2], arg[3])
+  }
+  if (typeof arg === 'object' && 'x' in arg && 'y' in arg && 'z' in arg && 'w' in arg) {
+    return out.set(arg.x, arg.y, arg.z, arg.w)
+  }
+  throw new Error('Invalid quaternion declaration')
+}
+
 export type TransformDeclaration = Partial<{
   x: number
   y: number
@@ -47,6 +62,8 @@ export type TransformDeclaration = Partial<{
   rotationZ: AngleDeclaration
   rotation: EulerDeclaration
   rotationOrder: Euler['order']
+
+  quaternion: QuaternionDeclaration
 
   scale: Vector3Declaration
   scaleX: number
@@ -93,6 +110,8 @@ export const fromTransformDeclaration = (() => {
       rotationOrder = 'XYZ',
       rotation = { x: rotationX, y: rotationY, z: rotationZ, order: rotationOrder },
 
+      quaternion,
+
       scaleX = 1,
       scaleY = 1,
       scaleZ = 1,
@@ -104,13 +123,21 @@ export const fromTransformDeclaration = (() => {
       fromVector3Declaration(position, _position)
       fromEulerDeclaration(rotation, _rotation)
       fromVector3Declaration(scale, _scale).multiplyScalar(scaleScalar)
-      _quaternion.setFromEuler(_rotation)
+      if (quaternion) {
+        fromQuaternionDeclaration(quaternion, _quaternion)
+      } else {
+        _quaternion.setFromEuler(_rotation)
+      }
       return out.compose(_position, _quaternion, _scale)
     }
 
     if (isObject3D(out)) {
       fromVector3Declaration(position, out.position)
-      fromEulerDeclaration(rotation, out.rotation)
+      if (quaternion) {
+        fromQuaternionDeclaration(quaternion, out.quaternion)
+      } else {
+        fromEulerDeclaration(rotation, out.rotation)
+      }
       fromVector3Declaration(scale, out.scale).multiplyScalar(scaleScalar)
       return out
     }
