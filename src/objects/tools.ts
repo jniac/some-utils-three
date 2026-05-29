@@ -2,10 +2,10 @@ import { BufferGeometry, Camera, CapsuleGeometry, Color, GreaterDepth, Group, Ma
 import { BufferGeometryUtils } from 'three/examples/jsm/Addons.js'
 
 import { Message } from 'some-utils-ts/message'
-import { Ticker } from 'some-utils-ts/ticker'
+import { dumpDestroyables } from 'some-utils-ts/misc/destroy'
+import { Ticker, TickPhase } from 'some-utils-ts/ticker'
 import { Destroyable } from 'some-utils-ts/types'
 
-import { TickPhase } from '../experimental/contexts/types'
 import { closestPointsBetweenLines } from '../math/closestPointsBetweenLines'
 import { ShaderForge } from '../shader-forge'
 import { setVertexColors } from '../utils/geometry/vertex-colors'
@@ -58,7 +58,6 @@ class Autolit {
     `)
   }
 }
-
 
 class HoverMaterial extends MeshBasicMaterial {
   #options: { xray: boolean }
@@ -131,12 +130,12 @@ class DiscMaterial extends MeshBasicMaterial {
   }
 }
 
-export class RotationTool extends Group {
+export class TransformTool extends Group {
   static normals = [new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(0, 0, 1)]
 
-  static createParts(instance: RotationTool) {
+  static createParts(instance: TransformTool) {
     const radius = 1
-    const tube = 0.02
+    const tube = 0.015
 
     const arcZ = createArcGeometry({ radius, tube })
     const arcX = arcZ.clone().rotateY(Math.PI / 2)
@@ -147,11 +146,11 @@ export class RotationTool extends Group {
     const geometry = BufferGeometryUtils.mergeGeometries([arcX, arcY, arcZ])
 
     const arcMesh = new Mesh(geometry, new HoverMaterial())
-    arcMesh.name = 'RotationTool.arcMesh'
+    arcMesh.name = 'TransformTool.arcMesh'
     instance.add(arcMesh)
 
     const arcXrayMesh = new Mesh(geometry, new HoverMaterial({ xray: true }))
-    arcXrayMesh.name = 'RotationTool.arcXrayMesh'
+    arcXrayMesh.name = 'TransformTool.arcXrayMesh'
     instance.add(arcXrayMesh)
 
     const hitArc = createArcGeometry({ radius, tube: tube * 4, radialSegments: 16, tubeSegments: 6 })
@@ -162,7 +161,7 @@ export class RotationTool extends Group {
       hitArc,
     ])
     const arcHitMesh = new Mesh(hitArcGeometry, new MeshBasicMaterial({ wireframe: true, visible: false }))
-    arcHitMesh.name = 'RotationTool.arcHitMesh'
+    arcHitMesh.name = 'TransformTool.arcHitMesh'
     arcHitMesh.userData.isHitMesh = true
     arcHitMesh.userData.isHitArea = true
     instance.add(arcHitMesh)
@@ -179,11 +178,11 @@ export class RotationTool extends Group {
       axisZ.translate(0, 0, 1.2),
     ])
     const axisMesh = new Mesh(axisGeometry, new HoverMaterial())
-    axisMesh.name = 'RotationTool.axisMesh'
+    axisMesh.name = 'TransformTool.axisMesh'
     instance.add(axisMesh)
 
     const axisXrayMesh = new Mesh(axisGeometry, new HoverMaterial({ xray: true }))
-    axisXrayMesh.name = 'RotationTool.axisXrayMesh'
+    axisXrayMesh.name = 'TransformTool.axisXrayMesh'
     instance.add(axisXrayMesh)
 
     const hitAxisY = new CapsuleGeometry(tube * 4, 0.2, 4, 8)
@@ -196,22 +195,22 @@ export class RotationTool extends Group {
       hitAxisZ.translate(0, 0, 1.2),
     ])
     const axisHitMesh = new Mesh(hitAxisGeometry, new MeshBasicMaterial({ wireframe: true, visible: false }))
-    axisHitMesh.name = 'RotationTool.axisHitMesh'
+    axisHitMesh.name = 'TransformTool.axisHitMesh'
     axisHitMesh.userData.isHitMesh = true
     axisHitMesh.userData.isHitArea = true
     instance.add(axisHitMesh)
 
     const discGeometry = new PlaneGeometry(2, 2)
     const discMeshX = new Mesh(discGeometry, new DiscMaterial(colors.red))
-    discMeshX.name = 'RotationTool.discMeshX'
+    discMeshX.name = 'TransformTool.discMeshX'
     discMeshX.rotation.set(0, -Math.PI / 2, 0)
     discMeshX.scale.set(1, -1, 1)
     const discMeshY = new Mesh(discGeometry, new DiscMaterial(colors.green))
-    discMeshY.name = 'RotationTool.discMeshY'
+    discMeshY.name = 'TransformTool.discMeshY'
     discMeshY.rotation.set(Math.PI / 2, 0, 0)
     discMeshY.scale.set(1, -1, 1)
     const discMeshZ = new Mesh(discGeometry, new DiscMaterial(colors.blue))
-    discMeshZ.name = 'RotationTool.discMeshZ'
+    discMeshZ.name = 'TransformTool.discMeshZ'
 
     return {
       arcMesh,
@@ -234,7 +233,7 @@ export class RotationTool extends Group {
   }
 
   #private = {
-    parts: RotationTool.createParts(this),
+    parts: TransformTool.createParts(this),
     raycaster: new Raycaster(),
     state: {
       pointer: {
@@ -261,6 +260,8 @@ export class RotationTool extends Group {
       targetStartQuaternion: new Quaternion(),
       targetStartPosition: new Vector3(),
     },
+
+    destroyed: false,
     destroyables: <Destroyable[]>[],
   }
 
@@ -274,6 +275,14 @@ export class RotationTool extends Group {
     object.getWorldPosition(this.position)
     object.getWorldQuaternion(this.quaternion)
     return this
+  }
+
+  destroy = () => {
+    if (this.#private.destroyed)
+      return
+    this.#private.destroyed = true
+    dumpDestroyables(this.#private.destroyables)
+    this.#private.destroyables = []
   }
 
   #initialize() {
@@ -297,13 +306,23 @@ export class RotationTool extends Group {
     }
 
     this.#private.destroyables.push(
-      Message.on(RotationTool, 'ATTACH', message => {
+      Message.on(TransformTool, 'ATTACH', message => {
         const object = message.assertPayload()
         this.attach(object)
       }),
-      Ticker.get('three').onTick({ phase: TickPhase.BeforeUpdate }, () => {
+
+      Message.on(TransformTool, 'SHOW', () => {
+        this.visible = true
+      }),
+
+      Message.on(TransformTool, 'HIDE', () => {
+        this.visible = false
+      }),
+
+      // TickPhase.BeforeRender is the right place to update the tool: Camera should be up to date, so we can scale the tool properly.
+      Ticker.get('three').onTick({ phase: TickPhase.BeforeRender }, tick => {
         this.#update()
-      })
+      }),
     )
   }
 
@@ -412,7 +431,9 @@ export class RotationTool extends Group {
   }
 
   #updateScale(camera: Camera) {
-    const inViewPosition = this.getWorldPosition(new Vector3()).applyMatrix4(camera.matrixWorldInverse)
+    camera.updateWorldMatrix(false, false)
+    camera.matrixWorld.clone().invert()
+    const inViewPosition = this.getWorldPosition(new Vector3()).applyMatrix4(camera.matrixWorld.clone().invert())
     if (camera instanceof PerspectiveCamera) {
       const viewHeight = 2 * Math.tan((camera.fov * Math.PI) / 180 / 2) * Math.abs(inViewPosition.z)
       this.scale.setScalar(viewHeight / 10)
@@ -437,7 +458,7 @@ export class RotationTool extends Group {
     state.startWorldMatrixInverse.copy(this.matrixWorld).invert()
 
     state.plane.setFromNormalAndCoplanarPoint(
-      RotationTool.normals[state.arcActiveAxe].clone().applyQuaternion(this.quaternion),
+      TransformTool.normals[state.arcActiveAxe].clone().applyQuaternion(this.quaternion),
       this.getWorldPosition(new Vector3()),
     )
     state.startQuaternion.copy(this.quaternion)
@@ -474,7 +495,7 @@ export class RotationTool extends Group {
     if (state.angleStep > 0) {
       deltaAngle = Math.round(deltaAngle / (state.angleStep * (Math.PI / 180))) * (state.angleStep * (Math.PI / 180))
     }
-    const q = new Quaternion().setFromAxisAngle(RotationTool.normals[state.arcActiveAxe], deltaAngle)
+    const q = new Quaternion().setFromAxisAngle(TransformTool.normals[state.arcActiveAxe], deltaAngle)
     this.quaternion.copy(state.startQuaternion).multiply(q)
 
     parts.discMeshes[state.arcActiveAxe].material.uniforms.uAngle.value = -deltaAngle
