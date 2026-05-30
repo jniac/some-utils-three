@@ -96,7 +96,10 @@ export interface DynamicInstancedMeshOptions {
  * automatically. You only have to call `mesh.instanceMatrix.needsUpdate = true`
  * yourself when you edit matrix entries in-place via `getMatrixAt / setMatrixAt`.
  */
-export class DynamicInstancedMesh extends InstancedMesh {
+export class DynamicInstancedMesh<
+  GeometryType extends BufferGeometry = BufferGeometry,
+  MaterialType extends Material | Material[] = Material | Material[]
+> extends InstancedMesh<GeometryType, MaterialType> {
   // ------------------------------------------------------------------
   // Private state
   // ------------------------------------------------------------------
@@ -116,8 +119,8 @@ export class DynamicInstancedMesh extends InstancedMesh {
   // ------------------------------------------------------------------
 
   constructor(
-    geometry: BufferGeometry,
-    material: Material | Material[],
+    geometry: GeometryType,
+    material: MaterialType,
     options: DynamicInstancedMeshOptions | number = {}
   ) {
     const {

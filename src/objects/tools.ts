@@ -235,6 +235,8 @@ export class TransformTool extends Group {
     parts: TransformTool.createParts(this),
     raycaster: new Raycaster(),
     state: {
+      requestShow: false,
+      requestHide: false,
       pointer: {
         isDown: false,
         dom: new Vector2(),
@@ -279,6 +281,7 @@ export class TransformTool extends Group {
   destroy = () => {
     if (this.#private.destroyed)
       return
+    this.removeFromParent()
     this.#private.destroyed = true
     dumpDestroyables(this.#private.destroyables)
     this.#private.destroyables = []
@@ -292,10 +295,14 @@ export class TransformTool extends Group {
       state.angleStep = event.shiftKey ? 15 : 0
     })
     document.addEventListener('pointerdown', event => {
+      if (event.button !== 0)
+        return
       state.pointer.dom.set(event.clientX, event.clientY)
       state.pointer.isDown = true
     })
-    document.addEventListener('pointerup', () => {
+    document.addEventListener('pointerup', event => {
+      if (event.button !== 0)
+        return
       state.pointer.isDown = false
     })
 
@@ -311,11 +318,11 @@ export class TransformTool extends Group {
       }),
 
       Message.on(TransformTool, 'SHOW', () => {
-        this.visible = true
+        state.requestShow = true
       }),
 
       Message.on(TransformTool, 'HIDE', () => {
-        this.visible = false
+        state.requestHide = true
       }),
 
       // TickPhase.BeforeRender is the right place to update the tool: Camera should be up to date, so we can scale the tool properly.
@@ -344,6 +351,20 @@ export class TransformTool extends Group {
 
     this.#updateScale(camera)
     this.#updatePositionAndRotation()
+
+    if (state.requestShow) {
+      state.requestShow = false
+      this.visible = true
+    }
+    if (state.requestHide) {
+      state.requestHide = false
+      this.visible = false
+      state.status = 'idle'
+      arcMesh.material.setHoverIndex(-1)
+      arcXrayMesh.material.setHoverIndex(-1)
+      axisMesh.material.setHoverIndex(-1)
+      axisXrayMesh.material.setHoverIndex(-1)
+    }
 
     const domRect = renderer.domElement.getBoundingClientRect()
     pointer.ndc.set(
