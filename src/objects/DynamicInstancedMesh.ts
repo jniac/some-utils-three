@@ -1,6 +1,7 @@
 import {
   BufferAttribute,
   Color,
+  ColorRepresentation,
   InstancedBufferAttribute,
   InstancedMesh,
   Matrix4,
@@ -174,14 +175,13 @@ export class DynamicInstancedMesh<
   // Public API
   // ------------------------------------------------------------------
 
+  addInstance_private = {
+    color: new Color(),
+  }
   /**
    * Appends a new instance at the end of the live range.
-   *
-   * @param matrix  World matrix for this instance.
-   * @param color   Optional per-instance color (requires `enableColors`).
-   * @returns       Index of the newly created instance.
    */
-  addInstance(matrix: Matrix4, color?: Color): number {
+  addInstance(matrix: Matrix4, colorArg?: ColorRepresentation): number {
     const index = this._instanceCount
 
     this._ensureCapacity(index + 1)
@@ -189,11 +189,12 @@ export class DynamicInstancedMesh<
     this.setMatrixAt(index, matrix)
     this.instanceMatrix.needsUpdate = true
 
-    if (color != null) {
+    if (colorArg != null) {
       this._assertColors("addInstance")
-      this.setColorAt(index, color)
+      this.setColorAt(index, this.addInstance_private.color.set(colorArg))
       // instanceColor is created by setColorAt; mark dirty after first set.
-      if (this.instanceColor) this.instanceColor.needsUpdate = true
+      if (this.instanceColor)
+        this.instanceColor.needsUpdate = true
     }
 
     this._instanceCount++
