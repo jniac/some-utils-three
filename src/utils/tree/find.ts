@@ -3,10 +3,15 @@ import { Object3D } from 'three'
 type Predicate<T extends Object3D> =
   | ((instance: T) => boolean)
   | (new (...params: any) => T)
+  | string
 
 function solvePredicate<T extends Object3D>(predicate: Predicate<T>): (instance: Object3D) => boolean {
   if (typeof predicate === 'function' && /^class\s/.test(Function.prototype.toString.call(predicate))) {
     return (instance: Object3D) => instance instanceof predicate
+  }
+
+  if (typeof predicate === 'string') {
+    return (instance: Object3D) => instance.name === predicate
   }
 
   return predicate as (instance: Object3D) => boolean
