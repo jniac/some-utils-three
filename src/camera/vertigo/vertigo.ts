@@ -438,6 +438,16 @@ export class Vertigo {
     return out
   }
 
+  ndcToWorld(ndc: Vector3Declaration, out: Vector3 = new Vector3()): Vector3 {
+    const { worldMatrix } = this.state
+    fromVector3Declaration(ndc, out)
+    out.x *= this.state.realSize.x * .5
+    out.y *= this.state.realSize.y * .5
+    out.z = -this.state.distance * this.subjectivity
+    out.applyMatrix4(worldMatrix)
+    return out
+  }
+
   worldToNdc(worldPos: Vector3Declaration, out: Vector3 = new Vector3()): Vector3 {
     const { worldMatrixInverse, projectionMatrix } = this.state
     fromVector3Declaration(worldPos, out)
