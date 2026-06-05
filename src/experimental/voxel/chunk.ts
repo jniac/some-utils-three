@@ -89,6 +89,11 @@ export class Chunk {
     return this.voxelState.subarray(offset, offset + this.voxelStateByteSize)
   }
 
+  getVoxelStateAtCoordinates(x: number, y: number, z: number, out?: Uint8Array): Uint8Array {
+    const index = this.getVoxelIndex(x, y, z)
+    return this.getVoxelStateAtIndex(index, out)
+  }
+
   setVoxelStateAtIndex(index: number, state: Uint8Array): boolean {
     const offset = this.getVoxelStateOffsetAtIndex(index)
     let hasChanged = false
@@ -102,8 +107,18 @@ export class Chunk {
     return hasChanged
   }
 
+  setVoxelStateAtCoordinates(x: number, y: number, z: number, state: Uint8Array): boolean {
+    const index = this.getVoxelIndex(x, y, z)
+    return this.setVoxelStateAtIndex(index, state)
+  }
+
   isVoxelFullAtIndex(index: number, voxelIsFullDelegate = defaultVoxelIsFullDelegate): boolean {
     return voxelIsFullDelegate(this.voxelState, this.getVoxelStateOffsetAtIndex(index))
+  }
+
+  isVoxelFullAtCoordinates(x: number, y: number, z: number, voxelIsFullDelegate = defaultVoxelIsFullDelegate): boolean {
+    const index = this.getVoxelIndex(x, y, z)
+    return this.isVoxelFullAtIndex(index, voxelIsFullDelegate)
   }
 
   /**
@@ -118,11 +133,60 @@ export class Chunk {
     return x + y * sizeX + z * sizeXY
   }
 
-  getVoxelState(p: Vector3Like): Uint8Array
-  getVoxelState(x: number, y: number, z: number): Uint8Array
-  getVoxelState(...args: [Vector3Like] | [x: number, y: number, z: number]): Uint8Array {
-    const [x, y, z] = args.length === 1 ? [args[0].x, args[0].y, args[0].z] : args
-    return this.getVoxelStateAtIndex(this.getVoxelIndex(x, y, z))
+  /**
+   * Handy method for getting voxel state with different argument patterns.
+   * 
+   * Notes:
+   * - For performance reasons, and avoid unnecessary checks, use getVoxelStateAtIndex or getVoxelStateAtCoordinates when possible.
+   */
+  getVoxelState(
+    ...args:
+      | [number]
+      | [Vector3Like]
+      | [x: number, y: number, z: number]
+  ): Uint8Array {
+    if (args.length === 1) {
+      const arg = args[0]
+      if (typeof arg === 'number') {
+        return this.getVoxelStateAtIndex(arg)
+      }
+      return this.getVoxelStateAtCoordinates(arg.x, arg.y, arg.z)
+    }
+
+    if (args.length === 3) {
+      const [x, y, z] = args
+      return this.getVoxelStateAtCoordinates(x, y, z)
+    }
+
+    throw new Error(`Invalid arguments: ${args}`)
+  }
+
+  /**
+   * Handy method for setting voxel state with different argument patterns.
+   * 
+   * Notes:
+   * - For performance reasons, and avoid unnecessary checks, use setVoxelStateAtIndex or setVoxelStateAtCoordinates when possible.
+   */
+  setVoxelState(
+    ...args:
+      | [index: number, state: Uint8Array]
+      | [p: Vector3Like, state: Uint8Array]
+      | [x: number, y: number, z: number, state: Uint8Array]
+  ): boolean {
+    if (args.length === 2) {
+      const [arg1, state] = args
+      if (typeof arg1 === 'number') {
+        return this.setVoxelStateAtIndex(arg1, state)
+      }
+      return this.setVoxelStateAtCoordinates(arg1.x, arg1.y, arg1.z, state)
+    }
+
+    if (args.length === 4) {
+      const [x, y, z, state] = args
+      return this.setVoxelStateAtCoordinates(x, y, z, state)
+    }
+
+    throw new Error(`Invalid arguments: ${args}`)
   }
 
   *voxelStates() {
