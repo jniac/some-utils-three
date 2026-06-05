@@ -1,7 +1,7 @@
 import { Vector3 } from 'three'
 
 export class WorldIndexes extends Vector3 {
-  get superChunk() { return this.x }
+  get region() { return this.x }
   get chunk() { return this.y }
   get voxel() { return this.z }
 }
@@ -17,15 +17,15 @@ export class WorldMetrics {
   readonly chunkSizeXY: number
   readonly chunkSizeXYZ: number
 
-  readonly superChunkSizeX: number
-  readonly superChunkSizeY: number
-  readonly superChunkSizeZ: number
-  readonly superChunkSizeXY: number
-  readonly superChunkSizeXYZ: number
+  readonly regionSizeX: number
+  readonly regionSizeY: number
+  readonly regionSizeZ: number
+  readonly regionSizeXY: number
+  readonly regionSizeXYZ: number
 
-  readonly superChunkVoxelSizeX: number
-  readonly superChunkVoxelSizeY: number
-  readonly superChunkVoxelSizeZ: number
+  readonly regionVoxelSizeX: number
+  readonly regionVoxelSizeY: number
+  readonly regionVoxelSizeZ: number
 
   readonly worldSizeX: number
   readonly worldSizeY: number
@@ -40,15 +40,15 @@ export class WorldMetrics {
   readonly worldVoxelSizeXYZ: number
 
   get chunkSize() { return this.getChunkSize() }
-  get superChunkSize() { return this.getSuperChunkSize() }
+  get regionSize() { return this.getRegionSize() }
 
   constructor(
     chunkSizeX: number,
     chunkSizeY: number,
     chunkSizeZ: number,
-    superChunkSizeX: number,
-    superChunkSizeY: number,
-    superChunkSizeZ: number,
+    regionSizeX: number,
+    regionSizeY: number,
+    regionSizeZ: number,
     worldSizeX: number,
     worldSizeY: number,
     worldSizeZ: number
@@ -59,15 +59,15 @@ export class WorldMetrics {
     this.chunkSizeXY = chunkSizeX * chunkSizeY
     this.chunkSizeXYZ = chunkSizeX * chunkSizeY * chunkSizeZ
 
-    this.superChunkSizeX = superChunkSizeX
-    this.superChunkSizeY = superChunkSizeY
-    this.superChunkSizeZ = superChunkSizeZ
-    this.superChunkSizeXY = superChunkSizeX * superChunkSizeY
-    this.superChunkSizeXYZ = superChunkSizeX * superChunkSizeY * superChunkSizeZ
+    this.regionSizeX = regionSizeX
+    this.regionSizeY = regionSizeY
+    this.regionSizeZ = regionSizeZ
+    this.regionSizeXY = regionSizeX * regionSizeY
+    this.regionSizeXYZ = regionSizeX * regionSizeY * regionSizeZ
 
-    this.superChunkVoxelSizeX = this.superChunkSizeX * this.chunkSizeX
-    this.superChunkVoxelSizeY = this.superChunkSizeY * this.chunkSizeY
-    this.superChunkVoxelSizeZ = this.superChunkSizeZ * this.chunkSizeZ
+    this.regionVoxelSizeX = this.regionSizeX * this.chunkSizeX
+    this.regionVoxelSizeY = this.regionSizeY * this.chunkSizeY
+    this.regionVoxelSizeZ = this.regionSizeZ * this.chunkSizeZ
 
     this.worldSizeX = worldSizeX
     this.worldSizeY = worldSizeY
@@ -75,9 +75,9 @@ export class WorldMetrics {
     this.worldSizeXY = worldSizeX * worldSizeY
     this.worldSizeXYZ = worldSizeX * worldSizeY * worldSizeZ
 
-    this.worldVoxelSizeX = this.worldSizeX * this.superChunkVoxelSizeX
-    this.worldVoxelSizeY = this.worldSizeY * this.superChunkVoxelSizeY
-    this.worldVoxelSizeZ = this.worldSizeZ * this.superChunkVoxelSizeZ
+    this.worldVoxelSizeX = this.worldSizeX * this.regionVoxelSizeX
+    this.worldVoxelSizeY = this.worldSizeY * this.regionVoxelSizeY
+    this.worldVoxelSizeZ = this.worldSizeZ * this.regionVoxelSizeZ
     this.worldVoxelSizeXY = this.worldVoxelSizeX * this.worldVoxelSizeY
     this.worldVoxelSizeXYZ = this.worldVoxelSizeX * this.worldVoxelSizeY * this.worldVoxelSizeZ
   }
@@ -87,9 +87,9 @@ export class WorldMetrics {
       this.chunkSizeX,
       this.chunkSizeY,
       this.chunkSizeZ,
-      this.superChunkSizeX,
-      this.superChunkSizeY,
-      this.superChunkSizeZ,
+      this.regionSizeX,
+      this.regionSizeY,
+      this.regionSizeZ,
       this.worldSizeX,
       this.worldSizeY,
       this.worldSizeZ,
@@ -100,15 +100,15 @@ export class WorldMetrics {
     return out.set(this.chunkSizeX, this.chunkSizeY, this.chunkSizeZ)
   }
 
-  getSuperChunkSize(out = new Vector3()) {
-    return out.set(this.superChunkSizeX, this.superChunkSizeY, this.superChunkSizeZ)
+  getRegionSize(out = new Vector3()) {
+    return out.set(this.regionSizeX, this.regionSizeY, this.regionSizeZ)
   }
 
   getWorldSize(out = new Vector3()) {
     return out.set(this.worldSizeX, this.worldSizeY, this.worldSizeZ)
   }
 
-  computeSuperChunkIndex(x: number, y: number, z: number) {
+  computeRegionIndex(x: number, y: number, z: number) {
     const { worldSizeX, worldSizeY, worldSizeZ, worldSizeXY } = this
     // No negative indexes
     return (
@@ -124,11 +124,11 @@ export class WorldMetrics {
       chunkSizeY,
       chunkSizeZ,
       chunkSizeXY,
-      superChunkSizeX,
-      superChunkSizeXY,
-      superChunkVoxelSizeX,
-      superChunkVoxelSizeY,
-      superChunkVoxelSizeZ,
+      regionSizeX,
+      regionSizeXY,
+      regionVoxelSizeX,
+      regionVoxelSizeY,
+      regionVoxelSizeZ,
       worldSizeX,
       worldSizeY,
       worldSizeZ,
@@ -152,22 +152,22 @@ export class WorldMetrics {
     }
 
     // Superchunk index
-    const superChunkIndexX = Math.floor(x / superChunkVoxelSizeX)
-    const superChunkIndexY = Math.floor(y / superChunkVoxelSizeY)
-    const superChunkIndexZ = Math.floor(z / superChunkVoxelSizeZ)
+    const regionIndexX = Math.floor(x / regionVoxelSizeX)
+    const regionIndexY = Math.floor(y / regionVoxelSizeY)
+    const regionIndexZ = Math.floor(z / regionVoxelSizeZ)
 
-    const localXInSuperChunk = x - superChunkIndexX * superChunkVoxelSizeX
-    const localYInSuperChunk = y - superChunkIndexY * superChunkVoxelSizeY
-    const localZInSuperChunk = z - superChunkIndexZ * superChunkVoxelSizeZ
+    const localXInRegion = x - regionIndexX * regionVoxelSizeX
+    const localYInRegion = y - regionIndexY * regionVoxelSizeY
+    const localZInRegion = z - regionIndexZ * regionVoxelSizeZ
 
-    const chunkIndexX = Math.floor(localXInSuperChunk / this.chunkSizeX)
-    const chunkIndexY = Math.floor(localYInSuperChunk / this.chunkSizeY)
-    const chunkIndexZ = Math.floor(localZInSuperChunk / this.chunkSizeZ)
+    const chunkIndexX = Math.floor(localXInRegion / this.chunkSizeX)
+    const chunkIndexY = Math.floor(localYInRegion / this.chunkSizeY)
+    const chunkIndexZ = Math.floor(localZInRegion / this.chunkSizeZ)
 
     // Local coordinates within the chunk
-    const voxelIndexX = localXInSuperChunk - chunkIndexX * chunkSizeX
-    const voxelIndexY = localYInSuperChunk - chunkIndexY * chunkSizeY
-    const voxelIndexZ = localZInSuperChunk - chunkIndexZ * chunkSizeZ
+    const voxelIndexX = localXInRegion - chunkIndexX * chunkSizeX
+    const voxelIndexY = localYInRegion - chunkIndexY * chunkSizeY
+    const voxelIndexZ = localZInRegion - chunkIndexZ * chunkSizeZ
 
     const voxelIndex = +voxelIndexX
       + voxelIndexY * chunkSizeX
@@ -175,33 +175,33 @@ export class WorldMetrics {
 
     const chunkIndex =
       + chunkIndexX
-      + chunkIndexY * superChunkSizeX
-      + chunkIndexZ * superChunkSizeXY
+      + chunkIndexY * regionSizeX
+      + chunkIndexZ * regionSizeXY
 
     // No negative indexes
-    const superChunkIndex =
-      + (superChunkIndexX + (worldSizeX >> 1))
-      + (superChunkIndexY + (worldSizeY >> 1)) * worldSizeX
-      + (superChunkIndexZ + (worldSizeZ >> 1)) * worldSizeXY
+    const regionIndex =
+      + (regionIndexX + (worldSizeX >> 1))
+      + (regionIndexY + (worldSizeY >> 1)) * worldSizeX
+      + (regionIndexZ + (worldSizeZ >> 1)) * worldSizeXY
 
-    out.set(superChunkIndex, chunkIndex, voxelIndex)
+    out.set(regionIndex, chunkIndex, voxelIndex)
 
     return out
   }
 
-  fromIndexes(superChunkIndex: number, chunkIndex: number, voxelIndex: number, out = new Vector3()) {
+  fromIndexes(regionIndex: number, chunkIndex: number, voxelIndex: number, out = new Vector3()) {
     const {
       chunkSizeX,
       chunkSizeY,
       chunkSizeZ,
       chunkSizeXY,
       chunkSizeXYZ,
-      superChunkSizeX,
-      superChunkSizeXY,
-      superChunkSizeXYZ,
-      superChunkVoxelSizeX,
-      superChunkVoxelSizeY,
-      superChunkVoxelSizeZ,
+      regionSizeX,
+      regionSizeXY,
+      regionSizeXYZ,
+      regionVoxelSizeX,
+      regionVoxelSizeY,
+      regionVoxelSizeZ,
       worldSizeX,
       worldSizeY,
       worldSizeZ,
@@ -209,40 +209,40 @@ export class WorldMetrics {
       worldSizeXYZ,
     } = this
 
-    if (superChunkIndex < 0 || superChunkIndex >= worldSizeXYZ) {
+    if (regionIndex < 0 || regionIndex >= worldSizeXYZ) {
       const f = formatNumberWithSeparator
-      throw new Error(`Superchunk index out of bounds: ${f(superChunkIndex)}, size: ${f(worldSizeXYZ)}\nReceived: ${superChunkIndex}, ${chunkIndex}, ${voxelIndex}`)
+      throw new Error(`Region index out of bounds: ${f(regionIndex)}, size: ${f(worldSizeXYZ)}\nReceived: ${regionIndex}, ${chunkIndex}, ${voxelIndex}`)
     }
 
-    if (chunkIndex < 0 || chunkIndex >= superChunkSizeXYZ) {
+    if (chunkIndex < 0 || chunkIndex >= regionSizeXYZ) {
       const f = formatNumberWithSeparator
-      throw new Error(`Chunk index out of bounds: ${f(chunkIndex)}, size: ${f(superChunkSizeXYZ)}\nReceived: ${superChunkIndex}, ${chunkIndex}, ${voxelIndex}`)
+      throw new Error(`Chunk index out of bounds: ${f(chunkIndex)}, size: ${f(regionSizeXYZ)}\nReceived: ${regionIndex}, ${chunkIndex}, ${voxelIndex}`)
     }
 
     if (voxelIndex < 0 || voxelIndex >= chunkSizeXYZ) {
       const f = formatNumberWithSeparator
-      throw new Error(`Voxel index out of bounds: ${f(voxelIndex)}, size: ${f(chunkSizeXYZ)}\nReceived: ${superChunkIndex}, ${chunkIndex}, ${voxelIndex}`)
+      throw new Error(`Voxel index out of bounds: ${f(voxelIndex)}, size: ${f(chunkSizeXYZ)}\nReceived: ${regionIndex}, ${chunkIndex}, ${voxelIndex}`)
     }
 
     let n = 0
 
-    n = superChunkIndex
-    let superChunkIndexZ = Math.floor(n / worldSizeXY)
-    n -= superChunkIndexZ * worldSizeXY
-    let superChunkIndexY = Math.floor(n / worldSizeX)
-    n -= superChunkIndexY * worldSizeX
-    let superChunkIndexX = n
+    n = regionIndex
+    let regionIndexZ = Math.floor(n / worldSizeXY)
+    n -= regionIndexZ * worldSizeXY
+    let regionIndexY = Math.floor(n / worldSizeX)
+    n -= regionIndexY * worldSizeX
+    let regionIndexX = n
 
     // No negative indexes
-    superChunkIndexX -= worldSizeX >> 1
-    superChunkIndexY -= worldSizeY >> 1
-    superChunkIndexZ -= worldSizeZ >> 1
+    regionIndexX -= worldSizeX >> 1
+    regionIndexY -= worldSizeY >> 1
+    regionIndexZ -= worldSizeZ >> 1
 
     n = chunkIndex
-    const chunkIndexZ = Math.floor(n / superChunkSizeXY)
-    n -= chunkIndexZ * superChunkSizeXY
-    const chunkIndexY = Math.floor(n / superChunkSizeX)
-    n -= chunkIndexY * superChunkSizeX
+    const chunkIndexZ = Math.floor(n / regionSizeXY)
+    n -= chunkIndexZ * regionSizeXY
+    const chunkIndexY = Math.floor(n / regionSizeX)
+    n -= chunkIndexY * regionSizeX
     const chunkIndexX = n
 
     n = voxelIndex
@@ -252,23 +252,23 @@ export class WorldMetrics {
     n -= voxelIndexY * chunkSizeX
     const voxelIndexX = n
 
-    const x = superChunkIndexX * superChunkVoxelSizeX + chunkIndexX * chunkSizeX + voxelIndexX
-    const y = superChunkIndexY * superChunkVoxelSizeY + chunkIndexY * chunkSizeY + voxelIndexY
-    const z = superChunkIndexZ * superChunkVoxelSizeZ + chunkIndexZ * chunkSizeZ + voxelIndexZ
+    const x = regionIndexX * regionVoxelSizeX + chunkIndexX * chunkSizeX + voxelIndexX
+    const y = regionIndexY * regionVoxelSizeY + chunkIndexY * chunkSizeY + voxelIndexY
+    const z = regionIndexZ * regionVoxelSizeZ + chunkIndexZ * chunkSizeZ + voxelIndexZ
 
     out.set(x, y, z)
 
     return out
   }
 
-  getAdjacentChunkIndexes(superChunkIndex: number, chunkIndex: number) {
+  getAdjacentChunkIndexes(regionIndex: number, chunkIndex: number) {
     const {
       chunkSizeX,
       chunkSizeY,
       chunkSizeZ,
     } = this
 
-    const { x, y, z } = this.fromIndexes(superChunkIndex, chunkIndex, 0)
+    const { x, y, z } = this.fromIndexes(regionIndex, chunkIndex, 0)
 
     return [
       this.toIndexes(x + chunkSizeX, y, z), // Right

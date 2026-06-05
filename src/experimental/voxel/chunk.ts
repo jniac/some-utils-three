@@ -11,7 +11,7 @@ export const defaultVoxelIsFullDelegate = (data: DataView) => data.getUint8(0) !
 
 type WorldMountState = {
   world: World
-  superChunkIndex: number
+  regionIndex: number
   chunkIndex: number
   worldPosition: Vector3
   adjacentChunksIndexes: readonly WorldIndexes[]
@@ -46,10 +46,10 @@ export class Chunk {
     this.voxelState = new ArrayBuffer(this.sizeXYZ * voxelStateByteSize)
   }
 
-  mount(world: World, superChunkIndex: number, chunkIndex: number) {
-    const worldPosition = world.metrics.fromIndexes(superChunkIndex, chunkIndex, 0)
-    const adjacentChunksIndexes = world.metrics.getAdjacentChunkIndexes(superChunkIndex, chunkIndex)
-    this.mountState = { world, superChunkIndex, chunkIndex, worldPosition, adjacentChunksIndexes }
+  mount(world: World, regionIndex: number, chunkIndex: number) {
+    const worldPosition = world.metrics.fromIndexes(regionIndex, chunkIndex, 0)
+    const adjacentChunksIndexes = world.metrics.getAdjacentChunkIndexes(regionIndex, chunkIndex)
+    this.mountState = { world, regionIndex, chunkIndex, worldPosition, adjacentChunksIndexes }
   }
 
   unmount() {

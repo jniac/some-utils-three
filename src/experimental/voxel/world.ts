@@ -21,7 +21,7 @@ export class World {
   metrics: WorldMetrics
   voxelStateByteSize: number
 
-  superChunks = new Map<number, Map<number, Chunk>>()
+  regions = new Map<number, Map<number, Chunk>>()
 
   emptyVoxelState: DataView
 
@@ -65,8 +65,8 @@ export class World {
 
   computeChunkCount() {
     let count = 0
-    for (const superChunk of this.superChunks.values()) {
-      count += superChunk.size
+    for (const region of this.regions.values()) {
+      count += region.size
     }
     return count
   }
@@ -75,8 +75,8 @@ export class World {
     voxelIsFullDelegate = <(data: DataView) => boolean>(data => data.getUint8(0) !== 0)
   ) {
     let count = 0
-    for (const superChunk of this.superChunks.values()) {
-      for (const chunk of superChunk.values()) {
+    for (const region of this.regions.values()) {
+      for (const chunk of region.values()) {
         for (const state of chunk.voxelStates()) {
           if (voxelIsFullDelegate(state)) {
             count++
@@ -87,18 +87,18 @@ export class World {
     return count
   }
 
-  static ChunkIeration = class {
+  static ChunkIteration = class {
     constructor(
       /**
        * The index of the chunk iteration, starting from 0.
        */
       public i: number,
       /**
-       * The index of the super chunk containing the chunk.
+       * The index of the region containing the chunk.
        */
-      public superChunkIndex: number,
+      public regionIndex: number,
       /**
-       * The index of the chunk within the super chunk.
+       * The index of the chunk within the region.
        */
       public chunkIndex: number,
       /**
@@ -108,11 +108,11 @@ export class World {
     ) { }
   };
 
-  *enumerateChunks(): Iterable<InstanceType<typeof World.ChunkIeration>> {
+  *enumerateChunks(): Iterable<InstanceType<typeof World.ChunkIteration>> {
     let i = 0
-    for (const [superChunkIndex, superChunk] of this.superChunks) {
-      for (const [chunkIndex, chunk] of superChunk) {
-        yield new World.ChunkIeration(i++, superChunkIndex, chunkIndex, chunk)
+    for (const [regionIndex, region] of this.regions) {
+      for (const [chunkIndex, chunk] of region) {
+        yield new World.ChunkIteration(i++, regionIndex, chunkIndex, chunk)
       }
     }
   }
@@ -124,8 +124,8 @@ export class World {
     out.makeEmpty()
     const chunkPosition = new Vector3()
     const chunkBox3 = new Box3()
-    for (const { superChunkIndex, chunkIndex, chunk } of this.enumerateChunks()) {
-      this.metrics.fromIndexes(superChunkIndex, chunkIndex, 0, chunkPosition)
+    for (const { regionIndex, chunkIndex, chunk } of this.enumerateChunks()) {
+      this.metrics.fromIndexes(regionIndex, chunkIndex, 0, chunkPosition)
       chunk.computeBounds({ voxelIsFullDelegate, out: chunkBox3 })
       chunkBox3.min.add(chunkPosition)
       chunkBox3.max.add(chunkPosition)
@@ -139,8 +139,8 @@ export class World {
   } = {}) {
     out.makeEmpty()
     const chunkPosition = new Vector3()
-    for (const { superChunkIndex, chunkIndex } of this.enumerateChunks()) {
-      this.metrics.fromIndexes(superChunkIndex, chunkIndex, 0, chunkPosition)
+    for (const { regionIndex, chunkIndex } of this.enumerateChunks()) {
+      this.metrics.fromIndexes(regionIndex, chunkIndex, 0, chunkPosition)
       out.expandByPoint(chunkPosition)
     }
     out.max.x += this.metrics.chunkSizeX - 1
@@ -158,37 +158,34 @@ export class World {
   tryGetChunk(p: Vector3Like): Chunk | null
   tryGetChunk(x: number, y: number, z: number): Chunk | null
   tryGetChunk(...args: [Vector3Like] | [x: number, y: number, z: number]): Chunk | null {
-    let [x, y, z] = args.length === 1 ? [args[0].x, args[0].y, args[0].z] : args
+    const [x, y, z] = args.length === 1 ? [args[0].x, args[0].y, args[0].z] : args
 
     const {
-      chunkSizeX,
-      chunkSizeY,
-      chunkSizeZ,
-      superChunkSizeX,
-      superChunkSizeY,
-      superChunkSizeZ,
-      superChunkSizeXY,
+      regionSizeX,
+      regionSizeY,
+      regionSizeZ,
+      regionSizeXY,
     } = this.metrics
 
-    const superChunkIndexX = Math.floor(x / chunkSizeX)
-    const superChunkIndexY = Math.floor(y / chunkSizeY)
-    const superChunkIndexZ = Math.floor(z / chunkSizeZ)
+    const regionIndexX = Math.floor(x / regionSizeX)
+    const regionIndexY = Math.floor(y / regionSizeY)
+    const regionIndexZ = Math.floor(z / regionSizeZ)
 
-    const superChunkIndex = this.metrics.computeSuperChunkIndex(superChunkIndexX, superChunkIndexY, superChunkIndexZ)
+    const regionIndex = this.metrics.computeRegionIndex(regionIndexX, regionIndexY, regionIndexZ)
 
-    const superChunk = this.superChunks.get(superChunkIndex)
-    if (!superChunk)
+    const region = this.regions.get(regionIndex)
+    if (!region)
       return null
 
-    const localXInSuperChunk = x - superChunkIndexX * superChunkSizeX
-    const localYInSuperChunk = y - superChunkIndexY * superChunkSizeY
-    const localZInSuperChunk = z - superChunkIndexZ * superChunkSizeZ
-    const chunkIndexX =
-      + localXInSuperChunk
-      + localYInSuperChunk * superChunkSizeX
-      + localZInSuperChunk * superChunkSizeXY
+    const localXInRegion = x - regionIndexX * regionSizeX
+    const localYInRegion = y - regionIndexY * regionSizeY
+    const localZInRegion = z - regionIndexZ * regionSizeZ
+    const chunkIndex =
+      + localXInRegion
+      + localYInRegion * regionSizeX
+      + localZInRegion * regionSizeXY
 
-    return superChunk.get(chunkIndexX) ?? null
+    return region.get(chunkIndex) ?? null
   }
 
   /**
@@ -205,16 +202,16 @@ export class World {
     return this.tryGetChunkByIndexes(indexes)
   }
 
-  tryGetChunkByIndexes(superChunkIndex: number, chunkIndex: number, voxelIndex?: number): Chunk | null
+  tryGetChunkByIndexes(regionIndex: number, chunkIndex: number, voxelIndex?: number): Chunk | null
   tryGetChunkByIndexes(indexes: WorldIndexes): Chunk | null
   tryGetChunkByIndexes(...args: any[]): Chunk | null {
-    const [superChunkIndex, chunkIndex] = args.length === 1 ? [args[0].superChunk, args[0].chunk] : args
+    const [regionIndex, chunkIndex] = args.length === 1 ? [args[0].region, args[0].chunk] : args
 
-    const superChunk = this.superChunks.get(superChunkIndex)
-    if (!superChunk)
+    const region = this.regions.get(regionIndex)
+    if (!region)
       return null
 
-    return superChunk.get(chunkIndex) ?? null
+    return region.get(chunkIndex) ?? null
   }
 
   /**
@@ -228,15 +225,15 @@ export class World {
 
     const indexes = this.metrics.toIndexes(x, y, z)
 
-    const superChunk = this.superChunks.get(indexes.x)
-    if (!superChunk)
+    const region = this.regions.get(indexes.region)
+    if (!region)
       return this.emptyVoxelState
 
-    const chunk = superChunk.get(indexes.y)
+    const chunk = region.get(indexes.chunk)
     if (!chunk)
       return this.emptyVoxelState
 
-    return chunk.getVoxelStateAtIndex(indexes.z)
+    return chunk.getVoxelStateAtIndex(indexes.voxel)
   }
 
   setVoxelState(p: Vector3Like, state: DataView): boolean
@@ -248,25 +245,25 @@ export class World {
 
     const indexes = this.metrics.toIndexes(x, y, z)
 
-    const { superChunks, voxelStateByteSize } = this
+    const { regions, voxelStateByteSize } = this
 
-    let superChunk = superChunks.get(indexes.superChunk)
-    if (!superChunk) {
+    let region = regions.get(indexes.region)
+    if (!region) {
       if (stateIsZero)
         return false // No need to create a new chunk if the state is zero
 
-      superChunk = new Map<number, Chunk>()
-      superChunks.set(indexes.superChunk, superChunk)
+      region = new Map<number, Chunk>()
+      regions.set(indexes.region, region)
     }
 
-    let chunk = superChunk.get(indexes.chunk)
+    let chunk = region.get(indexes.chunk)
     if (!chunk) {
       if (stateIsZero)
         return false // No need to create a new chunk if the state is zero
 
       chunk = new Chunk(this.metrics.chunkSize, voxelStateByteSize)
-      chunk.mount(this, indexes.superChunk, indexes.chunk)
-      superChunk.set(indexes.chunk, chunk)
+      chunk.mount(this, indexes.region, indexes.chunk)
+      region.set(indexes.chunk, chunk)
     }
 
     const existingState = chunk.getVoxelStateAtIndex(indexes.voxel)
@@ -311,4 +308,3 @@ export class World {
     }
   }
 }
-
