@@ -43,15 +43,33 @@ export class World {
    * - The state can be initialized with an array of u32 values or an ArrayBuffer. 
    * - If no data is provided, the state will be initialized with zeros.
    */
-  createVoxelState(...args: number[] | [data: ArrayBuffer | ArrayLike<number>]): VoxelState {
+  createVoxelState(
+    ...args:
+      | number[]
+      | [data: ArrayBuffer | ArrayLike<number>]
+      | ['solid'] // A convenient preset for a "solid" voxel state, which fills all bytes with 0xff
+  ): VoxelState {
     const state = new Uint8Array(this.voxelStateByteSize)
-    if (args.length === 1 && typeof args[0] !== 'number') {
-      const data = args[0]
-      const bytes = ArrayBuffer.isView(data)
-        ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
-        : new Uint8Array(data)
-      state.set(bytes.subarray(0, this.voxelStateByteSize))
-    } else if (args.length > 0) {
+
+    if (args.length === 1) {
+      if (args[0] === 'solid') {
+        state.fill(0xff)
+        return state
+      }
+
+      if (typeof args[0] !== 'number') {
+        const data = args[0]
+        const bytes = ArrayBuffer.isView(data)
+          ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
+          : new Uint8Array(data)
+        state.set(bytes.subarray(0, this.voxelStateByteSize))
+        return state
+      }
+
+      throw new Error('Invalid argument for createVoxelState')
+    }
+
+    if (args.length > 0) {
       (args as number[]).forEach((value, index) => {
         const offset = index * 4
         state[offset + 0] = (value >>> 24) & 0xff
@@ -59,7 +77,9 @@ export class World {
         state[offset + 2] = (value >>> 8) & 0xff
         state[offset + 3] = value & 0xff
       })
+      return state
     }
+
     return state
   }
 
