@@ -17,7 +17,7 @@ describe('WorldMetrics', () => {
       metrics: new WorldMetrics(4, 4, 4, 2, 2, 2, 8, 8, 8),
     })
     const state = world.createVoxelState()
-    state.setUint8(0, 1)
+    state[0] = 1
 
     world.setVoxelState(8, 0, 0, state)
     world.setVoxelState(-1, 0, 0, state)

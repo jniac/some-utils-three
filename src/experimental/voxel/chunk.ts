@@ -7,7 +7,10 @@ import { WorldIndexes } from './world-metrics'
 
 const _face = new Face(new Vector3(), 0)
 
-export const defaultVoxelIsFullDelegate = (data: DataView) => data.getUint8(0) !== 0
+export type VoxelState = Uint8Array
+export type VoxelIsFullDelegate = (state: Uint8Array, byteOffset: number) => boolean
+
+export const defaultVoxelIsFullDelegate: VoxelIsFullDelegate = (state, byteOffset) => state[byteOffset] !== 0
 
 type WorldMountState = {
   world: World
@@ -29,7 +32,7 @@ export class Chunk {
   readonly sizeXY: number
   readonly sizeXYZ: number
   readonly voxelStateByteSize: number
-  readonly voxelState: ArrayBuffer
+  readonly voxelState: Uint8Array
 
   get size() { return this.getSize() }
 
@@ -43,7 +46,7 @@ export class Chunk {
     this.sizeXY = this.sizeX * this.sizeY
     this.sizeXYZ = this.sizeX * this.sizeY * this.sizeZ
     this.voxelStateByteSize = voxelStateByteSize
-    this.voxelState = new ArrayBuffer(this.sizeXYZ * voxelStateByteSize)
+    this.voxelState = new Uint8Array(this.sizeXYZ * voxelStateByteSize)
   }
 
   mount(world: World, regionIndex: number, chunkIndex: number) {
@@ -70,27 +73,56 @@ export class Chunk {
     return out.set(this.sizeX, this.sizeY, this.sizeZ)
   }
 
-  getVoxelStateAtIndex(index: number): DataView {
+  getVoxelStateOffsetAtIndex(index: number): number {
     if (index < 0 || index >= this.sizeXYZ) {
       throw new Error(`Index out of bounds: ${index}, size: ${this.sizeXYZ}`)
     }
-    return new DataView(this.voxelState, index * this.voxelStateByteSize, this.voxelStateByteSize)
+    return index * this.voxelStateByteSize
+  }
+
+  getVoxelStateAtIndex(index: number, out?: Uint8Array): Uint8Array {
+    const offset = this.getVoxelStateOffsetAtIndex(index)
+    if (out) {
+      out.set(this.voxelState.subarray(offset, offset + this.voxelStateByteSize))
+      return out
+    }
+    return this.voxelState.subarray(offset, offset + this.voxelStateByteSize)
+  }
+
+  setVoxelStateAtIndex(index: number, state: Uint8Array): boolean {
+    const offset = this.getVoxelStateOffsetAtIndex(index)
+    let hasChanged = false
+    for (let i = 0; i < this.voxelStateByteSize; i++) {
+      const byte = state[i] ?? 0
+      if (byte !== this.voxelState[offset + i]) {
+        this.voxelState[offset + i] = byte
+        hasChanged = true
+      }
+    }
+    return hasChanged
+  }
+
+  isVoxelFullAtIndex(index: number, voxelIsFullDelegate = defaultVoxelIsFullDelegate): boolean {
+    return voxelIsFullDelegate(this.voxelState, this.getVoxelStateOffsetAtIndex(index))
   }
 
   /**
    * Returns the voxel state at the given coordinates. Coordinates should be within
    * the bounds of the chunk [(0, 0, 0), (sizeX, sizeY, sizeZ)].
    */
-  getVoxelState(p: Vector3Like): DataView
-  getVoxelState(x: number, y: number, z: number): DataView
-  getVoxelState(...args: [Vector3Like] | [x: number, y: number, z: number]): DataView {
-    const [x, y, z] = args.length === 1 ? [args[0].x, args[0].y, args[0].z] : args
-    const { sizeX, sizeY, sizeZ, sizeXY, voxelStateByteSize, voxelState } = this
+  getVoxelIndex(x: number, y: number, z: number): number {
+    const { sizeX, sizeY, sizeZ, sizeXY } = this
     if (x < 0 || x >= sizeX || y < 0 || y >= sizeY || z < 0 || z >= sizeZ) {
       throw new Error(`Coordinates out of bounds: ${x}, ${y}, ${z}, size: (${sizeX}, ${sizeY}, ${sizeZ})`)
     }
-    const index = x + y * sizeX + z * sizeXY
-    return new DataView(voxelState, index * voxelStateByteSize, voxelStateByteSize)
+    return x + y * sizeX + z * sizeXY
+  }
+
+  getVoxelState(p: Vector3Like): Uint8Array
+  getVoxelState(x: number, y: number, z: number): Uint8Array
+  getVoxelState(...args: [Vector3Like] | [x: number, y: number, z: number]): Uint8Array {
+    const [x, y, z] = args.length === 1 ? [args[0].x, args[0].y, args[0].z] : args
+    return this.getVoxelStateAtIndex(this.getVoxelIndex(x, y, z))
   }
 
   *voxelStates() {
@@ -100,14 +132,26 @@ export class Chunk {
       for (let y = 0; y < sizeY; y++) {
         for (let x = 0; x < sizeX; x++) {
           const index = x + y * sizeX + z * sizeXY
-          yield new DataView(voxelState, index * voxelStateByteSize, voxelStateByteSize)
+          const offset = index * voxelStateByteSize
+          yield voxelState.subarray(offset, offset + voxelStateByteSize)
         }
       }
     }
   }
 
+  computePlainVoxelCount(voxelIsFullDelegate = defaultVoxelIsFullDelegate) {
+    let count = 0
+    const { sizeXYZ, voxelState, voxelStateByteSize } = this
+    for (let index = 0; index < sizeXYZ; index++) {
+      if (voxelIsFullDelegate(voxelState, index * voxelStateByteSize)) {
+        count++
+      }
+    }
+    return count
+  }
+
   computeBounds({
-    voxelIsFullDelegate = <(data: DataView) => boolean>(data => data.getUint8(0) !== 0),
+    voxelIsFullDelegate = defaultVoxelIsFullDelegate,
     out = new Box3(),
   } = {}) {
     out.makeEmpty()
@@ -116,8 +160,7 @@ export class Chunk {
       for (let y = 0; y < sizeY; y++) {
         for (let x = 0; x < sizeX; x++) {
           const index = x + y * sizeX + z * sizeXY
-          const data = new DataView(voxelState, index * voxelStateByteSize, voxelStateByteSize)
-          if (voxelIsFullDelegate(data)) {
+          if (voxelIsFullDelegate(voxelState, index * voxelStateByteSize)) {
             out.expandByPoint(new Vector3(x, y, z))
           }
         }
@@ -130,9 +173,9 @@ export class Chunk {
    * Returns the voxel state at the given coordinates. If the coordinates are out 
    * of bounds, returns null.
   */
-  tryGetVoxelState(p: Vector3Like): DataView | null
-  tryGetVoxelState(x: number, y: number, z: number): DataView | null
-  tryGetVoxelState(...args: [Vector3Like] | [x: number, y: number, z: number]): DataView | null {
+  tryGetVoxelState(p: Vector3Like): Uint8Array | null
+  tryGetVoxelState(x: number, y: number, z: number): Uint8Array | null
+  tryGetVoxelState(...args: [Vector3Like] | [x: number, y: number, z: number]): Uint8Array | null {
     const [x, y, z] = args.length === 1 ? [args[0].x, args[0].y, args[0].z] : args
     const { sizeX, sizeY, sizeZ } = this
     if (x < 0 || x >= sizeX || y < 0 || y >= sizeY || z < 0 || z >= sizeZ) {
@@ -140,6 +183,14 @@ export class Chunk {
       return null
     }
     return this.getVoxelState(x, y, z)
+  }
+
+  tryGetVoxelStateOffset(x: number, y: number, z: number): number | null {
+    const { sizeX, sizeY, sizeZ } = this
+    if (x < 0 || x >= sizeX || y < 0 || y >= sizeY || z < 0 || z >= sizeZ) {
+      return null
+    }
+    return (x + y * sizeX + z * this.sizeXY) * this.voxelStateByteSize
   }
 
   /**
@@ -166,8 +217,7 @@ export class Chunk {
       for (let y = 0; y < sizeY; y++) {
         for (let x = 0; x < sizeX; x++) {
           const index = x + y * sizeX + z * sizeXY
-          const data = new DataView(voxelState, index * voxelStateByteSize, voxelStateByteSize)
-          const currentIsFull = voxelIsFullDelegate(data)
+          const currentIsFull = voxelIsFullDelegate(voxelState, index * voxelStateByteSize)
           if (currentIsFull) {
             for (let direction = 0; direction < 6; direction++) {
               const v = directionVectors[direction]
@@ -179,13 +229,16 @@ export class Chunk {
               let adjacentIsFull = false
               if (adjacentDirection === null) {
                 const adjacentIndex = nx + ny * sizeX + nz * sizeXY
-                const adjacentData = new DataView(voxelState, adjacentIndex * voxelStateByteSize, voxelStateByteSize)
-                adjacentIsFull = voxelIsFullDelegate(adjacentData)
+                adjacentIsFull = voxelIsFullDelegate(voxelState, adjacentIndex * voxelStateByteSize)
               } else {
                 if (!ignoreAdjacentChunks) {
-                  const adjacentData = this.getAdjacentChunk(adjacentDirection)
-                    ?.getVoxelState(mod(nx, sizeX), mod(ny, sizeY), mod(nz, sizeZ)) ?? null
-                  adjacentIsFull = adjacentData ? voxelIsFullDelegate(adjacentData) : false
+                  const adjacentChunk = this.getAdjacentChunk(adjacentDirection)
+                  if (adjacentChunk) {
+                    const adjacentOffset = adjacentChunk.tryGetVoxelStateOffset(mod(nx, sizeX), mod(ny, sizeY), mod(nz, sizeZ))
+                    adjacentIsFull = adjacentOffset === null
+                      ? false
+                      : voxelIsFullDelegate(adjacentChunk.voxelState, adjacentOffset)
+                  }
                 }
               }
               if (!adjacentIsFull) {
@@ -222,8 +275,7 @@ export class Chunk {
         for (let x = 0; x < sizeX; x++) {
           const index = x + y * sizeX + z * sizeXY
           if (visited[index]) continue
-          const data = new DataView(voxelState, index * voxelStateByteSize, voxelStateByteSize)
-          if (voxelIsFullDelegate(data)) {
+          if (voxelIsFullDelegate(voxelState, index * voxelStateByteSize)) {
             let maxX = x, maxY = y, maxZ = z
 
             let canExpandX = true
@@ -239,8 +291,7 @@ export class Chunk {
                   for (let k = z; k <= maxZ; k++) {
                     const idx = (maxX + 1) + j * sizeX + k * sizeXY
                     if (visited[idx]) { valid = false; break }
-                    const data = new DataView(voxelState, idx * voxelStateByteSize, voxelStateByteSize)
-                    if (!voxelIsFullDelegate(data)) { valid = false; break }
+                    if (!voxelIsFullDelegate(voxelState, idx * voxelStateByteSize)) { valid = false; break }
                   }
                 }
                 if (valid) {
@@ -259,8 +310,7 @@ export class Chunk {
                   for (let k = z; k <= maxZ; k++) {
                     const idx = i + (maxY + 1) * sizeX + k * sizeXY
                     if (visited[idx]) { valid = false; break }
-                    const data = new DataView(voxelState, idx * voxelStateByteSize, voxelStateByteSize)
-                    if (!voxelIsFullDelegate(data)) { valid = false; break }
+                    if (!voxelIsFullDelegate(voxelState, idx * voxelStateByteSize)) { valid = false; break }
                   }
                 }
                 if (valid) {
@@ -279,8 +329,7 @@ export class Chunk {
                   for (let j = y; j <= maxY; j++) {
                     const idx = i + j * sizeX + (maxZ + 1) * sizeXY
                     if (visited[idx]) { valid = false; break }
-                    const data = new DataView(voxelState, idx * voxelStateByteSize, voxelStateByteSize)
-                    if (!voxelIsFullDelegate(data)) { valid = false; break }
+                    if (!voxelIsFullDelegate(voxelState, idx * voxelStateByteSize)) { valid = false; break }
                   }
                 }
                 if (valid) {

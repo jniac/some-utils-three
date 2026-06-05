@@ -1,11 +1,11 @@
 import { Box3, Vector3, Vector3Like } from 'three'
 
-import { Chunk, defaultVoxelIsFullDelegate } from './chunk'
+import { Chunk, defaultVoxelIsFullDelegate, VoxelState } from './chunk'
 import { WorldIndexes, WorldMetrics } from './world-metrics'
 
-function isDataViewZeroed(dataView: DataView) {
-  for (let i = 0; i < dataView.byteLength; i++) {
-    if (dataView.getUint8(i) !== 0) {
+function isVoxelStateZeroed(state: Uint8Array) {
+  for (let i = 0; i < state.byteLength; i++) {
+    if (state[i] !== 0) {
       return false
     }
   }
@@ -23,7 +23,7 @@ export class World {
 
   regions = new Map<number, Map<number, Chunk>>()
 
-  emptyVoxelState: DataView
+  emptyVoxelState: Uint8Array
 
   constructor(props?: Partial<typeof defaultWorldProps>) {
     const {
@@ -33,7 +33,7 @@ export class World {
 
     this.metrics = metrics.clone()
     this.voxelStateByteSize = voxelStateByteSize
-    this.emptyVoxelState = new DataView(new ArrayBuffer(voxelStateByteSize))
+    this.emptyVoxelState = new Uint8Array(voxelStateByteSize)
   }
 
   /**
@@ -43,22 +43,30 @@ export class World {
    * - The state can be initialized with an array of u32 values or an ArrayBuffer. 
    * - If no data is provided, the state will be initialized with zeros.
    */
-  createVoxelState(...args: number[] | [data: ArrayBufferLike]): DataView {
-    const state = new DataView(new ArrayBuffer(this.voxelStateByteSize))
-    if (args.length === 1 && args[0] instanceof ArrayBuffer) {
-      new Uint8Array(state.buffer).set(new Uint8Array(args[0]))
+  createVoxelState(...args: number[] | [data: ArrayBuffer | ArrayLike<number>]): VoxelState {
+    const state = new Uint8Array(this.voxelStateByteSize)
+    if (args.length === 1 && typeof args[0] !== 'number') {
+      const data = args[0]
+      const bytes = ArrayBuffer.isView(data)
+        ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
+        : new Uint8Array(data)
+      state.set(bytes.subarray(0, this.voxelStateByteSize))
     } else if (args.length > 0) {
       (args as number[]).forEach((value, index) => {
-        state.setUint32(index, value)
+        const offset = index * 4
+        state[offset + 0] = (value >>> 24) & 0xff
+        state[offset + 1] = (value >>> 16) & 0xff
+        state[offset + 2] = (value >>> 8) & 0xff
+        state[offset + 3] = value & 0xff
       })
     }
     return state
   }
 
-  voxelStateToString(state: DataView) {
+  voxelStateToString(state: Uint8Array) {
     let str = ''
     for (let i = 0; i < state.byteLength; i++) {
-      str += state.getUint8(i).toString(16).padStart(2, '0')
+      str += state[i]!.toString(16).padStart(2, '0')
     }
     return str
   }
@@ -72,16 +80,12 @@ export class World {
   }
 
   computePlainVoxelCount(
-    voxelIsFullDelegate = <(data: DataView) => boolean>(data => data.getUint8(0) !== 0)
+    voxelIsFullDelegate = defaultVoxelIsFullDelegate
   ) {
     let count = 0
     for (const region of this.regions.values()) {
       for (const chunk of region.values()) {
-        for (const state of chunk.voxelStates()) {
-          if (voxelIsFullDelegate(state)) {
-            count++
-          }
-        }
+        count += chunk.computePlainVoxelCount(voxelIsFullDelegate)
       }
     }
     return count
@@ -118,7 +122,7 @@ export class World {
   }
 
   computeVoxelBounds({
-    voxelIsFullDelegate = <(data: DataView) => boolean>(data => data.getUint8(0) !== 0),
+    voxelIsFullDelegate = defaultVoxelIsFullDelegate,
     out = new Box3(),
   } = {}) {
     out.makeEmpty()
@@ -218,9 +222,9 @@ export class World {
    * Returns the voxel state at the given coordinates. Coordinates should be within
    * the bounds of the chunk.
    */
-  getVoxelState(p: Vector3Like): DataView
-  getVoxelState(x: number, y: number, z: number): DataView
-  getVoxelState(...args: [Vector3Like] | [x: number, y: number, z: number]): DataView {
+  getVoxelState(p: Vector3Like): Uint8Array
+  getVoxelState(x: number, y: number, z: number): Uint8Array
+  getVoxelState(...args: [Vector3Like] | [x: number, y: number, z: number]): Uint8Array {
     const [x, y, z] = args.length === 1 ? [args[0].x, args[0].y, args[0].z] : args
 
     const indexes = this.metrics.toIndexes(x, y, z)
@@ -236,12 +240,12 @@ export class World {
     return chunk.getVoxelStateAtIndex(indexes.voxel)
   }
 
-  setVoxelState(p: Vector3Like, state: DataView): boolean
-  setVoxelState(x: number, y: number, z: number, state: DataView): boolean
-  setVoxelState(...args: [Vector3Like, DataView] | [x: number, y: number, z: number, state: DataView]): boolean {
+  setVoxelState(p: Vector3Like, state: Uint8Array): boolean
+  setVoxelState(x: number, y: number, z: number, state: Uint8Array): boolean
+  setVoxelState(...args: [Vector3Like, Uint8Array] | [x: number, y: number, z: number, state: Uint8Array]): boolean {
     const [x, y, z, state] = args.length === 2 ? [args[0].x, args[0].y, args[0].z, args[1]] : args
 
-    const stateIsZero = isDataViewZeroed(state)
+    const stateIsZero = isVoxelStateZeroed(state)
 
     const indexes = this.metrics.toIndexes(x, y, z)
 
@@ -266,17 +270,7 @@ export class World {
       region.set(indexes.chunk, chunk)
     }
 
-    const existingState = chunk.getVoxelStateAtIndex(indexes.voxel)
-    let hasChanged = false
-    for (let i = 0; i < voxelStateByteSize; i++) {
-      const byte = state.getUint8(i)
-      if (byte !== existingState.getUint8(i)) {
-        existingState.setUint8(i, byte)
-        hasChanged = true
-      }
-    }
-
-    return hasChanged
+    return chunk.setVoxelStateAtIndex(indexes.voxel, state)
   }
 
   /**
