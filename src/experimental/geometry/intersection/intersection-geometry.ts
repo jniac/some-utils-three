@@ -163,6 +163,20 @@ const defaultOptions = {
   culling: <Culling | keyof typeof Culling>Culling.None,
 }
 
+function solveOptions(options?: Partial<typeof defaultOptions>) {
+  let mode = defaultOptions.mode as IntersectionMode
+  let culling = defaultOptions.culling as Culling
+  if (options) {
+    if (options.mode !== undefined) {
+      mode = typeof options.mode === 'string' ? IntersectionMode[options.mode as keyof typeof IntersectionMode] : options.mode
+    }
+    if (options.culling !== undefined) {
+      culling = typeof options.culling === 'string' ? Culling[options.culling as keyof typeof Culling] : options.culling
+    }
+  }
+  return { mode, culling }
+}
+
 /**
  * Performs ray-triangle intersection tests for all triangles in the given geometry. 
  * 
@@ -177,17 +191,9 @@ function rayGeometryFirstIntersection(
   geometry: BufferGeometry,
   options?: Partial<typeof defaultOptions>,
 ): GeometryIntersection | null {
-  const {
-    mode: modeArg,
-    culling: cullingArg,
-  } = {
-    ...defaultOptions,
-    ...options,
-  }
+  const { mode, culling } = solveOptions(options)
 
   const result = new GeometryIntersection()
-  const culling = typeof cullingArg === 'string' ? Culling[cullingArg as keyof typeof Culling] : cullingArg
-  const mode = typeof modeArg === 'string' ? IntersectionMode[modeArg as keyof typeof IntersectionMode] : modeArg
 
   _rayGeometryIntersection_start(origin, direction, geometry, culling, mode)
 
@@ -213,6 +219,39 @@ function rayGeometryFirstIntersection(
   return result.t === Infinity ? null : result
 }
 
+function rayGeometryAllIntersectionsCount(
+  origin: Vector3,
+  direction: Vector3,
+  geometry: BufferGeometry,
+  options?: Partial<typeof defaultOptions>,
+): number {
+  const { mode, culling } = solveOptions(options)
+
+  _rayGeometryIntersection_start(origin, direction, geometry, culling, mode)
+
+  const next = _cache.indexAttr
+    ? _rayGeometryIntersectionWithIndex_next
+    : _rayGeometryIntersectionWithoutIndex_next
+
+  let count = 0
+  let iterationCount = 0
+  const MAX_ITERATIONS = 1e5
+  while (_cache.triangleIndex < _cache.triangleCount) {
+    if (iterationCount++ >= MAX_ITERATIONS)
+      throw new Error('rayGeometryAllIntersections: Exceeded maximum iterations, possible infinite loop')
+
+    next()
+
+    if (_cache.triangleIndex >= _cache.triangleCount)
+      break
+
+    count++
+  }
+
+  return count
+}
+
+
 /**
  * Performs ray-triangle intersection tests for all triangles in the given geometry. 
  * 
@@ -227,17 +266,9 @@ function rayGeometryAllIntersections(
   geometry: BufferGeometry,
   options?: Partial<typeof defaultOptions>,
 ): GeometryIntersection[] {
-  const {
-    mode: modeArg,
-    culling: cullingArg,
-  } = {
-    ...defaultOptions,
-    ...options,
-  }
+  const { mode, culling } = solveOptions(options)
 
   const results: GeometryIntersection[] = []
-  const mode = typeof modeArg === 'string' ? IntersectionMode[modeArg as keyof typeof IntersectionMode] : modeArg
-  const culling = typeof cullingArg === 'string' ? Culling[cullingArg as keyof typeof Culling] : cullingArg
 
   _rayGeometryIntersection_start(origin, direction, geometry, culling, mode)
 
@@ -296,6 +327,7 @@ function sphericalProbeGeometryFirstIntersection(
 export {
   GeometryIntersection,
   rayGeometryAllIntersections,
+  rayGeometryAllIntersectionsCount,
   rayGeometryFirstIntersection,
   defaultOptions as rayGeometryIntersectionDefaultOptions
 }

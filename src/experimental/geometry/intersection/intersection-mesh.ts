@@ -1,5 +1,5 @@
 import { InstancedMesh, Matrix4, Mesh, Vector3 } from 'three'
-import { GeometryIntersection, rayGeometryAllIntersections, rayGeometryFirstIntersection, rayGeometryIntersectionDefaultOptions } from './intersection-geometry'
+import { GeometryIntersection, rayGeometryAllIntersections, rayGeometryAllIntersectionsCount, rayGeometryFirstIntersection, rayGeometryIntersectionDefaultOptions } from './intersection-geometry'
 
 /**
  * Since Vector.transformDirection normalizes the vector, we need here a version of it that doesn't normalize.
@@ -134,6 +134,42 @@ function rayMeshFirstIntersection(
   }
 }
 
+function rayMeshAllIntersectionsCount(
+  origin: Vector3,
+  direction: Vector3,
+  mesh: Mesh,
+  options?: Partial<typeof rayGeometryIntersectionDefaultOptions>,
+): number {
+  const { m, mi, localOrigin, localDirection } = rayMeshIntersection_cache
+
+  mesh.updateMatrixWorld()
+
+  m.copy(mesh.matrixWorld)
+  mi.copy(m).invert()
+  localOrigin.copy(origin).applyMatrix4(mi)
+  transformAsMatrix3(localDirection.copy(direction), mi)
+
+  // Regular Mesh: just test against the geometry
+  if (mesh instanceof InstancedMesh === false) {
+    return rayGeometryAllIntersectionsCount(localOrigin, localDirection, mesh.geometry, options)
+  }
+
+  // InstancedMesh: we need to test against each instance's transform
+  else {
+    const { i_m, i_mi, i_localOrigin, i_localDirection } = rayMeshIntersection_cache
+    let count = 0
+    const instanceCount = mesh.count
+    for (let instanceId = 0; instanceId < instanceCount; instanceId++) {
+      mesh.getMatrixAt(instanceId, i_m)
+      i_mi.copy(i_m).invert()
+      i_localOrigin.copy(localOrigin).applyMatrix4(i_mi)
+      transformAsMatrix3(i_localDirection.copy(localDirection), i_mi)
+      count += rayGeometryAllIntersectionsCount(i_localOrigin, i_localDirection, mesh.geometry, options)
+    }
+    return count
+  }
+}
+
 function rayMeshAllIntersections(
   origin: Vector3,
   direction: Vector3,
@@ -175,6 +211,7 @@ function rayMeshAllIntersections(
 export {
   MeshIntersection,
   rayMeshAllIntersections,
+  rayMeshAllIntersectionsCount,
   rayMeshFirstIntersection
 }
 
