@@ -169,7 +169,8 @@ export class WorldMetrics {
     const voxelIndexY = localYInRegion - chunkIndexY * chunkSizeY
     const voxelIndexZ = localZInRegion - chunkIndexZ * chunkSizeZ
 
-    const voxelIndex = +voxelIndexX
+    const voxelIndex =
+      + voxelIndexX
       + voxelIndexY * chunkSizeX
       + voxelIndexZ * chunkSizeXY
 
