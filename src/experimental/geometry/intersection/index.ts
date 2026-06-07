@@ -6,12 +6,14 @@ export {
 export {
   GeometryIntersection,
   rayGeometryAllIntersections,
+  rayGeometryAllIntersectionsCount,
   rayGeometryFirstIntersection
 } from './intersection-geometry'
 
 export {
   MeshIntersection,
   rayMeshAllIntersections,
+  rayMeshAllIntersectionsCount,
   rayMeshFirstIntersection
 } from './intersection-mesh'
 
