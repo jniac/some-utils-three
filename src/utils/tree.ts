@@ -3,7 +3,18 @@ import { Object3D } from 'three'
 import { isObject3D } from '../is'
 import { applyTransform, TransformProps } from './transform'
 
-type SetupParentOrTransformProps = Object3D | TransformProps | null
+type PropsOnly<T> = {
+  [K in keyof T as T[K] extends (...args: any[]) => any ? never : K]: T[K]
+}
+
+type SetupTransformProps = TransformProps & {
+  /**
+   * If defined to true, the object's matrix will be updated after applying the transform props.
+   */
+  immediatelyUpdateMatrix?: boolean
+}
+
+type SetupParentOrTransformProps = Object3D | SetupTransformProps | null
 type SetupCallback<T> = (instance: T) => void
 
 export type QueryPredicate<T extends Object3D = Object3D> =
@@ -61,6 +72,9 @@ export function setup<T>(
       transformProps.add(child)
     } else {
       applyTransform(child, transformProps)
+      if (transformProps.immediatelyUpdateMatrix) {
+        child.updateMatrixWorld()
+      }
     }
   }
   callback?.(child)

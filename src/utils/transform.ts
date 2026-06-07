@@ -31,11 +31,13 @@ const defaultTransformProps = {
   /**
    * If defined, the object will be moved as if the pivot was at the origin.
    * 
-   * NOTE: The pivot is expressed in the object's local space.
-   * 
    * Defaults to `undefined`.
+   * 
+   * Notes: 
+   * - The pivot is expressed in the object's local space.
+   * - ⚠️ `pivot: Vector | null` now exists in Object3D (2025 ?). Side effects may occur if both are used. Use with caution.
    */
-  pivot: <Vector3Declaration | undefined>undefined,
+  pivot: <Vector3Declaration | null | undefined>undefined,
   /**
    * Applies only if defined.
    * 
@@ -53,7 +55,7 @@ const defaultTransformProps = {
    * 
    * Defaults to `undefined`.
    */
-  parent: <Object3D | undefined>undefined,
+  parent: <Object3D | null | undefined>undefined,
   /**
    * If defined, all the properties will be copied to the object's `userData`.
    * 
@@ -105,7 +107,7 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
   fromEulerDeclaration(rotation ?? [rotationX, rotationY, rotationZ, rotationOrder, rotationUnit], target.rotation)
   fromVector3Declaration(scale, target.scale)
 
-  if (pivot !== undefined) {
+  if (pivot !== undefined && pivot !== null) {
     target.updateMatrix()
     _matrix3.setFromMatrix4(target.matrix)
     fromVector3Declaration(pivot, _vector3).applyMatrix3(_matrix3)
