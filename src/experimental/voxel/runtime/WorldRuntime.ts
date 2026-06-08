@@ -1,9 +1,9 @@
-import { Box3, Vector3 } from 'three'
+import { Box3, Vector3, Vector3Like } from 'three'
 
 import { Direction } from '../core'
 import { World } from '../world'
 import { WorldIndexes } from '../world-metrics'
-import { ActiveZone, getActiveZoneBounds } from './active-zone'
+import { ActiveZone } from './active-zone'
 import { ChunkRuntime, WorldPhysicsAdapter, WorldRendererAdapter } from './adapters'
 import { ChunkKey, createChunkKey } from './chunk-key'
 
@@ -26,7 +26,6 @@ type CardinalDirection =
   | Direction.F
   | Direction.B
 
-const _bounds = new Box3()
 const _chunkOrigin = new Vector3()
 
 export class WorldRuntime {
@@ -94,15 +93,15 @@ export class WorldRuntime {
   updateMountedChunks(): void {
     const wanted = this.computeWantedChunkKeys()
 
-    for (const key of wanted) {
-      if (!this.mountedChunks.has(key)) {
-        this.#mountChunk(key)
-      }
-    }
-
     for (const key of [...this.mountedChunks.keys()]) {
       if (!wanted.has(key)) {
         this.#unmountChunk(key)
+      }
+    }
+
+    for (const key of wanted) {
+      if (!this.mountedChunks.has(key)) {
+        this.#mountChunk(key)
       }
     }
   }
@@ -137,7 +136,17 @@ export class WorldRuntime {
     out.clear()
 
     for (const zone of this.activeZones.values()) {
-      this.#addChunksIntersectingBounds(getActiveZoneBounds(zone, _bounds), out)
+      switch (zone.type) {
+        case 'box':
+          this.#addChunksIntersectingBounds(zone.bounds, out)
+          break
+        case 'sphere':
+          this.#addChunksIntersectingSphere(zone.sphere.center, zone.sphere.radius, out)
+          break
+        case 'agent-sphere':
+          this.#addChunksIntersectingSphere(zone.agent.position, zone.radius, out)
+          break
+      }
     }
 
     return out
@@ -153,18 +162,56 @@ export class WorldRuntime {
     const maxChunkY = Math.floor(bounds.max.y / chunkSizeY)
     const maxChunkZ = Math.floor(bounds.max.z / chunkSizeZ)
 
-    for (let z = minChunkZ; z <= maxChunkZ; z++) {
-      for (let y = minChunkY; y <= maxChunkY; y++) {
-        for (let x = minChunkX; x <= maxChunkX; x++) {
-          const indexes = this.#tryGetIndexesFromChunkCoordinates(x, y, z)
-          if (!indexes)
-            continue
+    for (let z = minChunkZ; z < maxChunkZ; z++) {
+      for (let y = minChunkY; y < maxChunkY; y++) {
+        for (let x = minChunkX; x < maxChunkX; x++) {
+          this.#addExistingChunkFromChunkCoordinates(x, y, z, out)
+        }
+      }
+    }
+  }
 
-          if (this.world.tryGetChunkByIndexes(indexes)) {
-            out.add(createChunkKey(indexes.region, indexes.chunk))
+  #addChunksIntersectingSphere(center: Vector3Like, radius: number, out: Set<ChunkKey>): void {
+    const { chunkSizeX, chunkSizeY, chunkSizeZ } = this.world.metrics
+
+    const minChunkX = Math.floor((center.x - radius) / chunkSizeX)
+    const minChunkY = Math.floor((center.y - radius) / chunkSizeY)
+    const minChunkZ = Math.floor((center.z - radius) / chunkSizeZ)
+    const maxChunkX = Math.floor((center.x + radius) / chunkSizeX)
+    const maxChunkY = Math.floor((center.y + radius) / chunkSizeY)
+    const maxChunkZ = Math.floor((center.z + radius) / chunkSizeZ)
+    const radiusSq = radius * radius
+
+    for (let z = minChunkZ; z < maxChunkZ; z++) {
+      const chunkMinZ = z * chunkSizeZ
+      const chunkMaxZ = chunkMinZ + chunkSizeZ
+      const dz = distanceToRange(center.z, chunkMinZ, chunkMaxZ)
+
+      for (let y = minChunkY; y < maxChunkY; y++) {
+        const chunkMinY = y * chunkSizeY
+        const chunkMaxY = chunkMinY + chunkSizeY
+        const dy = distanceToRange(center.y, chunkMinY, chunkMaxY)
+
+        for (let x = minChunkX; x < maxChunkX; x++) {
+          const chunkMinX = x * chunkSizeX
+          const chunkMaxX = chunkMinX + chunkSizeX
+          const dx = distanceToRange(center.x, chunkMinX, chunkMaxX)
+
+          if (dx * dx + dy * dy + dz * dz <= radiusSq) {
+            this.#addExistingChunkFromChunkCoordinates(x, y, z, out)
           }
         }
       }
+    }
+  }
+
+  #addExistingChunkFromChunkCoordinates(x: number, y: number, z: number, out: Set<ChunkKey>): void {
+    const indexes = this.#tryGetIndexesFromChunkCoordinates(x, y, z)
+    if (!indexes)
+      return
+
+    if (this.world.tryGetChunkByIndexes(indexes)) {
+      out.add(createChunkKey(indexes.region, indexes.chunk))
     }
   }
 
@@ -251,4 +298,12 @@ export class WorldRuntime {
 function parseChunkKey(key: ChunkKey): [regionIndex: number, chunkIndex: number] {
   const [regionIndex, chunkIndex] = key.split(':').map(Number)
   return [regionIndex!, chunkIndex!]
+}
+
+function distanceToRange(value: number, min: number, max: number): number {
+  if (value < min)
+    return min - value
+  if (value > max)
+    return value - max
+  return 0
 }

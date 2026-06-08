@@ -1,4 +1,4 @@
-import { Box3, Vector3 } from 'three'
+import { Box3, Sphere, Vector3 } from 'three'
 import { describe, expect, test } from 'vitest'
 
 import { WorldRuntime } from '../runtime'
@@ -68,5 +68,25 @@ describe('WorldRuntime', () => {
     expect(updated).toHaveLength(1)
     expect(updated[0]!.dirtyMesh).toBe(false)
   })
+
+  test('mounts only chunks intersecting sphere active zones', () => {
+    const { world, state } = createTestWorld()
+    world.setVoxelState(4, 4, 4, state)
+
+    const runtime = new WorldRuntime({ world })
+    runtime.setActiveZone('test', {
+      type: 'sphere',
+      sphere: new Sphere(new Vector3(0, 0, 0), 5),
+    })
+
+    const wanted = runtime.computeWantedChunkKeys()
+
+    expect(wanted.size).toBe(2)
+    expect([...wanted]).not.toContain(createChunkKeyFromVoxelPosition(world, 4, 4, 4))
+  })
 })
 
+function createChunkKeyFromVoxelPosition(world: World, x: number, y: number, z: number): string {
+  const indexes = world.metrics.toIndexes(x, y, z)
+  return `${indexes.region}:${indexes.chunk}`
+}
