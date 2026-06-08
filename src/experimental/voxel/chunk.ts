@@ -167,6 +167,9 @@ export class Chunk {
    * Notes:
    * - For performance reasons, and avoid unnecessary checks, use setVoxelStateAtIndex or setVoxelStateAtCoordinates when possible.
    */
+  setVoxelState(index: number, state: Uint8Array): boolean
+  setVoxelState(p: Vector3Like, state: Uint8Array): boolean
+  setVoxelState(x: number, y: number, z: number, state: Uint8Array): boolean
   setVoxelState(
     ...args:
       | [index: number, state: Uint8Array]
