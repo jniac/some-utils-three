@@ -1,4 +1,4 @@
-import { BufferGeometry, Camera, CapsuleGeometry, Color, GreaterDepth, Group, Matrix4, Mesh, MeshBasicMaterial, Object3D, PerspectiveCamera, Plane, PlaneGeometry, Quaternion, Raycaster, TorusGeometry, Vector2, Vector3, WebGLProgramParametersWithUniforms, WebGLRenderer } from 'three'
+import { BufferGeometry, Camera, CapsuleGeometry, Color, GreaterDepth, Group, Matrix4, Mesh, MeshBasicMaterial, Object3D, PerspectiveCamera, Plane, PlaneGeometry, Quaternion, Raycaster, Side, TorusGeometry, Vector2, Vector3, WebGLProgramParametersWithUniforms, WebGLRenderer } from 'three'
 import { BufferGeometryUtils } from 'three/examples/jsm/Addons.js'
 
 import { Message } from 'some-utils-ts/message'
@@ -67,8 +67,8 @@ class HoverMaterial extends MeshBasicMaterial {
     uHoverBumpFactor: { value: 0.01 },
   }
 
-  constructor({ xray = false } = {}) {
-    super({ vertexColors: true })
+  constructor({ xray = false, side = <Side>0 } = {}) {
+    super({ vertexColors: true, side })
 
     this.#options = { xray }
 
@@ -128,6 +128,15 @@ class DiscMaterial extends MeshBasicMaterial {
     }
   }
 }
+
+const statusEnumValues = [
+  'idle',
+  'arc-dragging',
+  'axis-dragging',
+  'plane-dragging',
+] as const
+
+type Status = typeof statusEnumValues[number]
 
 export class TransformTool extends Group {
   static normals = [new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(0, 0, 1)]
@@ -244,10 +253,12 @@ export class TransformTool extends Group {
       },
       plane: new Plane(),
       pressing: false,
-      status: 'idle' as 'idle' | 'arc-dragging' | 'axis-dragging',
+      status: 'idle' as Status,
       arcActiveAxe: -1,
       axisActiveAxe: -1,
+      planeActiveAxe: -1,
       startQuaternion: new Quaternion(),
+      startPointerPosition: new Vector3(),
       startWorldMatrix: new Matrix4(),
       startWorldMatrixInverse: new Matrix4(),
       startArcAngle: 0,
@@ -398,6 +409,7 @@ export class TransformTool extends Group {
       else if (axisActiveAxe >= 0) {
         this.#enterAxisDrag(axisActiveAxe)
       }
+      // TODO: plane dragging
     }
 
     switch (state.status) {
@@ -417,6 +429,14 @@ export class TransformTool extends Group {
         axisXrayMesh.material.setHoverIndex(axisActiveAxe)
         break
 
+      case 'plane-dragging':
+        this.#updatePlaneDrag()
+        arcMesh.material.setHoverIndex(state.planeActiveAxe)
+        arcXrayMesh.material.setHoverIndex(state.planeActiveAxe)
+        axisMesh.material.setHoverIndex(state.planeActiveAxe)
+        axisXrayMesh.material.setHoverIndex(state.planeActiveAxe)
+        break
+
       default:
         // When not dragging (pointer.isDown === false), hover the intersected axe (if any)
         arcMesh.material.setHoverIndex(pointer.isDown ? -1 : arcActiveAxe)
@@ -430,6 +450,7 @@ export class TransformTool extends Group {
       state.pressing = false
       this.#exitArcDrag()
       this.#exitAxisDrag()
+      this.#exitPlaneDrag()
     }
 
     this.updateMatrixWorld()
@@ -579,5 +600,39 @@ export class TransformTool extends Group {
         state.target.updateMatrixWorld()
       }
     }
+  }
+
+  #enterPlaneDrag(activeAxe: number) {
+    const { state, raycaster } = this.#private
+    state.planeActiveAxe = activeAxe
+    state.status = 'plane-dragging'
+    state.plane.setFromNormalAndCoplanarPoint(
+      TransformTool.normals[state.planeActiveAxe].clone().applyQuaternion(this.quaternion),
+      this.getWorldPosition(new Vector3()),
+    )
+    raycaster.ray.intersectPlane(state.plane, state.startPointerPosition)
+    state.startWorldMatrix.copy(this.matrixWorld)
+    state.startWorldMatrixInverse.copy(this.matrixWorld).invert()
+  }
+
+  #exitPlaneDrag() {
+    if (this.#private.state.status !== 'plane-dragging')
+      return
+
+    const { state } = this.#private
+    state.status = 'idle'
+    state.planeActiveAxe = -1
+  }
+
+  #updatePlaneDrag_private = { v1: new Vector3(), v2: new Vector3(), m: new Matrix4() }
+  #updatePlaneDrag() {
+    const { state, raycaster } = this.#private
+    const { v1, v2, m } = this.#updatePlaneDrag_private
+    raycaster.ray.intersectPlane(state.plane, v1)
+    v1.sub(state.startPointerPosition)
+    v2.setFromMatrixPosition(state.startWorldMatrix)
+    v2.add(v1)
+    this.position.copy(v2)
+    // Not implemented yet
   }
 }

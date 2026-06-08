@@ -132,7 +132,12 @@ export class VertigoControls implements DestroyableObject {
   /**
    * A group to hold helpers or other objects related to the vertigo controls.
    */
-  group = new Group();
+  group = (() => {
+    const group = new Group()
+    group.name = 'VertigoControls-Helper'
+    group.userData.isHelper = true
+    return group
+  })();
 
   [__private__] = {
     state: {
@@ -288,7 +293,6 @@ export class VertigoControls implements DestroyableObject {
   constructor(props: VertigoProps = {}) {
     this.currentVertigo.set(props)
     this.currentDampedVertigo.set(props)
-    this.group.name = 'VertigoControls-Helper'
     this.actions = createActions(this)
   }
 
