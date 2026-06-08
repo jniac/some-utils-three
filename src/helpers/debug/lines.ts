@@ -675,7 +675,11 @@ export class LinesManager extends BaseManager {
   };
 
   circle({
-    center = 0 as Vector3Declaration, axis = 'z' as Vector3Declaration, radius = 1, quality = 'medium' as keyof typeof LinesManager.circleQualityPresets, segments = undefined as number | undefined,
+    center = 0 as Vector3Declaration,
+    axis = 'z' as Vector3Declaration,
+    radius = 1,
+    quality = 'medium' as keyof typeof LinesManager.circleQualityPresets,
+    segments = undefined as number | undefined,
   } = {}, options?: LineOptions) {
     segments ??= LinesManager.circleQualityPresets[quality]
     const { x, y, z } = fromVector3Declaration(center, _v0)
@@ -704,6 +708,20 @@ export class LinesManager extends BaseManager {
       array[i6 + 5] = z + x1 * _v1.z + y1 * _v2.z
     }
     this.segmentsArray(array, options)
+    return this
+  }
+
+  sphere({
+    center = 0 as Vector3Declaration,
+    radius = 1,
+    quality = 'medium' as keyof typeof LinesManager.circleQualityPresets,
+    segments = undefined as number | undefined,
+  } = {}, options?: LineOptions) {
+    segments ??= LinesManager.circleQualityPresets[quality]
+    const c = fromVector3Declaration(center, _v3) // Tricky: we must choose here a temp vector that is not used by the circle method!
+    this.circle({ center: c, axis: { x: 1, y: 0, z: 0 }, radius, segments }, options)
+    this.circle({ center: c, axis: { x: 0, y: 1, z: 0 }, radius, segments }, options)
+    this.circle({ center: c, axis: { x: 0, y: 0, z: 1 }, radius, segments }, options)
     return this
   }
 

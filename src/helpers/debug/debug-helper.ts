@@ -159,6 +159,11 @@ class DebugHelper extends Group {
     return this
   }
 
+  sphere(...args: Parameters<LinesManager['sphere']>): this {
+    this.parts.linesManager.sphere(...args)
+    return this
+  }
+
   rect(
     rectArg: Parameters<LinesManager['rect']>[0],
     options?: Parameters<LinesManager['rect']>[1] & RectanglePointsOptions,
