@@ -44,3 +44,41 @@ export function setVertexColors(
 
   return geometry
 }
+
+export function setVertexColorsByGroup(
+  geometry: BufferGeometry,
+  colorsArg: ColorRepresentation | ColorRepresentation[] | ((groupIndex: number, groupCount: number) => ColorRepresentation),
+): BufferGeometry {
+  const count = geometry.attributes.position.count
+
+  function create(count: number) {
+    const colorsAttribute = new BufferAttribute(new Float32Array(count * 3), 3)
+    geometry.setAttribute('color', colorsAttribute)
+    return colorsAttribute
+  }
+
+  const colorsAttribute = geometry.attributes.color ?? create(count)
+  const index = geometry.index
+
+  for (let i = 0; i < geometry.groups.length; i++) {
+    const group = geometry.groups[i]
+    const { r, g, b } = typeof colorsArg === 'function'
+      ? makeColor(colorsArg(i, geometry.groups.length))
+      : Array.isArray(colorsArg)
+        ? makeColor(colorsArg[i % colorsArg.length])
+        : makeColor(colorsArg)
+
+    const end = group.start + group.count
+    if (index) {
+      for (let j = group.start; j < end; j++)
+        colorsAttribute.setXYZ(index.getX(j), r, g, b)
+    } else {
+      for (let j = group.start; j < end; j++)
+        colorsAttribute.setXYZ(j, r, g, b)
+    }
+  }
+
+  colorsAttribute.needsUpdate = true
+
+  return geometry
+}

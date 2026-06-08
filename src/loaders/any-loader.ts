@@ -1,6 +1,7 @@
 import { ColorSpace, LinearSRGBColorSpace, SRGBColorSpace, Texture, TextureLoader } from 'three'
-import { HDRLoader } from 'three/examples/jsm/Addons.js'
+import { GLTFLoader, HDRLoader } from 'three/examples/jsm/Addons.js'
 
+import { lazy } from 'some-utils-ts/lazy'
 import { Promisified, promisify } from 'some-utils-ts/misc/promisify'
 
 import { DisposableVideoTexture } from '../utils/texture/disposable-video-texture'
@@ -42,8 +43,9 @@ type TextureOptions = Partial<{
 }>
 
 class AnyLoader {
-  #textureLoader: TextureLoader | null = null
-  #hdrLoader: HDRLoader | null = null
+  #textureLoader = lazy(() => new TextureLoader())
+  #hdrLoader = lazy(() => new HDRLoader())
+  #gltfLoader = lazy(() => new GLTFLoader())
 
   /**
    * Loads a texture from a URL.
@@ -74,8 +76,8 @@ class AnyLoader {
 
     const loader =
       isLinearExtension(extension)
-        ? (this.#hdrLoader ??= new HDRLoader())
-        : (this.#textureLoader ??= new TextureLoader())
+        ? this.#hdrLoader()
+        : this.#textureLoader()
 
     let resolve: (texture: Texture) => void
     let reject: (error: Error) => void
@@ -113,6 +115,10 @@ class AnyLoader {
       delete (texture as any).finally
     }
     return texture as any
+  }
+
+  loadGLTF(url: string) {
+    return this.#gltfLoader().loadAsync(url)
   }
 
   load(url: `${string}.${TextureExtension}`): ReturnType<typeof AnyLoader.prototype.loadTexture>
