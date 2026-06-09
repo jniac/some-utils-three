@@ -175,31 +175,51 @@ export class DynamicInstancedMesh<
   // Public API
   // ------------------------------------------------------------------
 
-  addInstance_private = {
+  static #setInstance_private = {
     color: new Color(),
   }
   /**
    * Appends a new instance at the end of the live range.
    */
-  addInstance(matrix: Matrix4, colorArg?: ColorRepresentation): number {
-    const index = this._instanceCount
-
-    this._ensureCapacity(index + 1)
+  setInstanceAt(index: number, matrix: Matrix4, colorArg?: ColorRepresentation): number {
+    if (index < 0)
+      throw new RangeError(`DynamicInstancedMesh.setInstance: index ${index} must be non-negative.`)
+    if (index >= this._instanceCount)
+      throw new RangeError(`DynamicInstancedMesh.setInstance: index ${index} exceeds instance count ${this._instanceCount}.`)
 
     this.setMatrixAt(index, matrix)
     this.instanceMatrix.needsUpdate = true
 
-    if (colorArg != null) {
+    if (this.instanceColor) {
+      const { color } = DynamicInstancedMesh.#setInstance_private
       this._assertColors("addInstance")
-      this.setColorAt(index, this.addInstance_private.color.set(colorArg))
+      this.setColorAt(index, color.set(colorArg ?? 'white'))
       // instanceColor is created by setColorAt; mark dirty after first set.
       if (this.instanceColor)
         this.instanceColor.needsUpdate = true
     }
 
+    return index
+  }
+
+  /**
+   * Reserves the next instance index and increments the live count.
+   * Use `setInstance` to populate the instance data for the reserved index.
+   */
+  reserveNextIndex(): number {
+    const index = this._instanceCount
+    this._ensureCapacity(index + 1)
     this._instanceCount++
     this.count = this._instanceCount
+    return index
+  }
 
+  /**
+   * Appends a new instance at the end of the live range.
+   */
+  addInstance(matrix: Matrix4, colorArg?: ColorRepresentation): number {
+    const index = this.reserveNextIndex()
+    this.setInstanceAt(index, matrix, colorArg)
     return index
   }
 
