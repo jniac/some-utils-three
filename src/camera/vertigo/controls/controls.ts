@@ -52,7 +52,7 @@ export function defaultRaycastIgnore(object: Object3D) {
   return false
 }
 
-export function raycastOnInteractiveTools(raycaster: Raycaster, sceneRoot: Object3D | null) {
+export function raycastIsPrevented(raycaster: Raycaster, sceneRoot: Object3D | null) {
   const objectsToRaycast = [] as Object3D[]
   sceneRoot?.traverse(object => {
     if ('isPoints' in object || 'isLineSegments' in object || 'isTextHelper' in object)
@@ -63,8 +63,9 @@ export function raycastOnInteractiveTools(raycaster: Raycaster, sceneRoot: Objec
   const onInteractiveTools = intersections.some(intersection => {
     let scope = intersection.object
     while (scope) {
-      if (scope.visible && scope.userData.isInteractiveTool)
-        return true
+      if (scope.visible)
+        if (scope.userData.isInteractiveTool || scope.userData.preventPointerEvents)
+          return true
       scope = scope.parent!
     }
   })
@@ -445,8 +446,8 @@ export class VertigoControls implements DestroyableObject {
         }
       },
       dragButton: ~0,
-      onDown: () => {
-        if (raycastOnInteractiveTools(raycaster, state.sceneRoot)) {
+      onDown: info => {
+        if (raycastIsPrevented(raycaster, state.sceneRoot)) {
           state.ignoreCurrentDrag = true
         }
       },
