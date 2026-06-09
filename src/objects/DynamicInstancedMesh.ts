@@ -1,5 +1,4 @@
 import {
-  BufferAttribute,
   Color,
   ColorRepresentation,
   InstancedBufferAttribute,
@@ -233,7 +232,7 @@ export class DynamicInstancedMesh<
    * @returns `true` if the removal caused a swap (i.e. index < last),
    *          `false` if the removed instance was already the last one.
    */
-  removeInstance(index: number): boolean {
+  removeInstanceAt(index: number): boolean {
     this.#assertValidIndex(index, "removeInstance")
 
     const last = this._instanceCount - 1
@@ -294,8 +293,9 @@ export class DynamicInstancedMesh<
    */
   setExtraAt(name: string, index: number, values: ArrayLike<number>): void {
     this.#assertValidIndex(index, "setExtraAt")
-    const attr = this.geometry.getAttribute(name) as BufferAttribute | undefined
-    if (!attr) throw new Error(`DynamicInstancedMesh: no extra attribute "${name}"`)
+    const attr = this.geometry.getAttribute(name) as InstancedBufferAttribute | undefined
+    if (!attr)
+      throw new Error(`DynamicInstancedMesh: no extra attribute "${name}"`)
 
     const offset = index * attr.itemSize
     for (let i = 0; i < attr.itemSize; i++) {
@@ -313,7 +313,7 @@ export class DynamicInstancedMesh<
    */
   getExtraAt(name: string, index: number, out: number[]): void {
     this.#assertValidIndex(index, "getExtraAt")
-    const attr = this.geometry.getAttribute(name) as BufferAttribute | undefined
+    const attr = this.geometry.getAttribute(name) as InstancedBufferAttribute | undefined
     if (!attr) throw new Error(`DynamicInstancedMesh: no extra attribute "${name}"`)
 
     const offset = index * attr.itemSize
@@ -394,11 +394,12 @@ export class DynamicInstancedMesh<
     newCapacity: number,
     live: number
   ): void {
-    const old = this.geometry.getAttribute(name) as BufferAttribute | undefined
+    const old = this.geometry.getAttribute(name) as InstancedBufferAttribute | undefined
     const next = new Float32Array(newCapacity * itemSize)
     if (old) next.set((old.array as Float32Array).subarray(0, live * itemSize))
-    this.geometry.setAttribute(name, new BufferAttribute(next, itemSize));
-    (this.geometry.getAttribute(name) as BufferAttribute).needsUpdate = true
+    const attr = new InstancedBufferAttribute(next, itemSize)
+    this.geometry.setAttribute(name, attr)
+    attr.needsUpdate = true
   }
 
   #swapExtraAttribute(
@@ -407,7 +408,7 @@ export class DynamicInstancedMesh<
     dst: number,
     src: number
   ): void {
-    const attr = this.geometry.getAttribute(name) as BufferAttribute | undefined
+    const attr = this.geometry.getAttribute(name) as InstancedBufferAttribute | undefined
     if (!attr) return
     const arr = attr.array as Float32Array
     const dstOff = dst * itemSize
