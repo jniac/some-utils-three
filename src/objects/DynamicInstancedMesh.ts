@@ -149,11 +149,11 @@ export class DynamicInstancedMesh<
     )
 
     if (enableColors) {
-      this._allocateColorAttribute(initialCapacity)
+      this.#allocateColorAttribute(initialCapacity)
     }
 
     for (const [name, itemSize] of this._extraAttributeItemSizes) {
-      this._allocateExtraAttribute(name, itemSize, initialCapacity)
+      this.#allocateExtraAttribute(name, itemSize, initialCapacity)
     }
   }
 
@@ -192,7 +192,7 @@ export class DynamicInstancedMesh<
 
     if (this.instanceColor) {
       const { color } = DynamicInstancedMesh.#setInstance_private
-      this._assertColors("addInstance")
+      this.#assertColors("addInstance")
       this.setColorAt(index, color.set(colorArg ?? 'white'))
       // instanceColor is created by setColorAt; mark dirty after first set.
       if (this.instanceColor)
@@ -208,7 +208,7 @@ export class DynamicInstancedMesh<
    */
   reserveNextIndex(): number {
     const index = this._instanceCount
-    this._ensureCapacity(index + 1)
+    this.#ensureCapacity(index + 1)
     this._instanceCount++
     this.count = this._instanceCount
     return index
@@ -234,7 +234,7 @@ export class DynamicInstancedMesh<
    *          `false` if the removed instance was already the last one.
    */
   removeInstance(index: number): boolean {
-    this._assertValidIndex(index, "removeInstance")
+    this.#assertValidIndex(index, "removeInstance")
 
     const last = this._instanceCount - 1
     const didSwap = index < last
@@ -254,7 +254,7 @@ export class DynamicInstancedMesh<
       }
 
       for (const [name, itemSize] of this._extraAttributeItemSizes) {
-        this._swapExtraAttribute(name, itemSize, index, last)
+        this.#swapExtraAttribute(name, itemSize, index, last)
       }
     }
 
@@ -271,7 +271,7 @@ export class DynamicInstancedMesh<
    */
   reserve(minCapacity: number): void {
     if (minCapacity > this._capacity) {
-      this._reallocate(minCapacity)
+      this.#reallocate(minCapacity)
     }
   }
 
@@ -293,7 +293,7 @@ export class DynamicInstancedMesh<
    * @param values Array of floats matching the attribute's itemSize.
    */
   setExtraAt(name: string, index: number, values: ArrayLike<number>): void {
-    this._assertValidIndex(index, "setExtraAt")
+    this.#assertValidIndex(index, "setExtraAt")
     const attr = this.geometry.getAttribute(name) as BufferAttribute | undefined
     if (!attr) throw new Error(`DynamicInstancedMesh: no extra attribute "${name}"`)
 
@@ -312,7 +312,7 @@ export class DynamicInstancedMesh<
    * @param out    Output array (must be at least `itemSize` long).
    */
   getExtraAt(name: string, index: number, out: number[]): void {
-    this._assertValidIndex(index, "getExtraAt")
+    this.#assertValidIndex(index, "getExtraAt")
     const attr = this.geometry.getAttribute(name) as BufferAttribute | undefined
     if (!attr) throw new Error(`DynamicInstancedMesh: no extra attribute "${name}"`)
 
@@ -326,10 +326,10 @@ export class DynamicInstancedMesh<
   // Private helpers
   // ------------------------------------------------------------------
 
-  private _ensureCapacity(needed: number): void {
+  #ensureCapacity(needed: number): void {
     if (needed > this._capacity) {
       const next = this._growthStrategy(this._capacity, needed)
-      this._reallocate(next)
+      this.#reallocate(next)
     }
   }
 
@@ -337,7 +337,7 @@ export class DynamicInstancedMesh<
    * Reallocates all managed attributes to `newCapacity` slots,
    * copying the live portion of each buffer.
    */
-  private _reallocate(newCapacity: number): void {
+  #reallocate(newCapacity: number): void {
     const live = this._instanceCount
 
     // --- instanceMatrix ---
@@ -349,27 +349,27 @@ export class DynamicInstancedMesh<
 
     // --- instanceColor ---
     if (this._enableColors) {
-      this._reallocateColorAttribute(newCapacity, live)
+      this.#reallocateColorAttribute(newCapacity, live)
     }
 
     // --- extra attributes ---
     for (const [name, itemSize] of this._extraAttributeItemSizes) {
-      this._reallocateExtraAttribute(name, itemSize, newCapacity, live)
+      this.#reallocateExtraAttribute(name, itemSize, newCapacity, live)
     }
 
     this._capacity = newCapacity
   }
 
-  private _allocateColorAttribute(capacity: number): void {
+  #allocateColorAttribute(capacity: number): void {
     // setColorAt lazily creates instanceColor on the first call with index 0.
     // We prime it here so subsequent setColorAt calls find the right array size.
     const array = new Float32Array(capacity * 3)
     this.instanceColor = new InstancedBufferAttribute(array, 3)
   }
 
-  private _reallocateColorAttribute(newCapacity: number, live: number): void {
+  #reallocateColorAttribute(newCapacity: number, live: number): void {
     if (!this.instanceColor) {
-      this._allocateColorAttribute(newCapacity)
+      this.#allocateColorAttribute(newCapacity)
       return
     }
     const old = this.instanceColor.array as Float32Array
@@ -379,7 +379,7 @@ export class DynamicInstancedMesh<
     this.instanceColor.needsUpdate = true
   }
 
-  private _allocateExtraAttribute(
+  #allocateExtraAttribute(
     name: string,
     itemSize: 1 | 2 | 3 | 4,
     capacity: number
@@ -388,7 +388,7 @@ export class DynamicInstancedMesh<
     this.geometry.setAttribute(name, new InstancedBufferAttribute(array, itemSize))
   }
 
-  private _reallocateExtraAttribute(
+  #reallocateExtraAttribute(
     name: string,
     itemSize: 1 | 2 | 3 | 4,
     newCapacity: number,
@@ -401,7 +401,7 @@ export class DynamicInstancedMesh<
     (this.geometry.getAttribute(name) as BufferAttribute).needsUpdate = true
   }
 
-  private _swapExtraAttribute(
+  #swapExtraAttribute(
     name: string,
     itemSize: number,
     dst: number,
@@ -416,7 +416,7 @@ export class DynamicInstancedMesh<
     attr.needsUpdate = true
   }
 
-  private _assertColors(caller: string): void {
+  #assertColors(caller: string): void {
     if (!this._enableColors) {
       throw new Error(
         `DynamicInstancedMesh.${caller}: colors are disabled. ` +
@@ -425,7 +425,7 @@ export class DynamicInstancedMesh<
     }
   }
 
-  private _assertValidIndex(index: number, caller: string): void {
+  #assertValidIndex(index: number, caller: string): void {
     if (index < 0 || index >= this._instanceCount) {
       throw new RangeError(
         `DynamicInstancedMesh.${caller}: index ${index} out of range ` +
