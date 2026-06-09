@@ -382,7 +382,17 @@ export class Vertigo {
     )
   }
 
-  lerpVertigos(a: Vertigo, b: Vertigo, t: number): this {
+  static defaultLerpOptions = {
+    rotationInterpolation: <'slerp' | 'euler'>'slerp',
+  }
+  lerpVertigos(
+    a: Vertigo,
+    b: Vertigo,
+    t: number,
+    options?: Partial<typeof Vertigo.defaultLerpOptions>,
+  ): this {
+    const { rotationInterpolation } = { ...Vertigo.defaultLerpOptions, ...options }
+
     this.perspective = a.perspective + (b.perspective - a.perspective) * t
     this.subjectivity = a.subjectivity + (b.subjectivity - a.subjectivity) * t
     this.fov = a.fov + (b.fov - a.fov) * t
@@ -410,10 +420,21 @@ export class Vertigo {
     this.after = a.after + (b.after - a.after) * t
 
     // Rotation interpolation:
-    const { _qa, _qb } = Vertigo.shared
-    _qa.setFromEuler(a.rotation)
-    _qb.setFromEuler(b.rotation)
-    this.rotation.setFromQuaternion(_qa.slerp(_qb, t))
+    if (rotationInterpolation === 'slerp') {
+      const { _qa, _qb } = Vertigo.shared
+      _qa.setFromEuler(a.rotation)
+      _qb.setFromEuler(b.rotation)
+      this.rotation.setFromQuaternion(_qa.slerp(_qb, t))
+    } else {
+      const ax = a.rotation.x, ay = a.rotation.y, az = a.rotation.z, aorder = a.rotation.order
+      const bx = b.rotation.x, by = b.rotation.y, bz = b.rotation.z, border = b.rotation.order
+      this.rotation.set(
+        ax + (bx - ax) * t,
+        ay + (by - ay) * t,
+        az + (bz - az) * t,
+        t < .5 ? aorder : border
+      )
+    }
 
     this.frame = a.frame + (b.frame - a.frame) * t
     this.allowOrthographic = t < .5 ? a.allowOrthographic : b.allowOrthographic

@@ -12,6 +12,9 @@ type UniformValueType =
   | Quaternion
   | Matrix3
   | Matrix4
+
+  | boolean
+  | null // for textures, we allow null to indicate "no texture"
   | Texture
   | CubeTexture
 
@@ -59,6 +62,18 @@ export class UniformWrapper<T> implements IUniform<T> {
     let value = this.target.value as any
     let arraySuffix = ''
 
+    if (value === null || value.isTexture) {
+      if (value && value.isCubeTexture) {
+        return `uniform samplerCube ${name}${arraySuffix};`
+      } else {
+        return `uniform sampler2D ${name}${arraySuffix};`
+      }
+    }
+
+    if (typeof value === 'boolean') {
+      return `uniform bool ${name}${arraySuffix};`
+    }
+
     if (value instanceof Float32Array) {
       return `uniform float ${name}[${value.length}];`
     }
@@ -85,13 +100,6 @@ export class UniformWrapper<T> implements IUniform<T> {
     }
     if (value.isMatrix4) {
       return `uniform mat4 ${name}${arraySuffix};`
-    }
-    if (value.isTexture) {
-      if (value.isCubeTexture) {
-        return `uniform samplerCube ${name}${arraySuffix};`
-      } else {
-        return `uniform sampler2D ${name}${arraySuffix};`
-      }
     }
 
     console.log(`unhandled value:`, value)
