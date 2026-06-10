@@ -7,6 +7,7 @@ import {
   type BufferGeometry,
   type Material,
 } from "three"
+import { fromTransformDeclaration, TransformDeclaration } from '../declaration'
 
 // ---------------------------------------------------------------------------
 // Growth strategy
@@ -176,17 +177,28 @@ export class DynamicInstancedMesh<
 
   static #setInstance_private = {
     color: new Color(),
+    m: new Matrix4(),
   }
   /**
    * Appends a new instance at the end of the live range.
    */
-  setInstanceAt(index: number, matrix: Matrix4, colorArg?: ColorRepresentation): number {
+  setInstanceAt(
+    index: number,
+    matrixArg?: Matrix4 | TransformDeclaration,
+    colorArg?: ColorRepresentation,
+  ): number {
     if (index < 0)
       throw new RangeError(`DynamicInstancedMesh.setInstance: index ${index} must be non-negative.`)
     if (index >= this._instanceCount)
       throw new RangeError(`DynamicInstancedMesh.setInstance: index ${index} exceeds instance count ${this._instanceCount}.`)
 
-    this.setMatrixAt(index, matrix)
+    const { m } = DynamicInstancedMesh.#setInstance_private
+    if (matrixArg instanceof Matrix4) {
+      m.copy(matrixArg)
+    } else {
+      fromTransformDeclaration(matrixArg ?? {}, m)
+    }
+    this.setMatrixAt(index, m)
     this.instanceMatrix.needsUpdate = true
 
     if (this.instanceColor) {
@@ -216,9 +228,9 @@ export class DynamicInstancedMesh<
   /**
    * Appends a new instance at the end of the live range.
    */
-  addInstance(matrix: Matrix4, colorArg?: ColorRepresentation): number {
+  addInstance(matrixArg?: Matrix4 | TransformDeclaration, colorArg?: ColorRepresentation): number {
     const index = this.reserveNextIndex()
-    this.setInstanceAt(index, matrix, colorArg)
+    this.setInstanceAt(index, matrixArg, colorArg)
     return index
   }
 

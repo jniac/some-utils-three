@@ -2,7 +2,7 @@ import { BackSide, BoxGeometry, Color, ColorRepresentation, Group, IcosahedronGe
 import { RoundedBoxGeometry } from 'three/examples/jsm/Addons.js'
 
 import { ShaderForge } from '../../shader-forge'
-import { flipNormals } from '../../utils/geometry/normals'
+import { flipTriangles } from '../../utils/geometry/triangles'
 import { setup } from '../../utils/tree'
 
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
@@ -26,7 +26,7 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
       color = '#eeeeee',
     } = {}) {
       const { scene } = instance.parts
-      const geometry = flipNormals(new BoxGeometry(size, size, size))
+      const geometry = flipTriangles(new BoxGeometry(size, size, size))
       const material = new MeshBasicMaterial({ color })
       return {
         cube: setup(new Mesh(geometry, material),
@@ -75,7 +75,7 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
       segments = 32,
     } = {}) {
       const { scene } = instance.parts
-      const geometry = flipNormals(new RoundedBoxGeometry(size, size, size, segments, radius))
+      const geometry = flipTriangles(new RoundedBoxGeometry(size, size, size, segments, radius))
       const material = new MeshPhysicalMaterial({ color })
       return {
         roundedCube: setup(new Mesh(geometry, material),
@@ -87,7 +87,7 @@ export function create(instance: EnvironmentStudio, instanceState: EnvironmentSt
       color = '#eeeeee',
       size = 10,
     } = {}) {
-      const geometry = flipNormals(new IcosahedronGeometry(size * 1.33 / 2, 8))
+      const geometry = flipTriangles(new IcosahedronGeometry(size * 1.33 / 2, 8))
       const material = new MeshPhysicalMaterial({ color })
       return {
         sphere: setup(new Mesh(geometry, material), instance.parts.scene),
