@@ -242,6 +242,8 @@ const createVaryingOptions = {
       #ifdef FLIP_SIDED
         sf_vWorldNormal = -sf_vWorldNormal;
       #endif
+      
+      sf_vWorldNormal = normalize(sf_vWorldNormal);
     `)
   },
   sf_vCamNormal: () => {
@@ -258,6 +260,46 @@ const createVaryingOptions = {
       #ifdef FLIP_SIDED
         sf_vCamNormal = -sf_vCamNormal;
       #endif
+    `)
+  },
+  sf_vViewPosition: () => {
+    top(/* glsl */`
+      varying vec3 sf_vViewPosition;
+    `)
+    vertex.mainAfterAll(/* glsl */`
+      sf_vViewPosition = -mvPosition.xyz;
+    `)
+  },
+  sf_vViewNormal: () => {
+    top(/* glsl */`
+      varying vec3 sf_vViewNormal;
+    `)
+    vertex.mainAfterAll(/* glsl */`
+      sf_vViewNormal = normalize(normalMatrix * normal);
+    `)
+  },
+  sf_vViewForward: () => {
+    top(/* glsl */`
+      varying vec3 sf_vViewForward;
+    `)
+    vertex.mainAfterAll(/* glsl */`
+      sf_vViewForward = vec3( - viewMatrix[ 0 ][ 2 ], - viewMatrix[ 1 ][ 2 ], - viewMatrix[ 2 ][ 2 ] );
+    `)
+  },
+  sf_vCameraToVertex: () => {
+    top(/* glsl */`
+      varying vec3 sf_vCameraToVertex;
+    `)
+    vertex.mainAfterAll(/* glsl */`
+      vec4 sf_vCameraToVertex_tmp = vec4( transformed, 1.0 );
+      #ifdef USE_BATCHING
+        sf_vCameraToVertex_tmp = batchingMatrix * sf_vCameraToVertex_tmp;
+      #endif
+      #ifdef USE_INSTANCING
+        sf_vCameraToVertex_tmp = instanceMatrix * sf_vCameraToVertex_tmp;
+      #endif
+      sf_vCameraToVertex_tmp = modelMatrix * sf_vCameraToVertex_tmp;
+      sf_vCameraToVertex = normalize(sf_vCameraToVertex_tmp.xyz - cameraPosition);
     `)
   },
 }
