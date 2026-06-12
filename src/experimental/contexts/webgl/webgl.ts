@@ -1,4 +1,4 @@
-import { DataUtils, HalfFloatType, Object3D, OrthographicCamera, PerspectiveCamera, Scene, WebGLRenderer } from 'three'
+import { DataUtils, HalfFloatType, Object3D, OrthographicCamera, PCFShadowMap, PerspectiveCamera, Scene, ShadowMapType, WebGLRenderer } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
@@ -16,6 +16,7 @@ import { BasicPipeline, DepthPipeline, PipelineBase } from './pipelines'
 
 const defaultProps = {
   useStencil: true,
+  shadow: false as boolean | ShadowMapType,
 }
 
 type Props = typeof defaultProps
@@ -75,6 +76,10 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     ThreeWebGLContext.instances.push(this)
 
     this.renderer = new WebGLRenderer()
+    if (this.props.shadow) {
+      this.renderer.shadowMap.enabled = true
+      this.renderer.shadowMap.type = typeof this.props.shadow === 'boolean' ? PCFShadowMap : this.props.shadow
+    }
 
     this.pipeline = new BasicPipeline(
       this.renderer,
