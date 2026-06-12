@@ -1,6 +1,6 @@
 import { BufferAttribute, BufferGeometry, ColorRepresentation, GreaterDepth, LessEqualDepth, Points, PointsMaterial } from 'three'
 
-import { Vector3Declaration } from 'some-utils-ts/declaration'
+import { Vector3DeclarationLoose } from 'some-utils-ts/declaration'
 
 import { fromTransformDeclarations, fromVector3Declaration, TransformDeclaration } from '../../declaration'
 import { ShaderForge } from '../../shader-forge'
@@ -212,7 +212,7 @@ export class PointsManager extends BaseManager {
     return this
   }
 
-  points(pointsArg: Iterable<Vector3Declaration> | Float32Array, {
+  points(pointsArg: Iterable<Vector3DeclarationLoose> | Float32Array, {
     key = undefined as any,
     size: argSize = .1,
     scale: argScale = 1,
@@ -267,7 +267,7 @@ export class PointsManager extends BaseManager {
     return this.points(boxPoints, options)
   }
 
-  point(p: Vector3Declaration, options?: Parameters<PointsManager['points']>[1]) {
+  point(p: Vector3DeclarationLoose, options?: Parameters<PointsManager['points']>[1]) {
     return this.points([p], options)
   }
 }
