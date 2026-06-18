@@ -4,12 +4,12 @@ import { fromVector3Declaration } from '../../../declaration'
 
 import { TextHelperAtlas } from '../atlas'
 import { TextHelperData } from '../data'
-import { Options, optionsDefaults, solveOrientation } from '../types'
+import { Options, defaultOptions, solveOrientation } from '../types'
 
 export type TextUniforms = ReturnType<typeof createTextUniforms>
 
 export function createTextUniforms(userOptions: Options, data: TextHelperData, atlas: TextHelperAtlas) {
-  const options = { ...optionsDefaults, ...userOptions }
+  const options = { ...defaultOptions, ...userOptions }
   const planeSize = new Vector2(
     options.textSize * options.lineLength * options.charSize.x,
     options.textSize * options.lineCount * options.charSize.y)

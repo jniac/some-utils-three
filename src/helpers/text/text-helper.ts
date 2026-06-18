@@ -8,19 +8,19 @@ import { TextHelperData } from './data'
 import { createTextNodeMaterial } from './material/node'
 import { createTextUniforms } from './material/uniforms'
 import { createWebglMaterial } from './material/webgl'
-import { optionsDefaults, SetColorOptions, SetTextOption } from './types'
+import { defaultOptions, SetColorOptions, SetTextOption } from './types'
 import { getDataStringView } from './utils'
 
 let nextId = 0
 export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
   // Expose some statics
-  static readonly defaultOptions = optionsDefaults
+  static readonly defaultOptions = defaultOptions
   static readonly Atlas = TextHelperAtlas
   static readonly Data = TextHelperData
 
   // Instance properties
   readonly textHelperId = nextId++
-  readonly options: typeof optionsDefaults
+  readonly options: typeof defaultOptions
   readonly derived: {
     planeSize: Vector2
   }
@@ -50,8 +50,8 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
     return this
   }
 
-  constructor(userOptions?: Partial<typeof optionsDefaults>) {
-    const options = { ...optionsDefaults, ...userOptions }
+  constructor(userOptions?: Partial<typeof defaultOptions>) {
+    const options = { ...defaultOptions, ...userOptions }
     const atlas = new TextHelperAtlas()
     const data = new TextHelperData(atlas.symbols, options.textCount, options.lineCount, options.lineLength)
     const uniforms = createTextUniforms(options, data, atlas)
@@ -80,6 +80,9 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
     this.atlas = atlas
     this.data = data
     this.derived = { planeSize }
+
+    // Initialize the count to 0
+    this.count = 0
   }
 
   /**
@@ -134,18 +137,29 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
     this.textOffsetInstanceAttribute.array.fill(0)
     this.textOffsetInstanceAttribute.needsUpdate = true
 
+    this
+
+    // Why do we need to reset the count? 
+    // `instanceMatrix.array.fill(0)` is not enough here, because the material use the data texture to compute each instance matrix.
+    this.count = 0
+
     return this
   }
 
-  static #setTextAt = { v: new Vector3() }
+  static #setTextAt_private = { v: new Vector3() }
   setTextAt(index: number, text: string, userOptions: SetTextOption = {}) {
+    if (index < 0 || index >= this.options.textCount) {
+      throw new Error(`Index ${index} is out of bounds for textCount ${this.options.textCount}`)
+    }
+
     const options = { ...this.options.textDefaults, ...userOptions }
     this.data.setTextAt(index, text, options)
+    this.count = Math.max(this.count, index + 1)
 
     this.setMatrixAt(index, makeMatrix4(options).premultiply(this.transformMatrix))
     this.instanceMatrix.needsUpdate = true
 
-    const { v } = TextHelper.#setTextAt
+    const { v } = TextHelper.#setTextAt_private
     const { x, y, z } = fromVector3Declaration(options.offset ?? 0, v)
     this.textOffsetInstanceAttribute.setXYZ(index, x, y, z)
     this.textOffsetInstanceAttribute.needsUpdate = true

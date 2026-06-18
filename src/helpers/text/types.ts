@@ -22,7 +22,7 @@ export function solveOrientation(orientation: string | number): Orientation {
   throw new Error(`Invalid orientation: ${orientation}`)
 }
 
-export const optionsDefaults = {
+export const defaultOptions = {
   /**
    * Should we use a node material (compatible with webgpu)?
    * @default false
@@ -51,7 +51,7 @@ export const optionsDefaults = {
   },
 }
 
-export type Options = Partial<typeof optionsDefaults>
+export type Options = Partial<typeof defaultOptions>
 
 /**
  * Byte size of the info:
