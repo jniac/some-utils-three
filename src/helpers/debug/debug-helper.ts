@@ -26,21 +26,19 @@ type RectanglePointsOptions = LinePointsOptions & {
 
 class DebugHelper extends Group {
   static createParts(instance: DebugHelper, options?: Partial<{
-    nodeMaterial: boolean,
     texts: ConstructorParameters<typeof TextsManager>[0],
     lines: ConstructorParameters<typeof LinesManager>[0],
     points: ConstructorParameters<typeof PointsManager>[0],
   }>) {
-    const { nodeMaterial } = options ?? {}
     const pointsManager = new PointsManager({ ...options?.points })
     instance.add(pointsManager.parts.points)
     instance.add(pointsManager.parts.xrayPoints)
 
-    const linesManager = new LinesManager({ nodeMaterial, ...options?.lines })
+    const linesManager = new LinesManager({ ...options?.lines })
     instance.add(linesManager.parts.lines)
     instance.add(linesManager.parts.xrayLines)
 
-    const textsManager = new TextsManager({ nodeMaterial, ...options?.texts })
+    const textsManager = new TextsManager({ ...options?.texts })
     instance.add(textsManager.parts.textHelper)
 
     return {
@@ -435,7 +433,7 @@ class DebugHelper extends Group {
   debugGeometry(
     geometryArg: BufferGeometry | Mesh,
     {
-      color: colorArg = <ColorRepresentation>'#0ff',
+      color: colorArg = <ColorRepresentation>'#fff',
       vertices = 1,
       triangles = 1,
       textSize = .2,

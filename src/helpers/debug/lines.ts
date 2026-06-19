@@ -1,11 +1,11 @@
 import { bufferAttribute, varying } from 'three/tsl'
-import { LineBasicNodeMaterial } from 'three/webgpu'
+import { LineBasicNodeMaterial, WebGPURenderer } from 'three/webgpu'
 
 import { Vector3Declaration } from 'some-utils-ts/declaration'
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 import { OneOrMany } from 'some-utils-ts/types'
 import { fromOneOrMany } from 'some-utils-ts/types/utils'
-import { BufferAttribute, BufferGeometry, ColorRepresentation, GreaterDepth, LessEqualDepth, LineBasicMaterial, LineSegments } from 'three'
+import { BufferAttribute, BufferGeometry, ColorRepresentation, GreaterDepth, LessEqualDepth, LineBasicMaterial, LineSegments, WebGLRenderer } from 'three'
 
 import { EulerDeclaration, TransformDeclaration, fromEulerDeclaration, fromTransformDeclarations, fromVector3Declaration } from '../../declaration'
 import { ShaderForge } from '../../shader-forge'
@@ -259,7 +259,6 @@ class CustomLineMaterial extends LineBasicMaterial {
 
 export class LinesManager extends BaseManager {
   static createParts({
-    nodeMaterial = false,
     lineCount: count = DEFAULT_LINE_COUNT,
     defaultColor = <ColorRepresentation>'white',
     defaultOpacity = 1,
@@ -274,26 +273,11 @@ export class LinesManager extends BaseManager {
     for (const [name, attr] of Object.entries(attributes)) {
       geometry.setAttribute(name, attr)
     }
-    const createLineNodeMaterial = () => {
-      const material = new LineBasicNodeMaterial({
-        vertexColors: true,
-        transparent: true,
-        depthWrite: false,
-      })
-      const aOpacity = bufferAttribute(attributes.aOpacity, 'float', 1, 0)
-      material.opacityNode = varying(aOpacity)
-      return material
-    }
-    const material = nodeMaterial
-      ? createLineNodeMaterial()
-      : new CustomLineMaterial()
-    const lines = new LineSegments(geometry, material)
+
+    const lines = new LineSegments<BufferGeometry, LineBasicMaterial | LineBasicNodeMaterial>(geometry, undefined)
     lines.frustumCulled = false
 
-    const xrayMaterial = nodeMaterial
-      ? createLineNodeMaterial()
-      : new CustomLineMaterial()
-    const xrayLines = new LineSegments(geometry, xrayMaterial)
+    const xrayLines = new LineSegments<BufferGeometry, LineBasicMaterial | LineBasicNodeMaterial>(geometry, undefined)
     xrayLines.frustumCulled = false
     xrayLines.visible = false
 
@@ -317,6 +301,35 @@ export class LinesManager extends BaseManager {
   constructor(options?: Parameters<typeof LinesManager.createParts>[0]) {
     super()
     this.parts = LinesManager.createParts(options)
+    this.parts.lines.onBeforeRender = renderer => {
+      this.#chooseMaterial(renderer)
+      // @ts-expect-error
+      delete this.parts.lines.onBeforeRender
+    }
+  }
+
+  #chooseMaterial(renderer: WebGLRenderer | WebGPURenderer) {
+    if (renderer instanceof WebGLRenderer) {
+      const material = new CustomLineMaterial()
+      this.parts.lines.material = material
+      this.parts.xrayLines.material = material
+      return
+    }
+
+    if (renderer instanceof WebGPURenderer) {
+      const material = new LineBasicNodeMaterial({
+        vertexColors: true,
+        transparent: true,
+        depthWrite: false,
+      })
+      const aOpacity = bufferAttribute(this.parts.attributes.aOpacity, 'float', 1, 0)
+      material.opacityNode = varying(aOpacity)
+      this.parts.lines.material = material
+      this.parts.xrayLines.material = material
+      return
+    }
+
+    throw new Error(`Unsupported renderer: ${renderer}`)
   }
 
   override applyTransform(...transforms: TransformDeclaration[]) {
@@ -370,12 +383,20 @@ export class LinesManager extends BaseManager {
     const { lines } = this.parts
     if (renderOrder !== 0) {
       lines.renderOrder = renderOrder
-      lines.material.depthTest = false
-      lines.material.depthWrite = false
+      if (lines.material) {
+        lines.material.depthTest = false
+        lines.material.depthWrite = false
+      } else {
+        console.warn('Must implement "onTop" support for deferred material creation')
+      }
     } else {
       lines.renderOrder = 0
-      lines.material.depthTest = true
-      lines.material.depthWrite = true
+      if (lines.material) {
+        lines.material.depthWrite = true
+        lines.material.depthTest = true
+      } else {
+        console.warn('Must implement "onTop" support for deferred material creation')
+      }
     }
     return this
   }
