@@ -1,6 +1,6 @@
 import { fromVector2Declaration } from 'some-utils-three/declaration'
 import { Vector2Declaration } from 'some-utils-ts/declaration'
-import { CanvasTexture, RepeatWrapping } from 'three'
+import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three'
 
 const defaultParams = {
   // "canvas" parameters
@@ -165,6 +165,7 @@ class DebugTexture extends CanvasTexture {
     fromVector2Declaration(params.offset, this.offset)
     this.wrapS = this.wrapT = params.wrap
     this.generateMipmaps = params.generateMipmaps
+    this.colorSpace = SRGBColorSpace
 
     this.key = key
     this.params = params

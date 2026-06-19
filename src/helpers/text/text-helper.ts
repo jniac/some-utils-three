@@ -39,9 +39,16 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
   data: TextHelperData
 
   transformMatrix = new Matrix4()
+  previousTransformMatrix = new Matrix4()
 
   setTransformMatrix(matrix: Matrix4): this {
+    this.previousTransformMatrix.copy(this.transformMatrix)
     this.transformMatrix.copy(matrix)
+    return this
+  }
+
+  restorePreviousTransformMatrix(): this {
+    this.transformMatrix.copy(this.previousTransformMatrix)
     return this
   }
 

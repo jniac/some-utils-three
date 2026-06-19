@@ -420,6 +420,12 @@ class DebugHelper extends Group {
     return this
   }
 
+  static #debugGeometry_private = {
+    v0: new Vector3(),
+    v1: new Vector3(),
+    v2: new Vector3(),
+    center: new Vector3(),
+  }
   /**
    * 🚧 WIP.
    * 
@@ -427,18 +433,59 @@ class DebugHelper extends Group {
    * - Displays the vertex indices.
    */
   debugGeometry(
-    geometry: BufferGeometry,
+    geometryArg: BufferGeometry | Mesh,
     {
       color: colorArg = <ColorRepresentation>'#0ff',
+      vertices = 1,
+      triangles = 1,
+      textSize = .2,
     } = {},
   ): this {
-    const positionArray = geometry.getAttribute('position').array as Float32Array
-    const color = new Color(colorArg)
-    const v = new Vector3()
-    for (let i = 0, max = positionArray.length / 3; i < max; i++) {
-      v.fromArray(positionArray, i * 3)
-      this.text(v, String(i), { size: .2, color })
+    const { v0, v1, v2, center } = DebugHelper.#debugGeometry_private
+
+    if (geometryArg instanceof Mesh) {
+      geometryArg.updateWorldMatrix(true, false)
+      this.setTransformMatrix(geometryArg.matrixWorld)
     }
+
+    const geometry = geometryArg instanceof Mesh ? geometryArg.geometry : geometryArg
+    const positionArray = geometry.getAttribute('position').array as Float32Array
+    const normalArray = geometry.getAttribute('normal')?.array as Float32Array | undefined
+    const color = new Color(colorArg)
+    for (let i = 0, max = positionArray.length / 3; i < max; i++) {
+      v0.fromArray(positionArray, i * 3)
+      this.point(v0, { color, size: vertices * 0.025, shape: 'circle' })
+      if (vertices > 0)
+        this.text(v0, String(i), { size: textSize * vertices, color, offset: [0, textSize * vertices * .2, 0] })
+
+      if (normalArray) {
+        v1.fromArray(normalArray, i * 3)
+        v1.multiplyScalar(0.1)
+        v2.addVectors(v0, v1)
+        this.line(v0, v2, { color })
+      }
+    }
+
+    if (geometry.index) {
+      const indexArray = geometry.index.array as Uint16Array | Uint32Array
+      for (let i = 0, max = indexArray.length / 3; i < max; i++) {
+        const a = indexArray[i * 3]
+        const b = indexArray[i * 3 + 1]
+        const c = indexArray[i * 3 + 2]
+        v0.fromArray(positionArray, a * 3)
+        v1.fromArray(positionArray, b * 3)
+        v2.fromArray(positionArray, c * 3)
+        center.addVectors(v0, v1).add(v2).divideScalar(3)
+        if (triangles > 0)
+          this.text(center, `t${i}`, { size: textSize * triangles, color })
+        this.polygon([v0, v1, v2], { color, opacity: .2 })
+      }
+    }
+
+    if (geometryArg instanceof Mesh) {
+      this.restorePreviousTransformMatrix()
+    }
+
     return this
   }
 
@@ -467,6 +514,13 @@ class DebugHelper extends Group {
     this.parts.pointsManager.setTransformMatrix(matrix)
     this.parts.linesManager.setTransformMatrix(matrix)
     this.parts.textsManager.setTransformMatrix(matrix)
+    return this
+  }
+
+  restorePreviousTransformMatrix(): this {
+    this.parts.pointsManager.restorePreviousTransformMatrix()
+    this.parts.linesManager.restorePreviousTransformMatrix()
+    this.parts.textsManager.restorePreviousTransformMatrix()
     return this
   }
 

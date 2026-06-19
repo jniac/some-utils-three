@@ -302,6 +302,14 @@ const createVaryingOptions = {
       sf_vCameraToVertex = normalize(sf_vCameraToVertex_tmp.xyz - cameraPosition);
     `)
   },
+  sf_vUv2: () => {
+    top(/* glsl */`
+      varying vec2 sf_vUv2;
+    `)
+    vertex.mainAfterAll(/* glsl */`
+      sf_vUv2 = uv2;
+    `)
+  },
 }
 function createVarying(...args: (keyof typeof createVaryingOptions)[]) {
   for (const key of args) {
