@@ -1,5 +1,5 @@
 import { pass } from 'three/tsl'
-import { OrthographicCamera, PerspectiveCamera, PostProcessing, WebGPURenderer } from 'three/webgpu'
+import { OrthographicCamera, PerspectiveCamera, RenderPipeline, WebGPURenderer } from 'three/webgpu'
 
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
 import { Tick } from 'some-utils-ts/ticker'
@@ -16,7 +16,7 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
   orthographicCamera = new OrthographicCamera()
   camera = this.perspectiveCamera
 
-  postProcessing = new PostProcessing(this.renderer)
+  pipeline = new RenderPipeline(this.renderer)
   scenePass = pass(this.scene, this.perspectiveCamera)
 
   private internal = {
@@ -75,7 +75,7 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
     Object.defineProperty(this, 'initialized', { value: true, writable: false, configurable: false, enumerable: false })
 
     const scenePassColor = this.scenePass.getTextureNode('output')
-    this.postProcessing.outputNode = scenePassColor
+    this.pipeline.outputNode = scenePassColor
 
     const observer = new ResizeObserver(() => {
       this.setSize({
@@ -98,6 +98,17 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
       pixelRatio: window.devicePixelRatio,
     })
 
+    this.domContainer = domContainer
+    this.domElement = domElement
+
+    this.#initializeEnd(pointerScope)
+
+    return this
+  }
+
+  async #initializeEnd(pointerScope: HTMLElement) {
+    await this.renderer.init()
+
     this.internal.cancelTick = this.ticker.onTick(
       {
         name: 'WebGPU:Render',
@@ -111,11 +122,6 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
     this.internal.cancelRequestActivation = handleAnyUserInteraction(document.body, this.ticker.requestActivation).destroy
 
     this.internal.cancelPointer = this.pointer.initialize(this.renderer.domElement, pointerScope, this.camera, this.ticker)
-
-    this.domContainer = domContainer
-    this.domElement = domElement
-
-    return this
   }
 
   renderFrame(tick: Tick, options?: RenderFrameOptions): void {
@@ -125,8 +131,7 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
     super.renderFrame(tick, options)
 
     if (this.skipRender === false) {
-      // renderer.renderAsync(scene, camera)
-      this.postProcessing.renderAsync()
+      this.pipeline.render()
     }
   }
 
