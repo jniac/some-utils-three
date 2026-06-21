@@ -449,36 +449,73 @@ class DebugHelper extends Group {
     }
 
     const geometry = geometryArg instanceof Mesh ? geometryArg.geometry : geometryArg
-    const positionArray = geometry.getAttribute('position').array as Float32Array
+    const positionAttr = geometry.getAttribute('position')
+    const positionArray = positionAttr.array as Float32Array
     const normalArray = geometry.getAttribute('normal')?.array as Float32Array | undefined
     const color = new Color(colorArg)
-    for (let i = 0, max = positionArray.length / 3; i < max; i++) {
-      v0.fromArray(positionArray, i * 3)
-      this.point(v0, { color, size: vertices * 0.025, shape: 'circle' })
-      if (vertices > 0)
-        this.text(v0, String(i), { size: textSize * vertices, color, offset: [0, textSize * vertices * .2, 0] })
 
-      if (normalArray) {
-        v1.fromArray(normalArray, i * 3)
-        v1.multiplyScalar(0.1)
-        v2.addVectors(v0, v1)
-        this.line(v0, v2, { color })
+    switch (positionAttr.itemSize) {
+      case 2: {
+        for (let i = 0, max = positionArray.length / 2; i < max; i++) {
+          v0.set(positionArray[i * 2], positionArray[i * 2 + 1], 0)
+          this.point(v0, { color, size: vertices * 0.025, shape: 'circle' })
+          if (vertices > 0)
+            this.text(v0, String(i), { size: textSize * vertices, color, offset: [0, textSize * vertices * .2, 0] })
+        }
+        break
+      }
+
+      case 3: {
+        for (let i = 0, max = positionArray.length / 3; i < max; i++) {
+          v0.fromArray(positionArray, i * 3)
+          this.point(v0, { color, size: vertices * 0.025, shape: 'circle' })
+          if (vertices > 0)
+            this.text(v0, String(i), { size: textSize * vertices, color, offset: [0, textSize * vertices * .2, 0] })
+
+          if (normalArray) {
+            v1.fromArray(normalArray, i * 3)
+            v1.multiplyScalar(0.1)
+            v2.addVectors(v0, v1)
+            this.line(v0, v2, { color })
+          }
+        }
+        break
       }
     }
 
     if (geometry.index) {
       const indexArray = geometry.index.array as Uint16Array | Uint32Array
-      for (let i = 0, max = indexArray.length / 3; i < max; i++) {
-        const a = indexArray[i * 3]
-        const b = indexArray[i * 3 + 1]
-        const c = indexArray[i * 3 + 2]
-        v0.fromArray(positionArray, a * 3)
-        v1.fromArray(positionArray, b * 3)
-        v2.fromArray(positionArray, c * 3)
-        center.addVectors(v0, v1).add(v2).divideScalar(3)
-        if (triangles > 0)
-          this.text(center, `t${i}`, { size: textSize * triangles, color })
-        this.polygon([v0, v1, v2], { color, opacity: .2 })
+      switch (positionAttr.itemSize) {
+        case 2: {
+          for (let i = 0, max = indexArray.length / 3; i < max; i++) {
+            const a = indexArray[i * 3]
+            const b = indexArray[i * 3 + 1]
+            const c = indexArray[i * 3 + 2]
+            v0.set(positionArray[a * 2], positionArray[a * 2 + 1], 0)
+            v1.set(positionArray[b * 2], positionArray[b * 2 + 1], 0)
+            v2.set(positionArray[c * 2], positionArray[c * 2 + 1], 0)
+            center.addVectors(v0, v1).add(v2).divideScalar(3)
+            if (triangles > 0)
+              this.text(center, `t${i}`, { size: textSize * triangles, color })
+            this.polygon([v0, v1, v2], { color, opacity: .2 })
+          }
+          break
+        }
+        case 3: {
+          for (let i = 0, max = indexArray.length / 3; i < max; i++) {
+            const a = indexArray[i * 3]
+            const b = indexArray[i * 3 + 1]
+            const c = indexArray[i * 3 + 2]
+            v0.fromArray(positionArray, a * 3)
+            v1.fromArray(positionArray, b * 3)
+            v2.fromArray(positionArray, c * 3)
+            center.addVectors(v0, v1).add(v2).divideScalar(3)
+            if (triangles > 0)
+              this.text(center, `t${i}`, { size: textSize * triangles, color })
+            this.polygon([v0, v1, v2], { color, opacity: .2 })
+          }
+          break
+        }
       }
     }
 
