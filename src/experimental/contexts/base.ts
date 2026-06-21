@@ -1,4 +1,5 @@
-import { Camera, Mesh, Object3D, Scene, Vector2, Vector3 } from 'three'
+import { Camera, Mesh, Object3D, Scene, Vector2, Vector3, type WebGLRenderer } from 'three'
+import { type WebGPURenderer } from 'three/webgpu'
 
 import { allDescendantsOf } from 'some-utils-ts/iteration/tree'
 import { Message } from 'some-utils-ts/message'
@@ -151,6 +152,10 @@ export class ThreeBaseContext {
     Message.dispatchInstance(ThreeBaseContext, this)
     // #2 - Older support for direct listeners on the class (to be removed eventually).
     Message.on<ThreeBaseContext>(ThreeBaseContext, message => { message.setPayload(this) })
+  }
+
+  getRenderer(): WebGLRenderer | WebGPURenderer {
+    throw new Error('Not implemented')
   }
 
   setSize(newSize: Partial<{

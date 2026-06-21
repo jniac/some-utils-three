@@ -310,6 +310,14 @@ const createVaryingOptions = {
       sf_vUv2 = uv2;
     `)
   },
+  sf_vCameraPosition: () => {
+    top(/* glsl */`
+      varying vec3 sf_vCameraPosition;
+    `)
+    vertex.mainAfterAll(/* glsl */`
+      sf_vCameraPosition = cameraPosition;
+    `)
+  },
 }
 function createVarying(...args: (keyof typeof createVaryingOptions)[]) {
   for (const key of args) {

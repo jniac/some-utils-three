@@ -93,6 +93,9 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     this.orthographicCamera.layers.enable(1)
   }
 
+  override getRenderer(): WebGLRenderer {
+    return this.renderer
+  }
 
   setDepthMode(value: boolean | 'toggle' = 'toggle') {
     if (value === 'toggle')

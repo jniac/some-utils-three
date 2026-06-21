@@ -33,6 +33,10 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
     this.pointer.updatePosition(this.camera, { x: 0, y: 0 }, this.renderer.domElement.getBoundingClientRect())
   }
 
+  override getRenderer(): WebGPURenderer {
+    return this.renderer
+  }
+
   /**
    * Called from the parent class when the size of the context changes.
    */
