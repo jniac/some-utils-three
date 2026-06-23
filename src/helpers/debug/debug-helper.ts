@@ -205,7 +205,7 @@ class DebugHelper extends Group {
 
   static rayDefaultOptions = {
     length: 100,
-    color: '#fff',
+    color: <ColorRepresentation>'#fff',
   }
   ray(
     rayArg: { origin: Vector3Declaration, direction: Vector3Declaration } | [origin: Vector3Declaration, direction: Vector3Declaration],
@@ -258,6 +258,53 @@ class DebugHelper extends Group {
     this.point(B, { color: colorB, shape: 'circle', size: pointSize })
     this.line(origin, C, { color: colorC })
     this.point(C, { color: colorC, shape: 'circle', size: pointSize })
+    return this
+  }
+
+  static frustum_private = {
+    m: new Matrix4(),
+    P: new Vector3(),
+    vx: new Vector3(),
+    vy: new Vector3(),
+    vz: new Vector3(),
+    TL: new Vector3(),
+    TR: new Vector3(),
+    BL: new Vector3(),
+    BR: new Vector3(),
+  }
+  static frustumDefaultOptions = {
+    fov: 45,
+    aspect: 4 / 3,
+    color: <ColorRepresentation>'#fff',
+  }
+  frustum(matrix = new Matrix4(), options?: Partial<typeof DebugHelper.frustumDefaultOptions>): this {
+    const { fov, aspect, color } = { ...DebugHelper.frustumDefaultOptions, ...options }
+    const { m, P, vx, vy, vz, TL, TR, BL, BR } = DebugHelper.frustum_private
+
+    m.copy(matrix)
+
+    P.setFromMatrixPosition(m)
+    vx.setFromMatrixColumn(m, 0).normalize()
+    vy.setFromMatrixColumn(m, 1).normalize()
+    vz.setFromMatrixColumn(m, 2).normalize()
+
+    const h_h = Math.tan(fov * Math.PI / 360) // half of vertical height
+    const h_w = h_h * aspect // half of horizontal width
+
+    TL.copy(P).addScaledVector(vx, -h_w).addScaledVector(vy, +h_h).addScaledVector(vz, -1)
+    TR.copy(P).addScaledVector(vx, +h_w).addScaledVector(vy, +h_h).addScaledVector(vz, -1)
+    BL.copy(P).addScaledVector(vx, -h_w).addScaledVector(vy, -h_h).addScaledVector(vz, -1)
+    BR.copy(P).addScaledVector(vx, +h_w).addScaledVector(vy, -h_h).addScaledVector(vz, -1)
+
+    this.line(P, TL, { color })
+    this.line(P, TR, { color })
+    this.line(P, BL, { color })
+    this.line(P, BR, { color })
+    this.polygon([TL, TR, BR, BL], { color })
+
+    this.point(P, { color })
+    this.point(P.addScaledVector(vz, -1), { color })
+
     return this
   }
 
