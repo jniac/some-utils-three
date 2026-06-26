@@ -8,10 +8,13 @@ const defaultOptions = {
     if (node.name)
       chunks.push(node.name)
 
-    chunks.push(`[${node.constructor.name}]`)
+    chunks.push(`{${node.constructor.name}}`)
 
     if (node.children.length > 0)
       chunks.push(`(${node.children.length})`)
+
+    if (node.visible === false)
+      chunks.push('[hidden]')
 
     return chunks.join(' ')
   },
