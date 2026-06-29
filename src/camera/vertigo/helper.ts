@@ -203,7 +203,7 @@ export class VertigoHelper extends Group {
       for (const point of rectPoints)
         point.addScaledVector(screenOffset, -1 / zoom)
       debugHelper.polygon(rectPoints, { color })
-      debugHelper.points(rectPoints, { color, size: pointSize })
+      debugHelper.points(rectPoints, { color, size: pointSize, shape: 'circle' })
     }
 
     if (drawGrid) {
@@ -224,7 +224,8 @@ export class VertigoHelper extends Group {
     }
 
     // The focus
-    debugHelper.circle({ center: 0, radius: r }, { color })
+    const origin = [0, 0, vertigo.state.distance * vertigo.subjectivity] as const
+    debugHelper.circle({ center: origin, radius: r * 3 }, { color })
     debugHelper.segments([
       [r, 0, 0],
       [r * 3, 0, 0],
@@ -236,8 +237,7 @@ export class VertigoHelper extends Group {
       [0, -r * 3, 0],
     ], { color })
 
-    debugHelper.point(0, { color, size: pointSize })
-    debugHelper.point(vertigo.focus.clone().negate(), { color, size: pointSize })
+    debugHelper.point(origin, { color, size: pointSize, shape: 'circle' })
 
     debugHelper.resetTransformMatrix()
 

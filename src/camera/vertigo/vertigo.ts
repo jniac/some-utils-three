@@ -133,6 +133,33 @@ const defaultProps = {
   nearMin: <number>.1,
 }
 
+const propsMeta = deepFreeze({
+  fov: {
+    type: 'number slider(0, 3) remap(to-degrees) precision(1)',
+    description: 'The base of the perspective (in degrees). If `perspective` is 1, this will be the field of view (horizontal or vertical depends on the aspect ratios of the current focus size and the screen).',
+  },
+  perspective: {
+    type: 'number slider(0, 2)',
+    description: 'The "perspectiveness" of the camera. 0: orthographic (if `allowOrthographic` is `true`, otherwise the fovEpislon is used), 1: perspective (0.8 radians (Vertical FOV) ≈ 45 degrees)',
+  },
+  subjectivity: {
+    type: 'number slider(0, 1)',
+    description: '0: objective (or "object mode"), 1: subjective (or "subject mode")',
+  },
+  zoom: {
+    type: 'number slider(.1, 10) middle(1)',
+    description: 'The zoom of the camera.',
+  },
+  rotation: {
+    type: 'vector(x,y,z) slider(-PI, PI, 1 / 180 * PI) slider-fill(none) remap(to-degrees) precision(1)',
+    description: 'The rotation of the camera.',
+  },
+  frame: {
+    type: 'number slider(0, 1)',
+    description: 'Controls how the size of camera is seen in the screen: 0: cover, 1: contain. Intermediates are supported (linear interpolation).',
+  },
+})
+
 type Props = Partial<typeof defaultProps>
 
 export class Vertigo {
@@ -146,6 +173,8 @@ export class Vertigo {
     _qb: new Quaternion(),
     _plane: new Plane(),
   }
+
+  static propsMeta = propsMeta
 
   // General settings:
   /**
@@ -234,7 +263,7 @@ export class Vertigo {
    * 
    * It is updated when the `update()` method is called.
    */
-  state = {
+  #state = {
     aspect: 1,
     isPerspective: true,
     /**
@@ -272,6 +301,10 @@ export class Vertigo {
      * The inverse projection matrix of the camera.
      */
     projectionMatrixInverse: new Matrix4(),
+  }
+
+  get state() {
+    return this.#state
   }
 
   constructor(props?: Props) {
@@ -372,7 +405,7 @@ export class Vertigo {
    * - `state` becomes invalid when `update()` is called with invalid aspect ratio.
    */
   isStateValid() {
-    const { state } = this
+    const state = this.#state
     return (
       Number.isFinite(state.aspect) &&
       Number.isFinite(state.distance) &&
@@ -454,23 +487,23 @@ export class Vertigo {
    * Convert normalized device coordinates (NDC) to vertigo screen coordinates.
    */
   ndcToVertigoScreen<T extends Vector2Like>(ndc: Vector2Like, out: T = ndc as T): T {
-    out.x = ndc.x * this.state.realSize.x * .5
-    out.y = ndc.y * this.state.realSize.y * .5
+    out.x = ndc.x * this.#state.realSize.x * .5
+    out.y = ndc.y * this.#state.realSize.y * .5
     return out
   }
 
   ndcToWorld(ndc: Vector3Declaration, out: Vector3 = new Vector3()): Vector3 {
-    const { worldMatrix } = this.state
+    const { worldMatrix } = this.#state
     fromVector3Declaration(ndc, out)
-    out.x *= this.state.realSize.x * .5
-    out.y *= this.state.realSize.y * .5
-    out.z = -this.state.distance * this.subjectivity
+    out.x *= this.#state.realSize.x * .5
+    out.y *= this.#state.realSize.y * .5
+    out.z = -this.#state.distance * this.subjectivity
     out.applyMatrix4(worldMatrix)
     return out
   }
 
   worldToNdc(worldPos: Vector3Declaration, out: Vector3 = new Vector3()): Vector3 {
-    const { worldMatrixInverse, projectionMatrix } = this.state
+    const { worldMatrixInverse, projectionMatrix } = this.#state
     fromVector3Declaration(worldPos, out)
       .applyMatrix4(worldMatrixInverse)
       .applyMatrix4(projectionMatrix)
@@ -484,7 +517,7 @@ export class Vertigo {
   /**
    * @deprecated Use `ndcToVertigoScreen` instead. This is an alias for backward compatibility, but it will be removed in the future.
    */
-  ndcToScreen = this.ndcToVertigoScreen
+  get ndcToScreen() { return this.ndcToVertigoScreen }
 
   /**
    * Computes the focus plane of the vertigo camera.
@@ -508,7 +541,7 @@ export class Vertigo {
    *   This allows to update the state when the settings change without having to 
    *   provide the aspect ratio again (useful for intermediate steps).
    */
-  update(newAspect = this.state.aspect): this {
+  update(newAspect = this.#state.aspect): this {
     const sizeAspect = this.size.x / this.size.y
     const aspectAspect = sizeAspect / newAspect
 
@@ -539,7 +572,7 @@ export class Vertigo {
       worldMatrixInverse,
       projectionMatrix,
       projectionMatrixInverse,
-    } = this.state
+    } = this.#state
     worldMatrix.makeRotationFromEuler(this.rotation)
 
     const me = worldMatrix.elements
@@ -613,13 +646,13 @@ export class Vertigo {
     projectionMatrixInverse.copy(projectionMatrix).invert()
 
     // State update:
-    this.state.aspect = newAspect
-    this.state.isPerspective = isPerspective
-    this.state.distance = distance
-    this.state.fov = fov
-    this.state.realSize.set(realHeight * newAspect, realHeight)
-    this.state.near = near
-    this.state.far = far
+    this.#state.aspect = newAspect
+    this.#state.isPerspective = isPerspective
+    this.#state.distance = distance
+    this.#state.fov = fov
+    this.#state.realSize.set(realHeight * newAspect, realHeight)
+    this.#state.near = near
+    this.#state.far = far
 
     return this
   }
@@ -640,7 +673,7 @@ export class Vertigo {
       worldMatrix,
       projectionMatrix,
       projectionMatrixInverse,
-    } = this.state
+    } = this.#state
 
     camera.matrixAutoUpdate = false
     camera.matrix.copy(worldMatrix)
@@ -714,6 +747,25 @@ export class Vertigo {
     }
   }
 
+  /**
+   * Swap the subjectivity of the camera, keeping the focus plane in the same position.
+   */
+  swapSubjectivity(newSubjectivity: number): this {
+    const ds = newSubjectivity - this.subjectivity
+    this.subjectivity = newSubjectivity
+
+    const { worldMatrix, distance, focusPlaneCenter } = this.#state
+    const me = worldMatrix.elements
+
+    const { _v0 } = Vertigo.shared
+    _v0.set(me[8], me[9], me[10]) // The forward vector
+      .multiplyScalar(distance * ds)
+      .add(this.focus)
+    this.focus.copy(_v0)
+
+    return this
+  }
+
   toJsonDeclaration(): string {
     return JSON.stringify(this.toDeclaration())
   }
@@ -731,13 +783,13 @@ export class Vertigo {
   /** @deprecated Deprecated. What's the usage? */
   get computedNdcScalar() {
     console.warn('Vertigo.computedNdcScalar is deprecated. Deprecated. What\'s the usage?')
-    return new Vector2(this.state.realSize.x / this.size.x * this.zoom, this.state.realSize.y / this.size.y * this.zoom)
+    return new Vector2(this.#state.realSize.x / this.size.x * this.zoom, this.#state.realSize.y / this.size.y * this.zoom)
   }
 
   /** @deprecated Use `state.realSize` instead. */
   get computedSize() {
     console.warn('Vertigo.computedSize is deprecated, use state.realSize instead.')
-    return this.state.realSize
+    return this.#state.realSize
   }
 }
 
