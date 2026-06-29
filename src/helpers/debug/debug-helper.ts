@@ -26,19 +26,26 @@ type RectanglePointsOptions = LinePointsOptions & {
 
 class DebugHelper extends Group {
   static createParts(instance: DebugHelper, options?: Partial<{
+    name: string,
     texts: ConstructorParameters<typeof TextsManager>[0],
     lines: ConstructorParameters<typeof LinesManager>[0],
     points: ConstructorParameters<typeof PointsManager>[0],
   }>) {
-    const pointsManager = new PointsManager({ ...options?.points })
+    const { name, ...rest } = options ?? {}
+
+    if (name) {
+      instance.name = name
+    }
+
+    const pointsManager = new PointsManager({ ...rest.points })
     instance.add(pointsManager.parts.points)
     instance.add(pointsManager.parts.xrayPoints)
 
-    const linesManager = new LinesManager({ ...options?.lines })
+    const linesManager = new LinesManager({ ...rest.lines })
     instance.add(linesManager.parts.lines)
     instance.add(linesManager.parts.xrayLines)
 
-    const textsManager = new TextsManager({ ...options?.texts })
+    const textsManager = new TextsManager({ ...rest.texts })
     instance.add(textsManager.parts.textHelper)
 
     return {
