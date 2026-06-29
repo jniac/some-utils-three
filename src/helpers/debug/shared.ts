@@ -30,6 +30,13 @@ export class Utils {
 
   static boxDefaults = {
     inset: 0,
+    /**
+     * Will automatically correct the box if min > max, or if size is negative, 
+     * or inset is too large. 
+     * 
+     * If false, an invalid box will not be drawn, and boxIsValid will be set to false.
+     */
+    autoCorrect: true,
     transform: undefined as TransformDeclaration | undefined,
   }
 
@@ -71,13 +78,40 @@ export class Utils {
       p1.copy(Utils.boxMinMaxDefaults.max as Vector3)
     }
 
-    if (value.inset) {
-      p0.addScalar(value.inset)
-      p1.addScalar(-value.inset)
+    let { x: x0, y: y0, z: z0 } = p0
+    let { x: x1, y: y1, z: z1 } = p1
+    if (value.autoCorrect) {
+      if (x1 < x0) [x0, x1] = [x1, x0]
+      if (y1 < y0) [y0, y1] = [y1, y0]
+      if (z1 < z0) [z0, z1] = [z1, z0]
     }
-    const { x: x0, y: y0, z: z0 } = p0
-    const { x: x1, y: y1, z: z1 } = p1
+    if (value.inset) {
+      x0 += value.inset
+      y0 += value.inset
+      z0 += value.inset
+      x1 -= value.inset
+      y1 -= value.inset
+      z1 -= value.inset
+    }
+    if (value.autoCorrect) {
+      if (x1 < x0) {
+        const mid = (x0 + x1) / 2
+        x0 = mid
+        x1 = mid
+      }
+      if (y1 < y0) {
+        const mid = (y0 + y1) / 2
+        y0 = mid
+        y1 = mid
+      }
+      if (z1 < z0) {
+        const mid = (z0 + z1) / 2
+        z0 = mid
+        z1 = mid
+      }
+    }
     this.boxIsValid = (x1 >= x0) && (y1 >= y0) && (z1 >= z0)
+    p0.set(x0, y0, z0)
     p1.set(x1, y0, z0)
     p2.set(x1, y0, z1)
     p3.set(x0, y0, z1)
