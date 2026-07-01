@@ -7,14 +7,17 @@ type PropsOnly<T> = {
   [K in keyof T as T[K] extends (...args: any[]) => any ? never : K]: T[K]
 }
 
-type SetupTransformProps = TransformProps & {
-  /**
-   * If defined to true, the object's matrix will be updated after applying the transform props.
-   */
-  immediatelyUpdateMatrix?: boolean
-}
+type SetupTransformProps<T extends Object3D> =
+  TransformProps
+  & Omit<Partial<PropsOnly<T>>, keyof TransformProps & keyof Object3D>
+  & {
+    /**
+     * If defined to true, the object's matrix will be updated after applying the transform props.
+     */
+    immediatelyUpdateMatrix?: boolean
+  }
 
-type SetupParentOrTransformProps = Object3D | SetupTransformProps | null
+type SetupParentOrTransformProps<T extends Object3D> = Object3D | SetupTransformProps<T> | null
 type SetupCallback<T> = (instance: T) => void
 
 export type QueryPredicate<T extends Object3D = Object3D> =
@@ -59,9 +62,9 @@ function solveQueryPredicate<T extends Object3D>(query: QueryPredicate<T>): (ins
  * }
  * ```
  */
-export function setup<T>(
+export function setup<T extends Object3D>(
   child: T,
-  transformProps?: SetupParentOrTransformProps,
+  transformProps?: SetupParentOrTransformProps<T>,
   callback?: SetupCallback<T>,
 ): T {
   if (isObject3D(child) === false)
