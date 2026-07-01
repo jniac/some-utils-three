@@ -14,6 +14,9 @@ const defaultOptions = {
   grid: <false | number>1,
   /**
    * Whether to draw the frustum cone.
+   * 
+   * Note:
+   * - "focus-as-far" means that the focus plane will be used as the far plane when drawing the frustum cone. 
    */
   frustum: <boolean | 'focus-as-far'>false,
   /**

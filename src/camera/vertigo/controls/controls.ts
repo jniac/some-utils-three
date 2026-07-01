@@ -13,6 +13,7 @@ import { fromPlaneDeclaration, PlaneDeclaration } from '../../../declaration'
 import { VertigoHelper } from '../helper'
 import { Vertigo, VertigoProps } from '../vertigo'
 import { createActions, VertigoControlsActions } from './actions'
+import { handleTouch } from './controls.touch'
 import { ControlInput, ControlInputString, matchControlInput, parseInputs } from './input'
 import { PointMarker } from './utils'
 
@@ -201,7 +202,10 @@ export class VertigoControls implements DestroyableObject {
         state.alternativeIsActive = true
         state.alternativeDampedVertigo.copy(this.dampedVertigo)
 
-        const helper = new VertigoHelper(this.vertigo, { color: state.alternativeHelperColor })
+        const helper = new VertigoHelper(this.vertigo, {
+          color: state.alternativeHelperColor,
+          frustum: 'focus-as-far',
+        })
         this.group.add(helper)
         state.alternativeHelper = helper
 
@@ -404,6 +408,7 @@ export class VertigoControls implements DestroyableObject {
       .addScaledVector(_vectorY, .5 * diffHeight * -y)
 
     this.currentVertigo.zoom = newZoom
+    this.dampedVertigo.copy(this.currentVertigo) // No damping for zooming, otherwise it creates a weird elastic effect.
   }
 
   initialize(
@@ -430,6 +435,8 @@ export class VertigoControls implements DestroyableObject {
         event.preventDefault()
       },
     })
+
+    yield handleTouch(this, element)
 
     const { state, showFocusMarker, hideFocusMarker } = this[__private__]
     const pointer = new Vector2()
@@ -634,10 +641,15 @@ export class VertigoControls implements DestroyableObject {
   /**
    * Reset the damped vertigo to the current vertigo state.
    */
-  resetDamping(): this {
+  flushDamping(): this {
     this.dampedVertigo.copy(this.vertigo)
     return this
   }
+
+  /**
+   * @deprecated Use `flushDamping()` instead.
+   */
+  get resetDamping() { return this.flushDamping }
 }
 
 export type {

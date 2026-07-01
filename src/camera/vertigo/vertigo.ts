@@ -754,7 +754,7 @@ export class Vertigo {
     const ds = newSubjectivity - this.subjectivity
     this.subjectivity = newSubjectivity
 
-    const { worldMatrix, distance, focusPlaneCenter } = this.#state
+    const { worldMatrix, distance } = this.#state
     const me = worldMatrix.elements
 
     const { _v0 } = Vertigo.shared
@@ -764,6 +764,56 @@ export class Vertigo {
     this.focus.copy(_v0)
 
     return this
+  }
+
+  static #zoomAt_private = {
+    vx: new Vector3(),
+    vy: new Vector3(),
+    p: new Vector2(),
+  }
+  /**
+   * Zoom the camera at a specific point in normalized device coordinates (NDC).
+   * 
+   * Notes:
+   * - The zoom factor is a multiplier. To set the zoom to a specific value, use `setZoomAt()` instead.
+   * - The camera must have been updated at least once before calling this method
+   *   (world matrix & real size are required), otherwise the behavior is undefined.
+   */
+  zoomAt(zoomFactor: number, ndc: Vector2Declaration): this {
+    const { worldMatrix, realSize } = this.#state
+    const { width: currentWidth, height: currentHeight } = realSize
+    const diffWidth = currentWidth * (1 - 1 / zoomFactor)
+    const diffHeight = currentHeight * (1 - 1 / zoomFactor)
+
+    const { vx, vy, p } = Vertigo.#zoomAt_private
+    vx.setFromMatrixColumn(worldMatrix, 0)
+    vy.setFromMatrixColumn(worldMatrix, 1)
+    fromVector2Declaration(ndc, p)
+    this.focus
+      .addScaledVector(vx, .5 * diffWidth * p.x)
+      .addScaledVector(vy, .5 * diffHeight * p.y)
+
+    this.zoom *= zoomFactor
+
+    return this
+  }
+
+  setZoomAt(zoom: number, ndc: Vector2Declaration): this {
+    const zoomFactor = zoom / this.zoom
+    return this.zoomAt(zoomFactor, ndc)
+  }
+
+  /**
+   * The "focusPoint" belongs to the "focus" plane.
+   */
+  zoomAtFocusPoint(zoomFactor: number, focusPoint: Vector2Declaration): this {
+    const { p } = Vertigo.#zoomAt_private
+    const { realSize } = this.#state
+    const { x, y } = realSize
+    fromVector2Declaration(focusPoint, p)
+    p.x /= realSize.x * .5
+    p.y /= realSize.y * .5
+    return this.zoomAt(zoomFactor, p)
   }
 
   toJsonDeclaration(): string {
