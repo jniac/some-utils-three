@@ -14,6 +14,7 @@ import { VertigoHelper } from '../helper'
 import { Vertigo, VertigoProps } from '../vertigo'
 import { createActions, VertigoControlsActions } from './actions'
 import { handleTouch } from './controls.touch'
+import { DOFConstraint } from './dof'
 import { ControlInput, ControlInputString, matchControlInput, parseInputs } from './input'
 import { PointMarker } from './utils'
 
@@ -283,6 +284,14 @@ export class VertigoControls implements DestroyableObject {
     wheel: 'zoom' as 'zoom' | 'dolly',
   }
 
+  /**
+   * The degrees of freedom for the controls.
+   * 
+   * Notes:
+   * - ⚠️ WIP HERE 🚧 Partially implemented!
+   */
+  inputDOF = new DOFConstraint('free')
+
   actions: VertigoControlsActions
 
   panInputs: ControlInput[] = []
@@ -494,7 +503,9 @@ export class VertigoControls implements DestroyableObject {
           case 'orbit': {
             const scalar = 1
             if (matchControlInput(info, this.orbitInputs)) {
-              this.orbit(info.delta.y * -.01 * scalar, info.delta.x * -.01 * scalar)
+              const deltaPitch = info.delta.y * -.01 * scalar * (this.inputDOF.rotationY ? 0 : 1)
+              const deltaYaw = info.delta.x * -.01 * scalar * (this.inputDOF.rotationX ? 0 : 1)
+              this.orbit(deltaPitch, deltaYaw)
             }
             break
           }
