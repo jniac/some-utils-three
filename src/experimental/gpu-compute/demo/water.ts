@@ -7,8 +7,14 @@ const defaultParams = {
   ...GpuCompute.defaultParams,
 
   size: <Vector2Declaration>512,
+  /**
+   * Defaults to 0.98
+   */
   viscosity: 0.98,
   cellScale: 1.0,
+  /**
+   * Defaults to 0.98
+   */
   damping: 0.98,
 }
 
