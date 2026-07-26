@@ -307,7 +307,7 @@ export class VertigoControls implements DestroyableObject {
   constructor(props: VertigoProps = {}) {
     this.currentVertigo.set(props)
     this.currentDampedVertigo.set(props)
-    this.actions = createActions(this)
+    this.actions = createActions(this, this[__private__])
   }
 
   #destroyed = false
@@ -503,8 +503,8 @@ export class VertigoControls implements DestroyableObject {
           case 'orbit': {
             const scalar = 1
             if (matchControlInput(info, this.orbitInputs)) {
-              const deltaPitch = info.delta.y * -.01 * scalar * (this.inputDOF.rotationY ? 0 : 1)
-              const deltaYaw = info.delta.x * -.01 * scalar * (this.inputDOF.rotationX ? 0 : 1)
+              const deltaPitch = info.delta.y * -.01 * scalar * (this.inputDOF.rotationY ? 1 : 0)
+              const deltaYaw = info.delta.x * -.01 * scalar * (this.inputDOF.rotationX ? 1 : 0)
               this.orbit(deltaPitch, deltaYaw)
             }
             break

@@ -18,12 +18,22 @@ const _v1 = new Vector3()
  */
 type VertigoControlsTarget = 'main' | 'alternative' | 'current'
 
-export function createActions(instance: VertigoControls) {
+/**
+ * Why sending `instancePrivate` as a parameter instead of accessing it directly 
+ * from `instance[__private__]`?
+ * Well... I don't know. It was working fine, but one day instance[__private__]
+ * was undefined, even if x
+ */
+export function createActions(
+  instance: VertigoControls,
+  instancePrivate: VertigoControls[typeof __private__],
+) {
+  console.log('createActions', instance[__private__])
   const {
     state,
     doEnterAlternative,
     alternativeIsActiveAndNotExiting,
-  } = instance[__private__]
+  } = instancePrivate
 
   const getVertigo = (target: VertigoControlsTarget) => {
     return target === 'main' ? instance.vertigo :
