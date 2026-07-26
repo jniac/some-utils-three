@@ -229,6 +229,10 @@ export class ThreeBaseContext {
     throw new Error('Not implemented')
   }
 
+  beforeUpdate() {
+    this.pointer.updateStart(this.scene)
+  }
+
   /**
    * Base render function that is called on every tick.
    * 
@@ -244,20 +248,18 @@ export class ThreeBaseContext {
     this.#internal.deltaTimes.add((now - this.#internal.now) / 1e3)
     this.#internal.now = now
 
-    const { scene, pointer } = this
-
-    pointer.updateStart(scene)
-
     if (this.skipTickUpdate === false) {
-      scene.traverse(child => {
+      this.scene.traverse(child => {
         if ('onTick' in child) {
           // call onTick on every child that has it
           (child as any).onTick(tick, this)
         }
       })
     }
+  }
 
-    pointer.updateEnd()
+  afterRender() {
+    this.pointer.updateEnd()
   }
 
   /**

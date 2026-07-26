@@ -157,11 +157,9 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     }
     Object.defineProperty(this, 'initialized', { value: true, writable: false, configurable: false, enumerable: false })
 
-    const { onDestroy } = this
-    const { domElement } = this.renderer
-    domContainer.appendChild(domElement)
-    onDestroy(() => {
-      domContainer.removeChild(domElement)
+    domContainer.appendChild(this.renderer.domElement)
+    this.onDestroy(() => {
+      domContainer.removeChild(this.renderer.domElement)
     })
 
     // Resize
@@ -174,32 +172,49 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     }
     const observer = new ResizeObserver(resize)
     observer.observe(domContainer)
-    onDestroy(() => {
+    this.onDestroy(() => {
       observer.disconnect()
     })
     resize()
 
-    // Pointer
-    onDestroy(this.pointer.initialize(domElement, pointerScope, this.camera, this.ticker))
+    this.onDestroy(
+      // Pointer
+      this.pointer.initialize(this.renderer.domElement, pointerScope, this.camera, this.ticker),
 
-    // Tick
-    onDestroy(
+      // Request activation
       handleAnyUserInteraction(this.ticker.requestActivation),
+
+      // Triple tick listeners to ensure the order of operations is correct:
+      this.ticker.onTick(
+        {
+          phase: TickPhase.BeforeUpdate,
+          name: 'WebGL:BeforeUpdate',
+        },
+        () => this.beforeUpdate(),
+      ),
       this.ticker.onTick(
         {
           phase: TickPhase.Render,
           name: 'WebGL:Render',
         },
-        tick => this.renderFrame(tick)),
+        tick => this.renderFrame(tick),
+      ),
+      this.ticker.onTick(
+        {
+          phase: TickPhase.AfterRender,
+          name: 'WebGL:AfterRender',
+        },
+        () => this.afterRender(),
+      ),
+
+      // Orbit controls
+      () => {
+        this.internal.orbitControls?.dispose()
+      },
     )
 
-    // Orbit controls
-    onDestroy(() => {
-      this.internal.orbitControls?.dispose()
-    })
-
     this.domContainer = domContainer
-    this.domElement = domElement
+    this.domElement = this.renderer.domElement
 
     return this
   }
@@ -236,7 +251,7 @@ export class ThreeWebGLContext extends ThreeBaseContext {
     perspectiveCamera.updateProjectionMatrix()
   }
 
-  renderFrame(tick: Tick, options?: RenderFrameOptions): void {
+  override renderFrame(tick: Tick, options?: RenderFrameOptions): void {
     if (this._enabled === false && options?.force !== true)
       return
 

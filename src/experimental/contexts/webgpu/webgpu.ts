@@ -2,7 +2,9 @@ import { pass } from 'three/tsl'
 import { OrthographicCamera, PerspectiveCamera, RenderPipeline, WebGPURenderer } from 'three/webgpu'
 
 import { handleAnyUserInteraction } from 'some-utils-dom/handle/any-user-interaction'
+import { dumpDestroyables } from 'some-utils-ts/misc/destroy'
 import { Tick } from 'some-utils-ts/ticker'
+import { Destroyable } from 'some-utils-ts/types'
 
 import { RenderFrameOptions, ThreeBaseContext } from '../base'
 import { ThreeContextType, TickPhase } from '../types'
@@ -21,9 +23,7 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
 
   private internal = {
     observer: null as ResizeObserver | null,
-    cancelRequestActivation: null as (() => void) | null,
-    cancelTick: null as (() => void) | null,
-    cancelPointer: null as (() => void) | null,
+    destroyables: [] as Destroyable[],
   }
 
   constructor() {
@@ -31,6 +31,10 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
     this.camera.position.set(0, 1, 10)
     this.camera.lookAt(0, 0, 0)
     this.pointer.updatePosition(this.camera, { x: 0, y: 0 }, this.renderer.domElement.getBoundingClientRect())
+  }
+
+  #collectDestroyables(...destroyables: Destroyable[]) {
+    this.internal.destroyables.push(...destroyables)
   }
 
   override getRenderer(): WebGPURenderer {
@@ -113,19 +117,36 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
   async #initializeEnd(pointerScope: HTMLElement) {
     await this.renderer.init()
 
-    this.internal.cancelTick = this.ticker.onTick(
-      {
-        name: 'WebGPU:Render',
-        phase: TickPhase.Render,
-      },
-      tick => {
-        this.renderFrame(tick)
-      })
-      .destroy
+    this.#collectDestroyables(
+      // Request ticker activation:
+      handleAnyUserInteraction(document.body, this.ticker.requestActivation),
 
-    this.internal.cancelRequestActivation = handleAnyUserInteraction(document.body, this.ticker.requestActivation).destroy
+      // Pointer:
+      this.pointer.initialize(this.renderer.domElement, pointerScope, this.camera, this.ticker),
 
-    this.internal.cancelPointer = this.pointer.initialize(this.renderer.domElement, pointerScope, this.camera, this.ticker)
+      // Triple tick listeners to ensure the order of operations is correct:
+      this.ticker.onTick(
+        {
+          phase: TickPhase.BeforeUpdate,
+          name: 'WebGPU:BeforeUpdate',
+        },
+        () => this.beforeUpdate(),
+      ),
+      this.ticker.onTick(
+        {
+          name: 'WebGPU:Render',
+          phase: TickPhase.Render,
+        },
+        tick => this.renderFrame(tick),
+      ),
+      this.ticker.onTick(
+        {
+          name: 'WebGPU:AfterRender',
+          phase: TickPhase.AfterRender,
+        },
+        () => this.afterRender(),
+      ),
+    )
   }
 
   renderFrame(tick: Tick, options?: RenderFrameOptions): void {
@@ -149,8 +170,6 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
 
     this.renderer.dispose()
     this.internal.observer?.disconnect()
-    this.internal.cancelTick?.()
-    this.internal.cancelRequestActivation?.()
-    this.internal.cancelPointer?.()
+    dumpDestroyables(this.internal.destroyables)
   }
 }

@@ -16,6 +16,8 @@ export enum PointerButton {
 }
 
 class PointerState {
+  time = Date.now() / 1000
+
   downEvent: PointerEvent | null = null
   /**
    * The state of the pointer buttons (bitmask).
@@ -194,6 +196,8 @@ export class Pointer {
    * - max: (width, height) bottom-right
    */
   get clientPosition() { return this.state.clientPosition }
+
+  get clientPositionDelta() { return this.diffState.clientPosition }
 
   /**
    * The position of the pointer in screen space (NDC)
