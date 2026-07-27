@@ -26,6 +26,7 @@ function inferUniformType(value: any): string {
     return `${firstType}[${value.length}]`
   }
 
+  if (value === null) return 'sampler2D'
   if (typeof value === 'number') return 'float'
   if (value instanceof Vector2) return 'vec2'
   if (value instanceof Vector3) return 'vec3'

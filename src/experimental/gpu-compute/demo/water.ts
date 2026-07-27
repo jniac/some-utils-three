@@ -1,4 +1,4 @@
-import { Vector4 } from 'three'
+import { Texture, Vector4 } from 'three'
 
 import { Vector2Declaration } from '../../../declaration'
 import { GpuCompute, GpuComputeParams } from '../gpu-compute'
@@ -16,6 +16,10 @@ const defaultParams = {
    * Defaults to 0.98
    */
   damping: 0.98,
+  /**
+   * 
+   */
+  inputMap: <null | Texture>null,
 }
 
 type Params = typeof defaultParams & GpuComputeParams
@@ -48,6 +52,7 @@ export class GpuComputeWaterDemo extends GpuCompute<Params> {
           uCellScale: { value: this.params.cellScale },
           uDamping: { value: this.params.damping },
           uPointer: { value: new Vector4(.5, .5, 0.1, 1.0) },
+          uInputMap: { value: this.params.inputMap },
         },
         fragmentTop: /* glsl */`
           vec4 fetch(vec2 uv) {
@@ -86,6 +91,10 @@ export class GpuComputeWaterDemo extends GpuCompute<Params> {
           float cellLength = length(cellSize);
           float influence = smoothstep(cellLength * 0.5, -cellLength * 0.5, dist);
           newHeight += influence * strength;
+
+          // Input texture influence
+          vec4 inputMap = texture2D(uInputMap, uv);
+          newHeight += inputMap.r * 0.5;
 
           // Damping
           newHeight *= uDamping;
