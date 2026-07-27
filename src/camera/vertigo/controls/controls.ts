@@ -503,8 +503,8 @@ export class VertigoControls implements DestroyableObject {
           case 'orbit': {
             const scalar = 1
             if (matchControlInput(info, this.orbitInputs)) {
-              const deltaPitch = info.delta.y * -.01 * scalar * (this.inputDOF.rotationY ? 1 : 0)
-              const deltaYaw = info.delta.x * -.01 * scalar * (this.inputDOF.rotationX ? 1 : 0)
+              const deltaPitch = info.delta.y * -.01 * scalar * (this.alternativeIsActive ? 1 : this.inputDOF.rotationY ? 1 : 0)
+              const deltaYaw = info.delta.x * -.01 * scalar * (this.alternativeIsActive ? 1 : this.inputDOF.rotationX ? 1 : 0)
               this.orbit(deltaPitch, deltaYaw)
             }
             break

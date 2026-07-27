@@ -28,7 +28,6 @@ export function createActions(
   instance: VertigoControls,
   instancePrivate: VertigoControls[typeof __private__],
 ) {
-  console.log('createActions', instance[__private__])
   const {
     state,
     doEnterAlternative,
