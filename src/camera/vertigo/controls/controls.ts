@@ -503,8 +503,10 @@ export class VertigoControls implements DestroyableObject {
           case 'orbit': {
             const scalar = 1
             if (matchControlInput(info, this.orbitInputs)) {
-              const deltaPitch = info.delta.y * -.01 * scalar * (this.alternativeIsActive ? 1 : this.inputDOF.rotationY ? 1 : 0)
-              const deltaYaw = info.delta.x * -.01 * scalar * (this.alternativeIsActive ? 1 : this.inputDOF.rotationX ? 1 : 0)
+              const canPitch = this.alternativeIsActive ? true : this.inputDOF.rotationX
+              const canYaw = this.alternativeIsActive ? true : this.inputDOF.rotationY
+              const deltaPitch = info.delta.y * -.01 * scalar * (canPitch ? 1 : 0)
+              const deltaYaw = info.delta.x * -.01 * scalar * (canYaw ? 1 : 0)
               this.orbit(deltaPitch, deltaYaw)
             }
             break
@@ -536,6 +538,9 @@ export class VertigoControls implements DestroyableObject {
         const newZoom = this.currentVertigo.zoom * (1 - info.delta.y * .001)
         switch (this.inputConfig.wheel) {
           case 'zoom': {
+            const canZoom = this.alternativeIsActive ? true : this.inputDOF.zoom
+            if (!canZoom)
+              return
             // Change the perspective amount.
             if (info.event.altKey && info.event.shiftKey) {
               const perspective = this.currentVertigo.perspective * (1 - info.delta.y * .001)

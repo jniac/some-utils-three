@@ -9,6 +9,7 @@ export type DOFConstraintDeclaration =
   | Partial<{
     position: 'fixed' | 'free' | AxisSet
     rotation: 'fixed' | 'free' | AxisSet
+    zoom: 'fixed' | 'free'
     // zoom etc?
   }>
 
@@ -19,6 +20,7 @@ export class DOFConstraint {
   rotationX!: boolean
   rotationY!: boolean
   rotationZ!: boolean
+  zoom!: boolean
 
   constructor(constraint: DOFConstraintDeclaration = 'free') {
     this.set(constraint)
@@ -32,6 +34,7 @@ export class DOFConstraint {
       this.rotationX = true
       this.rotationY = true
       this.rotationZ = true
+      this.zoom = true
     } else if (constraint === 'fixed') {
       this.positionX = false
       this.positionY = false
@@ -39,6 +42,7 @@ export class DOFConstraint {
       this.rotationX = false
       this.rotationY = false
       this.rotationZ = false
+      this.zoom = false
     } else if (constraint === 'position-only') {
       this.positionX = true
       this.positionY = true
@@ -46,6 +50,7 @@ export class DOFConstraint {
       this.rotationX = false
       this.rotationY = false
       this.rotationZ = false
+      this.zoom = false
     } else if (constraint === 'rotation-only') {
       this.positionX = false
       this.positionY = false
@@ -53,9 +58,10 @@ export class DOFConstraint {
       this.rotationX = true
       this.rotationY = true
       this.rotationZ = true
+      this.zoom = false
     } else {
       // explicit constraint
-      const { position = 'free', rotation = 'free' } = constraint
+      const { position = 'free', rotation = 'free', zoom = 'free' } = constraint
 
       if (position === 'fixed') {
         this.positionX = false
@@ -85,6 +91,11 @@ export class DOFConstraint {
         this.rotationX = rotationSet.has('x')
         this.rotationY = rotationSet.has('y')
         this.rotationZ = rotationSet.has('z')
+      }
+      if (zoom === 'fixed') {
+        this.zoom = false
+      } else if (zoom === 'free') {
+        this.zoom = true
       }
     }
   }
