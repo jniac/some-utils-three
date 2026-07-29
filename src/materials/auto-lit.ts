@@ -55,6 +55,9 @@ class AutoLitMaterial extends MeshBasicMaterial {
         `)
         .fragment.before('map_fragment', /* glsl */`
           vec3 normal = normalize(vAutoLitWorldNormal);
+          if (!gl_FrontFacing) {
+            normal = -normal;
+          }
           vec3 lightDirection = normalize(uSunPosition);
           float light = dot(normal, lightDirection) * 0.5 + 0.5;
           light = pow(light, uRampPower);

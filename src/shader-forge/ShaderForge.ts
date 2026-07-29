@@ -233,16 +233,30 @@ const createVaryingOptions = {
       varying vec3 sf_vWorldNormal;
     `)
     vertex.mainAfterAll(/* glsl */`
+      // My implementation of world normal computation (from three.js source code)
+      // #ifdef USE_INSTANCING
+      //   sf_vWorldNormal = mat3(modelMatrix) * mat3(instanceMatrix) * normal;
+      // #else
+      //   sf_vWorldNormal = mat3(modelMatrix) * normal;
+      // #endif
+
+      // #ifdef FLIP_SIDED
+      //   sf_vWorldNormal = -sf_vWorldNormal;
+      // #endif
+
+      // Copy/paste from three.js source code
+      sf_vWorldNormal = normal;
+      #ifdef USE_BATCHING
+        mat3 bm = mat3( batchingMatrix );
+        sf_vWorldNormal /= vec3( dot( bm[ 0 ], bm[ 0 ] ), dot( bm[ 1 ], bm[ 1 ] ), dot( bm[ 2 ], bm[ 2 ] ) );
+        sf_vWorldNormal = bm * sf_vWorldNormal;
+      #endif
       #ifdef USE_INSTANCING
-        sf_vWorldNormal = mat3(modelMatrix) * mat3(instanceMatrix) * normal;
-      #else
-        sf_vWorldNormal = mat3(modelMatrix) * normal;
+        mat3 im = mat3( instanceMatrix );
+        sf_vWorldNormal /= vec3( dot( im[ 0 ], im[ 0 ] ), dot( im[ 1 ], im[ 1 ] ), dot( im[ 2 ], im[ 2 ] ) );
+        sf_vWorldNormal = im * sf_vWorldNormal;
       #endif
 
-      #ifdef FLIP_SIDED
-        sf_vWorldNormal = -sf_vWorldNormal;
-      #endif
-      
       sf_vWorldNormal = normalize(sf_vWorldNormal);
     `)
   },
