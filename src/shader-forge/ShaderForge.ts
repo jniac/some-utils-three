@@ -257,6 +257,7 @@ const createVaryingOptions = {
         sf_vWorldNormal = im * sf_vWorldNormal;
       #endif
 
+      sf_vWorldNormal = mat3(modelMatrix) * sf_vWorldNormal;
       sf_vWorldNormal = normalize(sf_vWorldNormal);
     `)
   },
