@@ -1,6 +1,7 @@
+import { Color, Matrix4, WebGLProgramParametersWithUniforms } from 'three'
+
 import { glsl_bend } from 'some-utils-ts/glsl/transform/bend'
 
-import { Color, Matrix4, WebGLProgramParametersWithUniforms } from 'three'
 import { ShaderForge } from '../../shader-forge'
 
 // Re-export for easier access
@@ -15,31 +16,41 @@ export { glsl_bend }
  * - `uBendMatrixInverse` (mat4): The inverse of the bend matrix.
  */
 export const glsl_bend_project_vertex = /* glsl */`
-  vec4 mvPosition = vec4( transformed, 1.0 );
+  vec4 bendPosition = vec4(position, 1.0);
+  vec3 bendNormal = normal;
+
   #ifdef USE_BATCHING
-    mvPosition = batchingMatrix * mvPosition;
+    bendPosition = batchingMatrix * bendPosition;
+    bendNormal = (batchingMatrix * vec4(bendNormal, 0.0)).xyz;
   #endif
   #ifdef USE_INSTANCING
-    mvPosition = instanceMatrix * mvPosition;
+    bendPosition = instanceMatrix * bendPosition;
+    bendNormal = (instanceMatrix * vec4(bendNormal, 0.0)).xyz;
   #endif
-  mvPosition = modelMatrix * mvPosition;
-  mvPosition = applyBend(mvPosition, uBendFactor, uBendMatrix, uBendMatrixInverse);
-  mvPosition = viewMatrix * mvPosition;
-  gl_Position = projectionMatrix * mvPosition;
+
+  bendPosition = modelMatrix * bendPosition;
+  bendNormal = (modelMatrix * vec4(bendNormal, 0.0)).xyz;
+
+  applyBend(bendPosition, bendNormal, uBendFactor, uBendMatrix, uBendMatrixInverse);
+
+  gl_Position = projectionMatrix * viewMatrix * bendPosition;
 `
 
-export function createBendUniforms(bendMatrix: Matrix4, myColor = 'white') {
+export function createBendUniforms(bendMatrix: Matrix4, bendColor = 'white') {
   const uniforms = {
     uBendFactor: { value: 0 },
     uBendMatrix: { value: bendMatrix.clone() },
     uBendMatrixInverse: { value: bendMatrix.clone().invert() },
-    uMyColor: { value: new Color(myColor) },
+    uBendColor: { value: new Color(bendColor) },
   }
   return uniforms
 }
 
-export function setupShaderForge(shader: WebGLProgramParametersWithUniforms, uniforms: Record<string, { value: any }>) {
-  ShaderForge.with(shader)
+export function setupShaderForge(
+  shader: WebGLProgramParametersWithUniforms,
+  uniforms: Record<string, { value: any }>,
+): typeof ShaderForge {
+  return ShaderForge.with(shader)
     .uniforms(uniforms)
     .vertex.top(glsl_bend)
     .vertex.replace('project_vertex', glsl_bend_project_vertex)

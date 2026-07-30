@@ -1,6 +1,6 @@
-import { Euler, Matrix3, Object3D, Vector3 } from 'three'
+import { Euler, Matrix3, Object3D, Quaternion, Vector3 } from 'three'
 
-import { AngleDeclaration, AngleUnit, EulerDeclaration, fromEulerDeclaration, fromVector3Declaration, Vector3Declaration } from '../declaration'
+import { AngleDeclaration, AngleUnit, EulerDeclaration, fromEulerDeclaration, fromQuaternionDeclaration, fromVector3Declaration, QuaternionDeclaration, Vector3Declaration } from '../declaration'
 
 const defaultTransform = {
   position: new Vector3(0, 0, 0),
@@ -21,6 +21,8 @@ const defaultTransformProps = {
   rotationZ: <AngleDeclaration>0,
   rotationOrder: <Euler['order']>'XYZ',
   rotationUnit: <AngleUnit>'rad',
+
+  quaternion: <QuaternionDeclaration | undefined>undefined,
 
   scaleX: 1,
   scaleY: 1,
@@ -67,6 +69,7 @@ const defaultTransformProps = {
 export type TransformProps = Partial<typeof defaultTransformProps & {
   position: Vector3 | Partial<Vector3Declaration>
   rotation: Euler | Partial<EulerDeclaration>
+  quaternion: Quaternion | Partial<QuaternionDeclaration>
   scale: Vector3 | Partial<Vector3Declaration>
 }>
 
@@ -87,6 +90,8 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
     rotationUnit,
     rotation,
 
+    quaternion,
+
     scaleX,
     scaleY,
     scaleZ,
@@ -106,6 +111,14 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
   fromVector3Declaration(position, target.position)
   fromEulerDeclaration(rotation ?? [rotationX, rotationY, rotationZ, rotationOrder, rotationUnit], target.rotation)
   fromVector3Declaration(scale, target.scale)
+
+  if (quaternion !== undefined) {
+    if (quaternion instanceof Quaternion) {
+      target.quaternion.copy(quaternion)
+    } else {
+      fromQuaternionDeclaration(quaternion, target.quaternion)
+    }
+  }
 
   if (pivot !== undefined && pivot !== null) {
     target.updateMatrix()

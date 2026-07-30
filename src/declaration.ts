@@ -36,9 +36,9 @@ export {
   toVector4Declaration
 } from 'some-utils-ts/declaration'
 
-type QuaternionDeclaration = [number, number, number, number] | Quaternion | QuaternionLike
+export type QuaternionDeclaration = [number, number, number, number] | Quaternion | QuaternionLike
 
-function fromQuaternionDeclaration(arg: QuaternionDeclaration, out = new Quaternion()): Quaternion {
+export function fromQuaternionDeclaration(arg: QuaternionDeclaration, out = new Quaternion()): Quaternion {
   if (arg instanceof Quaternion) {
     return out.copy(arg)
   }
