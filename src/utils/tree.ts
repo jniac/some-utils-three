@@ -17,7 +17,12 @@ type SetupTransformProps<T extends Object3D> =
     immediatelyUpdateMatrix?: boolean
   }
 
-type SetupParentOrTransformProps<T extends Object3D> = Object3D | SetupTransformProps<T> | null
+type SetupParentOrTransformProps<T extends Object3D = Object3D> =
+  | Object3D
+  | TransformProps
+  | SetupTransformProps<T>
+  | null
+
 type SetupCallback<T> = (instance: T) => void
 
 export type QueryPredicate<T extends Object3D = Object3D> =
@@ -75,7 +80,7 @@ export function setup<T extends Object3D>(
       transformProps.add(child)
     } else {
       applyTransform(child, transformProps)
-      if (transformProps.immediatelyUpdateMatrix) {
+      if ((transformProps as any).immediatelyUpdateMatrix) {
         child.updateMatrixWorld()
       }
     }
@@ -83,6 +88,8 @@ export function setup<T extends Object3D>(
   callback?.(child)
   return child
 }
+
+setup(new Object3D(), { name: 'foo' })
 
 /**
  * Backward compatibility

@@ -6,9 +6,28 @@ import { dumpDestroyables } from 'some-utils-ts/misc/destroy'
 import { Ticker, TickPhase } from 'some-utils-ts/ticker'
 import { Destroyable } from 'some-utils-ts/types'
 
+import { fromVector3Declaration, Vector3Declaration } from '../declaration'
 import { closestPointsBetweenLines } from '../math/closestPointsBetweenLines'
 import { ShaderForge } from '../shader-forge'
 import { setVertexColors } from '../utils/geometry/vertex-colors'
+
+function setTransformWithLocalPivot(
+  object: Object3D,
+  localPivot: Vector3,
+  position: Vector3,
+  quaternion: Quaternion,
+  scale: Vector3,
+) {
+  object.quaternion.copy(quaternion)
+  object.scale.copy(scale)
+  object.position
+    .copy(localPivot)
+    .multiply(scale)
+    .applyQuaternion(quaternion)
+    .negate()
+    .add(position)
+  object.updateMatrixWorld()
+}
 
 export const axisColors = {
   X: new Color('#ff0044'),
@@ -271,6 +290,7 @@ export class TransformTool extends Group {
       target: null as Object3D | null,
       targetStartQuaternion: new Quaternion(),
       targetStartPosition: new Vector3(),
+      targetLocalPivot: new Vector3(0, 0, 0),
     },
 
     destroyed: false,
@@ -280,12 +300,23 @@ export class TransformTool extends Group {
   constructor() {
     super()
     this.#initialize()
+
+    this.traverse(child => {
+      if (child instanceof Mesh) {
+        child.frustumCulled = false
+      }
+    })
   }
 
-  attach(object: Object3D): this {
-    this.#private.state.target = object
-    object.getWorldPosition(this.position)
-    object.getWorldQuaternion(this.quaternion)
+  attach(target: Object3D, { localPivot = <Vector3Declaration>0 } = {}): this {
+    const { state } = this.#private
+    fromVector3Declaration(localPivot, state.targetLocalPivot)
+    state.target = target
+    // object.getWorldPosition(this.position)
+    this.position
+      .copy(state.targetLocalPivot)
+      .applyMatrix4(target.matrixWorld)
+    target.getWorldQuaternion(this.quaternion)
     return this
   }
 
@@ -381,9 +412,9 @@ export class TransformTool extends Group {
     pointer.ndc.set(
       ((pointer.dom.x - domRect.left) / domRect.width) * 2 - 1,
       -((pointer.dom.y - domRect.top) / domRect.height) * 2 + 1,
-
     )
     raycaster.setFromCamera(pointer.ndc, camera)
+
     const intersections = raycaster.intersectObjects([arcHitMesh, axisHitMesh], false)
 
     let arcActiveAxe = -1
@@ -486,7 +517,10 @@ export class TransformTool extends Group {
     const { state } = this.#private
     if (state.target) {
       if (state.status !== 'arc-dragging') {
-        state.target.getWorldPosition(this.position)
+        // state.target.getWorldPosition(this.position)
+        this.position
+          .copy(this.#private.state.targetLocalPivot)
+          .applyMatrix4(state.target.matrixWorld)
         state.target.getWorldQuaternion(this.quaternion)
       }
     }
@@ -543,8 +577,21 @@ export class TransformTool extends Group {
     parts.discMeshes[state.arcActiveAxe].material.uniforms.uAngle.value = -deltaAngle
 
     if (state.target) {
-      state.target.quaternion.copy(state.targetStartQuaternion).multiply(q)
-      state.target.updateMatrixWorld()
+      // state.target.quaternion.copy(state.targetStartQuaternion).multiply(q)
+      // state.target.position
+      //   .copy(state.targetLocalAnchor)
+      //   // .negate()
+      //   .applyQuaternion(q)
+      //   .sub(state.targetLocalAnchor.clone().negate())
+      //   .add(state.targetStartPosition)
+      // state.target.updateMatrixWorld()
+      setTransformWithLocalPivot(
+        state.target,
+        state.targetLocalPivot,
+        this.position,
+        state.targetStartQuaternion.clone().multiply(q),
+        state.target.scale.clone()
+      )
     }
   }
 
@@ -594,10 +641,13 @@ export class TransformTool extends Group {
     if (state.target) {
       const parent = state.target.parent
       if (parent) {
-        m.copy(parent.matrixWorld).invert()
-        v1.applyMatrix4(m)
-        state.target.position.copy(v1)
-        state.target.updateMatrixWorld()
+        setTransformWithLocalPivot(
+          state.target,
+          state.targetLocalPivot,
+          this.position,
+          state.target.quaternion,
+          state.target.scale,
+        )
       }
     }
   }
