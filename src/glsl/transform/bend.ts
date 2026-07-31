@@ -36,7 +36,7 @@ export const glsl_bend_project_vertex = /* glsl */`
   gl_Position = projectionMatrix * viewMatrix * bendPosition;
 `
 
-export function createBendUniforms(bendMatrix: Matrix4, bendColor = 'white') {
+export function createBendUniforms(bendMatrix = new Matrix4(), bendColor = 'white') {
   const uniforms = {
     uBendFactor: { value: 0 },
     uBendMatrix: { value: bendMatrix.clone() },
