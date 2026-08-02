@@ -1,4 +1,4 @@
-import { ColorRepresentation, DoubleSide, Group, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Texture, Vector3 } from 'three'
+import { ColorRepresentation, DoubleSide, Group, Matrix4, Mesh, MeshBasicMaterial, MeshBasicMaterialParameters, PlaneGeometry, Texture, Vector3 } from 'three'
 
 import { DashedGridHelper } from '../../helpers/dashed-grid'
 import { DebugHelper } from '../../helpers/debug'
@@ -28,16 +28,54 @@ const defaultOptions = {
 
 type Options = typeof defaultOptions
 
+class MeshBasicMaterialWithDepthOffset extends MeshBasicMaterial {
+  static defaultParams = {
+    depthOffset: 0,
+  }
+
+  uniforms = {
+    uDepthOffset: { value: 0 },
+  }
+
+  constructor(params?: MeshBasicMaterialParameters & Partial<typeof MeshBasicMaterialWithDepthOffset.defaultParams>) {
+    const { depthOffset, ...superParams } = { ...MeshBasicMaterialWithDepthOffset.defaultParams, ...params }
+    super(superParams)
+    this.uniforms.uDepthOffset.value = depthOffset
+
+    // WebGL support:
+    this.onBeforeCompile = shader => {
+      Object.assign(shader.uniforms, this.uniforms)
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          /* glsl */`
+            #include <common>
+            uniform float uDepthOffset;
+          `
+        )
+        .replace(
+          '#include <fog_vertex>',
+          /* glsl */`
+            #include <fog_vertex>
+            gl_Position.w += uDepthOffset;
+          `
+        )
+    }
+  }
+}
+
 export class VertigoHelper extends Group {
   static createParts(instance: VertigoHelper) {
     const textPlaneWrapper = setup(new Group(), instance)
     const textPlane = setup(new Mesh(
       new PlaneGeometry(1, .25).translate(0.5, -0.125, 0),
-      new MeshBasicMaterial({
+      new MeshBasicMaterialWithDepthOffset({
         color: instance.options.color,
         alphaMap: texture(),
         transparent: true,
         side: DoubleSide,
+        depthOffset: .0001,
+        alphaTest: .5,
       }),
     ), textPlaneWrapper)
 
