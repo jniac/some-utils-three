@@ -10,3 +10,6 @@ test
 # and can change even if the source code does not change.
 dist
 dist-npm
+
+# We can ignore the lock because the lib is built locally per monorepo.
+pnpm-lock.yaml
