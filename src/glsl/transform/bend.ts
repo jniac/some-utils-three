@@ -46,7 +46,7 @@ export function createBendUniforms(bendMatrix = new Matrix4(), bendColor = 'whit
   return uniforms
 }
 
-export function setupShaderForge(
+export function setupBendVertexShader(
   shader: WebGLProgramParametersWithUniforms,
   uniforms: Record<string, { value: any }>,
 ): typeof ShaderForge {
