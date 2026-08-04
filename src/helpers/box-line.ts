@@ -1,25 +1,29 @@
-import { BufferAttribute, BufferGeometry, LineBasicMaterial, LineSegments, Vector3, WebGLProgramParametersWithUniforms } from 'three'
+import { BufferAttribute, BufferGeometry, ColorRepresentation, LineBasicMaterial, LineSegments, Vector3, WebGLProgramParametersWithUniforms } from 'three'
 
 import { ShaderForge } from 'some-utils-three/shader-forge'
 import { getMinusX, getMinusY, getMinusZ, getPlusX, getPlusY, getPlusZ } from './xyz'
 
 export class BoxLineHelper extends LineSegments<BufferGeometry, LineBasicMaterial> {
+  static defaultOptions = {
+    divisions: 10,
+    interiorOpacity: 0.2,
+    letters: false,
+    color: <ColorRepresentation>'#ff0',
+    onBeforeCompile: <((shader: WebGLProgramParametersWithUniforms) => void) | undefined>undefined,
+  }
+
   userData = {
     isHelper: true,
     ignoreRaycast: true,
   }
 
-  constructor(options?: {
-    divisions?: number,
-    interiorOpacity?: number,
-    onBeforeCompile?: (shader: WebGLProgramParametersWithUniforms) => void,
-    letters?: boolean,
-  }) {
+  constructor(options?: Partial<typeof BoxLineHelper.defaultOptions>) {
     const {
-      divisions = 10,
-      interiorOpacity = 0.2,
-      letters = false,
-    } = options ?? {}
+      divisions,
+      interiorOpacity,
+      letters,
+      color,
+    } = { ...BoxLineHelper.defaultOptions, ...options }
     const getLerpPoints = (p0: Vector3, p1: Vector3, count: number) => {
       return Array.from({ length: count }, (_, i) => [
         new Vector3().lerpVectors(p0, p1, i / count),
@@ -83,7 +87,7 @@ export class BoxLineHelper extends LineSegments<BufferGeometry, LineBasicMateria
     opacityAttribute.array.fill(interiorOpacity, half)
     boxGeometry.setAttribute('aOpacity', opacityAttribute)
 
-    const boxMaterial = new LineBasicMaterial({ color: '#ff0', transparent: true })
+    const boxMaterial = new LineBasicMaterial({ color, transparent: true })
     boxMaterial.onBeforeCompile = shader => {
       ShaderForge.with(shader)
         .varying({ vOpacity: 'float' })
