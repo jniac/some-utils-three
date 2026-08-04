@@ -1,5 +1,5 @@
 import { BufferGeometry, Camera, CapsuleGeometry, Color, GreaterDepth, Group, Matrix4, Mesh, MeshBasicMaterial, Object3D, PerspectiveCamera, Plane, PlaneGeometry, Quaternion, Raycaster, Side, TorusGeometry, Vector2, Vector3, WebGLProgramParametersWithUniforms, WebGLRenderer } from 'three'
-import { BufferGeometryUtils } from 'three/examples/jsm/Addons.js'
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 import { Message } from 'some-utils-ts/message'
 import { dumpDestroyables } from 'some-utils-ts/misc/destroy'

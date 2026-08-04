@@ -1,4 +1,6 @@
-import { EffectComposer, Pass, RenderPass } from 'three/examples/jsm/Addons.js'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { Pass } from 'three/examples/jsm/postprocessing/Pass.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 
 import { Tick } from 'some-utils-ts/ticker'
 import { DestroyableObject } from 'some-utils-ts/types'

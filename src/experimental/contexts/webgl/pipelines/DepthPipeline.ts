@@ -1,5 +1,7 @@
 import { DepthTexture, PerspectiveCamera, Scene, Vector2, WebGLRenderer } from 'three'
-import { RenderPass, ShaderPass } from 'three/examples/jsm/Addons.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
+
 
 import { Tick } from 'some-utils-ts/ticker'
 import { PassType, PipelineBase } from './PipelineBase'

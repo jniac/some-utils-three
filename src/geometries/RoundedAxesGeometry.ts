@@ -1,5 +1,5 @@
 import { BufferGeometry, CylinderGeometry, SphereGeometry } from 'three'
-import { BufferGeometryUtils } from 'three/examples/jsm/Addons.js'
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 import { axisColors } from '../objects/tools'
 import { setVertexColors } from '../utils/geometry/vertex-colors'

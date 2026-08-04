@@ -1,12 +1,11 @@
 import { BackSide, BoxGeometry, Color, ColorRepresentation, Group, IcosahedronGeometry, Material, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, PlaneGeometry, PointLight, ShaderMaterial, SphereGeometry, Texture, TorusGeometry, Vector3Tuple } from 'three'
-import { RoundedBoxGeometry } from 'three/examples/jsm/Addons.js'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 import { ShaderForge } from '../../shader-forge'
 import { flipTriangles } from '../../utils/geometry/triangles'
+import { setVertexColors } from '../../utils/geometry/vertex-colors'
 import { setup } from '../../utils/tree'
-
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { setVertexColors } from '../../utils/geometry'
 import { EnvironmentStudio, EnvironmentStudioState } from './environment-studio'
 import { array, isCubeTexture, Random } from './utils'
 

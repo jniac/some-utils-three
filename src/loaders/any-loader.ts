@@ -1,5 +1,6 @@
 import { ColorSpace, LinearSRGBColorSpace, SRGBColorSpace, Texture, TextureLoader } from 'three'
-import { GLTFLoader, HDRLoader } from 'three/examples/jsm/Addons.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js'
 
 import { lazy } from 'some-utils-ts/lazy'
 import { Promisified, promisify } from 'some-utils-ts/misc/promisify'

@@ -1,8 +1,7 @@
 import { CircleGeometry, ColorRepresentation, ConeGeometry, CylinderGeometry, Matrix4, RingGeometry, Vector3 } from 'three'
-import { BufferGeometryUtils } from 'three/examples/jsm/Addons.js'
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
-import { Vector3Declaration } from 'some-utils-ts/declaration'
-import { fromVector3Declaration } from '../declaration'
+import { Vector3Declaration, fromVector3Declaration } from '../declaration'
 import { AutoLitMaterial } from '../materials/auto-lit'
 import { DynamicInstancedMesh } from './DynamicInstancedMesh'
 
