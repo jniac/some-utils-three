@@ -29,7 +29,7 @@ export const glsl_bend_project_vertex = /* glsl */`
   #endif
 
   bendPosition = modelMatrix * bendPosition;
-  bendNormal = (modelMatrix * vec4(bendNormal, 0.0)).xyz;
+  bendNormal = normalize((modelMatrix * vec4(bendNormal, 0.0)).xyz);
 
   applyBend(bendPosition, bendNormal, uBendFactor, uBendMatrix, uBendMatrixInverse);
 
@@ -45,6 +45,15 @@ export function createBendUniforms(bendMatrix = new Matrix4(), bendColor = 'whit
   }
   return uniforms
 }
+
+export function copyBendUniforms(source: Record<string, { value: any }>, target: Record<string, { value: any }>) {
+  target.uBendFactor.value = source.uBendFactor.value
+  target.uBendMatrix.value.copy(source.uBendMatrix.value)
+  target.uBendMatrixInverse.value.copy(source.uBendMatrixInverse.value)
+  target.uBendColor.value.copy(source.uBendColor.value)
+}
+
+export type BendUniforms = ReturnType<typeof createBendUniforms>
 
 export function setupBendVertexShader(
   shader: WebGLProgramParametersWithUniforms,
