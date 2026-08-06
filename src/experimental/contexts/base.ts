@@ -302,6 +302,61 @@ export class ThreeBaseContext {
     return null
   }
 
+  /**
+   * Useful for traversing the scene and invoking a method on each child that has it.
+   * 
+   * For example, to call `onTick` on each child that has it:
+   * ```ts
+   * three.traverseAndInvoke({ 
+   *   name: 'onTick',
+   *   args: [tick, three],
+   * })
+   * ```
+   */
+  traverseAndInvoke({
+    root = <Object3D>this.scene,
+    name = <string>'onTick',
+    args = <any[]>[],
+  }) {
+    for (const { node } of allDescendantsOf(root, {
+      includeFirstNode: true,
+      getChildren: (object: Object3D) => object.children,
+    })) {
+      if (name in node) {
+        const fn = (node as any)[name]
+        if (typeof fn === 'function') {
+          fn.apply(node, args)
+        }
+      }
+    }
+  }
+
+  /**
+   * Same as `traverseAndInvoke`, but also yields the result of the function if it is a generator.
+   * 
+   * Useful for initialization functions that are generators, such as `onInitialize`.
+   */
+  *traverseAndInvokeGenerators({
+    root = <Object3D>this.scene,
+    name = <string>'onTick',
+    args = <any[]>[],
+  }) {
+    for (const { node } of allDescendantsOf(root, {
+      includeFirstNode: true,
+      getChildren: (object: Object3D) => object.children,
+    })) {
+      if (name in node) {
+        const fn = (node as any)[name]
+        if (typeof fn === 'function') {
+          const result = fn.apply(node, args)
+          if (result && typeof result[Symbol.iterator] === 'function') {
+            yield* result
+          }
+        }
+      }
+    }
+  }
+
   debug = {
     logTree: (options?: TreeToStringOptions) => {
       console.log(treeToString(this.scene, options))
