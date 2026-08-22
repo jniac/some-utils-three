@@ -243,8 +243,9 @@ class CustomLineMaterial extends LineBasicMaterial {
         diffuseColor.a *= vOpacity;
       `)
   }
+  static #randomId = Math.floor(Math.random() * 0x1000000).toString(16).padStart(6, '0')
   customProgramCacheKey(): string {
-    return 'CustomLineNodeMaterial'
+    return `CustomLineMaterial-${CustomLineMaterial.#randomId}`
   }
   xray(amount: false | number) {
     if (amount === false) {

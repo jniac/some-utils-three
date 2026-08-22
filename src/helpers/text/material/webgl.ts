@@ -138,6 +138,7 @@ export function createWebglMaterial(uniforms: TextUniforms, atlas: TextHelperAtl
     .fragment.replace('map_fragment', /* glsl */`
       diffuseColor = getCharColorWithBorder();
     `)
+  material.customProgramCacheKey = () => `TextHelperMaterial-${atlas.symbols}-${atlas.charGrid.x}-${atlas.charGrid.y}`
 
   return material
 } 

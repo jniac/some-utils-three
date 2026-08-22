@@ -101,8 +101,9 @@ class CustomPointsMaterial extends PointsMaterial {
         // diffuseColor.rgb *= vec3(gl_PointCoord, 1.0);
       `)
   }
+  static #randomId = Math.floor(Math.random() * 0x1000000).toString(16).padStart(6, '0')
   customProgramCacheKey(): string {
-    return 'CustomPointsMaterial'
+    return `CustomPointsMaterial-${CustomPointsMaterial.#randomId}`
   }
   xray(amount: false | number) {
     if (amount === false) {
@@ -131,7 +132,7 @@ export class PointsManager extends BaseManager {
       'x-thin': i++,
       'x-ultra-thin': i++,
     }
-  })();
+  })()
 
   static createParts({
     pointCount: count = 10000,
@@ -164,7 +165,7 @@ export class PointsManager extends BaseManager {
     }
   }
 
-  state = { index: 0 };
+  state = { index: 0 }
 
   parts: ReturnType<typeof PointsManager.createParts>
 
