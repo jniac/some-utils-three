@@ -21,8 +21,11 @@ export type {
   AngleDeclaration,
   AngleUnit,
   Vector2Declaration,
+  Vector2DeclarationLoose,
   Vector3Declaration,
-  Vector4Declaration
+  Vector3DeclarationLoose,
+  Vector4Declaration,
+  Vector4DeclarationLoose
 } from 'some-utils-ts/declaration'
 
 export {
