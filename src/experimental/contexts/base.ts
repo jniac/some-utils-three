@@ -149,7 +149,7 @@ export class ThreeBaseContext {
 
     // Message support:
     // #1 - Dispatch an instance of this context so that it can be awaited/required elsewhere.
-    Message.dispatchInstance(ThreeBaseContext, this)
+    Message.exposeInstance(ThreeBaseContext, this)
     // #2 - Older support for direct listeners on the class (to be removed eventually).
     Message.on<ThreeBaseContext>(ThreeBaseContext, message => { message.setPayload(this) })
   }

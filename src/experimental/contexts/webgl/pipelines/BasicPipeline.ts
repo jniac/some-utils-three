@@ -33,6 +33,8 @@ type Props = {
  * NOTE: Every object in the scene trees that has an `onTick` method will have it called before rendering.
  */
 export class BasicPipeline extends PipelineBase {
+  isBasicPipeline = true
+
   basicPasses: {
     mainRender: RenderPass
     gizmoRender: RenderPass
@@ -100,4 +102,8 @@ export class BasicPipeline extends PipelineBase {
     this.basicPasses.fxaa.uniforms['resolution'].value.set(1 / pixelRatio / width, 1 / pixelRatio / height)
     this.basicPasses.smaa.setSize(width * pixelRatio, height * pixelRatio) // Required? not sure since it implements "setSize"
   }
+}
+
+export function isBasicPipeline(value: any): value is BasicPipeline {
+  return value?.isBasicPipeline === true
 }
