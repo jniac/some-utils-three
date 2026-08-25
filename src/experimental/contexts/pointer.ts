@@ -1,10 +1,12 @@
-import { Camera, Intersection, Line3, Object3D, Plane, Ray, Raycaster, Vector2, Vector3 } from 'three'
+import { Camera, Intersection, Line3, Object3D, Plane, Ray, Raycaster, Sphere, Vector2, Vector3 } from 'three'
 
 import { allDescendantsOf } from 'some-utils-ts/iteration/tree'
+import { Duplicable } from 'some-utils-ts/misc/duplicable'
 import { Ticker } from 'some-utils-ts/ticker'
 
-import { Duplicable } from 'some-utils-ts/misc/duplicable'
+import { Vector3DeclarationLoose, fromVector3Declaration } from '../../declaration'
 import { isMesh } from '../../is'
+import { lineIntersectSphere } from '../../math/lineIntersectSphere'
 
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
@@ -223,7 +225,7 @@ export class Pointer {
    */
   get ray() { return this.raycaster.ray }
 
-  static defaultIntersectPlaneOptions = {
+  static defaultIntersectOptions = {
     /**
      * The interpolation factor between the current ray and the previous ray.
      * 
@@ -239,17 +241,23 @@ export class Pointer {
      * The distance to extend the ray when intersecting with the plane.
      */
     distance: 1000,
+    /**
+     * Callback function that is called when the pointer intersects with the plane.
+     */
+    onIntersect: <((result: InstanceType<(typeof Pointer)['IntersectResult']>) => void) | null>null,
   }
 
-  static IntersectPlaneResult = class IntersectPlaneResult extends Duplicable {
+  static IntersectResult = class IntersectResult extends Duplicable {
     intersected = false
     point = new Vector3()
   }
 
-  #intersectPlane = {
+  #intersect_private = {
     plane: new Plane(),
+    sphere: new Sphere(),
     line: new Line3(),
-    result: new Pointer.IntersectPlaneResult(),
+    planeResult: new Pointer.IntersectResult(),
+    sphereResult: new Pointer.IntersectResult(),
   }
 
   /**
@@ -258,31 +266,31 @@ export class Pointer {
    * Notes:
    * - The result is reused for performance reasons, so it should be cloned if needed.
    */
-  intersectPlane(plane: Plane | 'yz' | 'xz' | 'xy', options?: Partial<typeof Pointer.defaultIntersectPlaneOptions>) {
-    const { oldFactor, distance } = { ...Pointer.defaultIntersectPlaneOptions, ...options }
+  intersectPlane(planeArg: Plane | 'yz' | 'xz' | 'xy', options?: Partial<typeof Pointer.defaultIntersectOptions>) {
+    const { oldFactor, distance } = { ...Pointer.defaultIntersectOptions, ...options }
     const { rayOld, raycaster: { ray } } = this
-    const { line, result, plane: plane2 } = this.#intersectPlane
-    if (typeof plane === 'string') {
-      plane2.constant = 0
-      switch (plane as string) {
+    const { line, planeResult, plane } = this.#intersect_private
+    if (typeof planeArg === 'string') {
+      plane.constant = 0
+      switch (planeArg as string) {
         case 'X': // backward compatibility
         case 'yz': {
-          plane2.normal.set(1, 0, 0)
+          plane.normal.set(1, 0, 0)
           break
         }
         case 'Y': // backward compatibility
         case 'xz': {
-          plane2.normal.set(0, 1, 0)
+          plane.normal.set(0, 1, 0)
           break
         }
         case 'Z': // backward compatibility
         case 'xy': {
-          plane2.normal.set(0, 0, 1)
+          plane.normal.set(0, 0, 1)
           break
         }
       }
     } else {
-      plane2.copy(plane)
+      plane.copy(planeArg)
     }
 
     line.start.lerpVectors(ray.origin, rayOld.origin, oldFactor)
@@ -291,8 +299,42 @@ export class Pointer {
       .multiplyScalar(distance)
       .add(line.start)
 
-    result.intersected = !!plane2.intersectLine(line, result.point)
-    return result
+    planeResult.intersected = !!plane.intersectLine(line, planeResult.point)
+
+    if (planeResult.intersected && options?.onIntersect) {
+      options.onIntersect(planeResult)
+    }
+
+    return planeResult
+  }
+
+  intersectSphere(sphereArg: Sphere | Partial<{ center: Vector3DeclarationLoose, radius: number }>, options?: Partial<typeof Pointer.defaultIntersectOptions>) {
+    const { oldFactor, distance } = { ...Pointer.defaultIntersectOptions, ...options }
+    const { rayOld, raycaster: { ray } } = this
+    const { line, sphereResult, sphere } = this.#intersect_private
+
+    if (sphereArg instanceof Sphere) {
+      sphere.copy(sphereArg)
+    }
+
+    else {
+      fromVector3Declaration(sphereArg.center ?? 0, sphere.center)
+      sphere.radius = sphereArg.radius ?? 1
+    }
+
+    line.start.lerpVectors(ray.origin, rayOld.origin, oldFactor)
+    line.end.lerpVectors(ray.direction, rayOld.direction, oldFactor)
+      .normalize()
+      .multiplyScalar(distance)
+      .add(line.start)
+
+    sphereResult.intersected = lineIntersectSphere(line, sphere, sphereResult.point)
+
+    if (sphereResult.intersected && options?.onIntersect) {
+      options.onIntersect(sphereResult)
+    }
+
+    return sphereResult
   }
 
   updatePosition(camera: Camera, clientPosition: { x: number, y: number }, canvasRect: { x: number, y: number, width: number, height: number }) {

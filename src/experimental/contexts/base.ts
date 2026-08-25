@@ -154,6 +154,15 @@ export class ThreeBaseContext {
     Message.on<ThreeBaseContext>(ThreeBaseContext, message => { message.setPayload(this) })
   }
 
+  /**
+   * Shorthand for `this.ticker.onTick(...)`.
+   * 
+   * @see {@link Ticker.onTick}
+   */
+  onTick(...args: Parameters<Ticker['onTick']>) {
+    return this.ticker.onTick(...args)
+  }
+
   getRenderer(): WebGLRenderer | WebGPURenderer {
     throw new Error('Not implemented')
   }
