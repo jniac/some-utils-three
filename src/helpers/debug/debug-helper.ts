@@ -2,7 +2,7 @@ import { BufferGeometry, Color, ColorRepresentation, Group, Matrix4, Mesh, Objec
 
 import { Rectangle } from 'some-utils-ts/math/geom/rectangle'
 
-import { fromTransformDeclaration, fromVector3Declaration, TransformDeclaration, Vector3Declaration } from '../../declaration'
+import { fromTransformDeclaration, fromVector3Declaration, isMatrix4, TransformDeclaration, Vector3Declaration } from '../../declaration'
 import { LinesManager } from './lines'
 import { PointsManager } from './points'
 import { TextsManager } from './texts'
@@ -239,8 +239,14 @@ class DebugHelper extends Group {
       '#30f',
     ],
   }
+  static basis_private = {
+    origin: new Vector3(),
+    tangent: new Vector3(),
+    bitangent: new Vector3(),
+    normal: new Vector3(),
+  }
   basis(
-    basis: [
+    basis: Matrix4 | [
       origin: Vector3Declaration,
       tangent: Vector3Declaration,
       bitangent: Vector3Declaration,
@@ -248,7 +254,19 @@ class DebugHelper extends Group {
     ],
     options?: Partial<typeof DebugHelper.basisDefaultOptions>,
   ): this {
-    const [origin, tangent, bitangent, normal] = basis.map(v => fromVector3Declaration(v))
+    const { origin, tangent, bitangent, normal } = DebugHelper.basis_private
+    if (isMatrix4(basis)) {
+      origin.setFromMatrixPosition(basis)
+      tangent.setFromMatrixColumn(basis, 0).normalize()
+      bitangent.setFromMatrixColumn(basis, 1).normalize()
+      normal.setFromMatrixColumn(basis, 2).normalize()
+    }
+    else {
+      fromVector3Declaration(basis[0], origin)
+      fromVector3Declaration(basis[1], tangent).normalize()
+      fromVector3Declaration(basis[2], bitangent).normalize()
+      fromVector3Declaration(basis[3], normal).normalize()
+    }
     const {
       size,
       pointSizeRatio,

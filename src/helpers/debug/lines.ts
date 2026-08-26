@@ -5,13 +5,13 @@ import { Vector3Declaration } from 'some-utils-ts/declaration'
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 import { OneOrMany } from 'some-utils-ts/types'
 import { fromOneOrMany } from 'some-utils-ts/types/utils'
-import { BufferAttribute, BufferGeometry, ColorRepresentation, GreaterDepth, LessEqualDepth, LineBasicMaterial, LineSegments, WebGLRenderer } from 'three'
+import { BufferAttribute, BufferGeometry, ColorRepresentation, GreaterDepth, LessEqualDepth, LineBasicMaterial, LineSegments, Matrix4, WebGLRenderer } from 'three'
 
 import { EulerDeclaration, TransformDeclaration, fromEulerDeclaration, fromTransformDeclarations, fromVector3Declaration } from '../../declaration'
 import { ShaderForge } from '../../shader-forge'
 
 import { BaseManager } from './base'
-import { Utils, _c0, _e0, _q0, _v0, _v1, _v2, _v3, _v4, _v5, _v6 } from './shared'
+import { Utils, _c0, _e0, _m3_0, _q0, _v0, _v1, _v2, _v3, _v4, _v5, _v6 } from './shared'
 
 type PositionDeclaration = 'end' | 'start' | 'middle' | number
 
@@ -699,12 +699,13 @@ export class LinesManager extends BaseManager {
   circle({
     center = 0 as Vector3Declaration,
     axis = 'z' as Vector3Declaration,
+    matrix = null as null | Matrix4,
     radius = 1,
     quality = 'medium' as keyof typeof LinesManager.circleQualityPresets,
     segments = undefined as number | undefined,
   } = {}, options?: LineOptions) {
     segments ??= LinesManager.circleQualityPresets[quality]
-    const { x, y, z } = fromVector3Declaration(center, _v0)
+    let { x, y, z } = fromVector3Declaration(center, _v0)
     fromVector3Declaration(axis, _v0)
       .normalize()
     _v1
@@ -713,6 +714,14 @@ export class LinesManager extends BaseManager {
       .normalize()
     _v2
       .crossVectors(_v0, _v1)
+    if (matrix) {
+      x += matrix.elements[12]
+      y += matrix.elements[13]
+      z += matrix.elements[14]
+      _m3_0.setFromMatrix4(matrix)
+      _v1.applyMatrix3(_m3_0)
+      _v2.applyMatrix3(_m3_0)
+    }
     const array = new Float32Array(segments * 3 * 2)
     for (let i = 0; i < segments; i++) {
       const a0 = i / segments * Math.PI * 2
