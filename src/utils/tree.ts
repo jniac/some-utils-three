@@ -19,7 +19,6 @@ type SetupTransformProps<T extends Object3D> =
 
 type SetupParentOrTransformProps<T extends Object3D = Object3D> =
   | Object3D
-  | TransformProps
   | SetupTransformProps<T>
   | null
 
@@ -66,6 +65,9 @@ function solveQueryPredicate<T extends Object3D>(query: QueryPredicate<T>): (ins
  *   myMesh2 = setup(new Mesh(geometry, material), { parent: this, position: [1, 0, 0] })
  * }
  * ```
+ * 
+ * Note:
+ * - The `immediatelyUpdateMatrix` prop can be set to true to update the object's matrix after applying the transform props.
  */
 export function setup<T extends Object3D>(
   child: T,
@@ -78,14 +80,17 @@ export function setup<T extends Object3D>(
   if (transformProps) {
     if (isObject3D(transformProps)) {
       transformProps.add(child)
-    } else {
+    }
+    else {
       applyTransform(child, transformProps)
       if ((transformProps as any).immediatelyUpdateMatrix) {
         child.updateMatrixWorld()
       }
     }
   }
+
   callback?.(child)
+
   return child
 }
 

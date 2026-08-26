@@ -1,4 +1,4 @@
-import { Euler, Matrix3, Object3D, Quaternion, Vector3 } from 'three'
+import { Euler, Matrix3, Matrix4, Object3D, Quaternion, Vector3 } from 'three'
 
 import { AngleDeclaration, AngleUnit, EulerDeclaration, fromEulerDeclaration, fromQuaternionDeclaration, fromVector3Declaration, QuaternionDeclaration, Vector3Declaration } from '../declaration'
 
@@ -28,6 +28,11 @@ const defaultTransformProps = {
   scaleY: 1,
   scaleZ: 1,
   scaleScalar: 1,
+
+  /**
+   * If defined, the object's matrix will be set directly. The position, quaternion and scale will be derived from the matrix (matrix.decompose()).
+   */
+  matrix: <Matrix4 | undefined>undefined,
 
   // Extra:
   /**
@@ -98,6 +103,8 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
     scaleScalar,
     scale = new Vector3(scaleX, scaleY, scaleZ).multiplyScalar(scaleScalar),
 
+    matrix,
+
     pivot,
 
     visible,
@@ -125,6 +132,11 @@ export function applyTransform<T extends Object3D = Object3D>(target: T, props?:
     _matrix3.setFromMatrix4(target.matrix)
     fromVector3Declaration(pivot, _vector3).applyMatrix3(_matrix3)
     target.position.sub(_vector3)
+  }
+
+  if (matrix !== undefined) {
+    target.matrix.copy(matrix)
+    target.matrix.decompose(target.position, target.quaternion, target.scale)
   }
 
   if (visible !== undefined) {
