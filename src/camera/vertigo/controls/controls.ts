@@ -319,7 +319,29 @@ export class VertigoControls implements DestroyableObject {
     this[__private__].state.startDestroyableInstance.destroy()
   }
 
+  /**
+   * Updates the vertigo controls with the provided properties.
+   * 
+   * Notes:
+   * - This updates both the absolute and damped vertigo controls.
+   * - The alternative vertigo controls are not updated by this method. 
+   * - Use {@link alternativeVertigoSet} to update the alternative vertigo controls.
+   * - Use {@link currentVertigoSet} to update the current vertigo controls (either absolute or alternative).
+   */
   set(props: VertigoProps) {
+    this.vertigo.set(props)
+    this.dampedVertigo.set(props)
+    return this
+  }
+
+  alternativeVertigoSet(props: VertigoProps) {
+    const { state } = this[__private__]
+    state.alternativeVertigo.set(props)
+    state.alternativeDampedVertigo.set(props)
+    return this
+  }
+
+  currentVertigoSet(props: VertigoProps) {
     this.currentVertigo.set(props)
     this.currentDampedVertigo.set(props)
     return this
