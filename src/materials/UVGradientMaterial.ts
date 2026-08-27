@@ -69,4 +69,9 @@ export class UVGradientMaterial extends MeshBasicMaterial {
         diffuseColor.rgb *= gradientColor;
       `)
   }
+
+  static #now = Date.now()
+  customProgramCacheKey(): string {
+    return `UVGradientMaterial-${UVGradientMaterial.#now}`
+  }
 }
