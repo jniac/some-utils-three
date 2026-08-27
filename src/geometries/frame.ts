@@ -1,5 +1,6 @@
 import { BufferAttribute, BufferGeometry } from 'three'
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { mergeGeometries, toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+
 import { createExtrusionGeometry } from './extrusion'
 
 const defaultOptions = {
@@ -52,6 +53,7 @@ function setupSimpleFrameGeometry(geometry: BufferGeometry, options: typeof defa
   ])
 
   geometry.setAttribute('position', new BufferAttribute(frontPosition, 3))
+  geometry.setAttribute('normal', new BufferAttribute(frontNormal, 3))
 
   const uv = new Float32Array(frontPosition.length / 3 * 2)
   geometry.setAttribute('uv', new BufferAttribute(uv, 2))
@@ -68,14 +70,19 @@ function setupSimpleFrameGeometry(geometry: BufferGeometry, options: typeof defa
   ])
   geometry.setIndex(new BufferAttribute(index, 1))
 
-  geometry.computeVertexNormals()
-
   if (options.depth > 0) {
     const extrusionGeometry = createExtrusionGeometry(geometry, {
       amount: options.depth,
       direction: [0, 0, -1],
     })
-    geometry.copy(mergeGeometries([geometry, extrusionGeometry]))
+    const backGeometry = new BufferGeometry().copy(geometry).rotateX(Math.PI).translate(0, 0, -options.depth)
+    const extrudedGeometry = toCreasedNormals(mergeGeometries([
+      geometry,
+      backGeometry,
+      extrusionGeometry,
+    ]), 60)
+    geometry.copy(extrudedGeometry)
+    geometry.computeVertexNormals()
   }
 }
 
