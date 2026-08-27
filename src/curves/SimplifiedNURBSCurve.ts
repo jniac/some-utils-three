@@ -36,12 +36,14 @@ export class SimplifiedNURBSCurve extends Curve<Vector3> {
   }
 
   params: typeof SimplifiedNURBSCurve.defaultParams
+  controlPoints: Vector4[]
   #nurbsCurve: NURBSCurve
 
   constructor(userParams: Partial<typeof SimplifiedNURBSCurve.defaultParams> = {}) {
     super()
     this.params = { ...SimplifiedNURBSCurve.defaultParams, ...userParams }
-    const { degree, controlPoints, closed } = this.params
+    const { degree, closed } = this.params
+    const controlPoints = this.params.controlPoints.map(toVector4)
 
     if (!Number.isInteger(degree) || degree < 1) {
       throw new RangeError('The NURBS degree must be a positive integer')
@@ -51,28 +53,28 @@ export class SimplifiedNURBSCurve extends Curve<Vector3> {
       throw new RangeError(`A degree ${degree} NURBS requires at least ${degree + 1} control points`)
     }
 
-    const points = controlPoints.map(toVector4)
+    this.controlPoints = controlPoints
 
     if (closed) {
       const periodicPoints = [
-        ...points.slice(-degree),
-        ...points,
-        ...points.slice(0, degree),
+        ...controlPoints.slice(-degree),
+        ...controlPoints,
+        ...controlPoints.slice(0, degree),
       ]
-      const knots = createClosedKnots(degree, points.length)
+      const knots = createClosedKnots(degree, controlPoints.length)
 
       this.#nurbsCurve = new NURBSCurve(
         degree,
         knots,
         periodicPoints,
         degree,
-        degree + points.length,
+        degree + controlPoints.length,
       )
     } else {
       this.#nurbsCurve = new NURBSCurve(
         degree,
-        createOpenKnots(degree, points.length),
-        points,
+        createOpenKnots(degree, controlPoints.length),
+        controlPoints,
       )
     }
   }
