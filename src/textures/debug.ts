@@ -12,6 +12,13 @@ const defaultParams = {
   checkerColorB: 'hsl(0, 0%, 95%)',
   textColor: 'hsla(0, 0%, 0%, 0.5)',
 
+  /**
+   * If set, a big character will be drawn in the center of the texture.
+   * 
+   * "R" is a good choice since it has no symmetry and is easy to read.
+   */
+  bigChar: <string | null>null,
+
   // "texture" parameters
   generateMipmaps: true,
   repeat: <Vector2Declaration>1,
@@ -38,6 +45,7 @@ function makeCanvasKey(p: Params) {
     p.checkerColorA,
     p.checkerColorB,
     p.textColor,
+    p.bigChar,
   ].join('|')
 }
 
@@ -119,6 +127,14 @@ function createCanvas(p: Params): HTMLCanvasElement {
   }
   ctx.stroke()
 
+  // --- big character in the center
+  if (p.bigChar) {
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = p.textColor
+    ctx.font = `${size * .75}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`
+    ctx.fillText(p.bigChar, size * .5, size * .58)
+  }
 
   return canvas
 }

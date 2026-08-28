@@ -37,6 +37,9 @@ export class UVGradientMaterial extends MeshBasicMaterial {
     uAngle: { value: 0 },
   }
 
+  get color1() { return this.uniforms.uColor1.value }
+  get color2() { return this.uniforms.uColor2.value }
+
   constructor(params?: Partial<typeof UVGradientMaterial.defaultParams> & MeshBasicMaterialParameters) {
     const { color1, color2, angle, direction, power, inflection, scale, ...superParams } = { ...UVGradientMaterial.defaultParams, ...params }
     super(superParams)
