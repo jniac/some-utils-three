@@ -66,7 +66,10 @@ export function createWebglMaterial(uniforms: TextUniforms, atlas: TextHelperAtl
         uint(sizeBytes.w);
       float size = uintBitsToFloat(encoded);
 
-      vec4 mvPosition = vec4(transformed * size, 1.0);
+      vec3 alignedPosition = transformed;
+      alignedPosition.x += (0.5 - uTextAlignment) * uPlaneSize.x;
+
+      vec4 mvPosition = vec4(alignedPosition * size, 1.0);
 
       mat4 textMatrix = uOrientation < 0.5
         ? modelMatrix * instanceMatrix
@@ -102,7 +105,7 @@ export function createWebglMaterial(uniforms: TextUniforms, atlas: TextHelperAtl
         float currentLineLength = getData4(vInstanceId, 4 + int(lineIndex)).r * 255.0;
         // vec2 ddx = dFdx(uv);
         // vec2 ddy = dFdy(uv);
-        uv.x += (uLineLength - currentLineLength) * -0.5;
+        uv.x -= (uLineLength - currentLineLength) * uTextAlignment;
         float charIndex = floor(uv.x);
 
         if (charIndex < 0.0 || charIndex >= currentLineLength)
@@ -141,4 +144,4 @@ export function createWebglMaterial(uniforms: TextUniforms, atlas: TextHelperAtl
   material.customProgramCacheKey = () => `TextHelperMaterial-${atlas.symbols}-${atlas.charGrid.x}-${atlas.charGrid.y}`
 
   return material
-} 
+}

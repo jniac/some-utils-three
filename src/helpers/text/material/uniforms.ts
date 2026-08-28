@@ -4,7 +4,7 @@ import { fromVector3Declaration } from '../../../declaration'
 
 import { TextHelperAtlas } from '../atlas'
 import { TextHelperData } from '../data'
-import { Options, defaultOptions, solveOrientation } from '../types'
+import { Options, defaultOptions, solveOrientation, solveTextAlign } from '../types'
 
 export type TextUniforms = ReturnType<typeof createTextUniforms>
 
@@ -16,6 +16,7 @@ export function createTextUniforms(userOptions: Options, data: TextHelperData, a
   return {
     uCameraMatrix: { value: new Matrix4() },
     uOrientation: { value: solveOrientation(options.orientation) },
+    uTextAlignment: { value: solveTextAlign(options.textAlign) },
     uTextOffset: { value: fromVector3Declaration(options.textOffset) },
     uPlaneSize: { value: planeSize },
     uCharSize: { value: options.charSize },

@@ -22,6 +22,24 @@ export function solveOrientation(orientation: string | number): Orientation {
   throw new Error(`Invalid orientation: ${orientation}`)
 }
 
+export const textAlignOptions = {
+  'left': 0,
+  'center': .5,
+  'right': 1,
+} as const
+
+export type TextAlignType = (typeof textAlignOptions)[keyof typeof textAlignOptions] | number
+
+export function solveTextAlign(textAlign: keyof typeof textAlignOptions | number): TextAlignType {
+  if (typeof textAlign === 'string') {
+    if (textAlign in textAlignOptions) {
+      return textAlignOptions[textAlign]
+    }
+    throw new Error(`Invalid text alignment: ${textAlign}`)
+  }
+  return textAlign
+}
+
 export const defaultOptions = {
   /**
    * Should we use a node material (compatible with webgpu)?
@@ -33,6 +51,7 @@ export const defaultOptions = {
   lineCount: 2,
   charSize: new Vector2(.2, .3),
   textSize: 1,
+  textAlign: <keyof typeof textAlignOptions | number>'center',
   /**
    * The offset of the text in the local 3D space. 
    * 
@@ -127,4 +146,3 @@ export type SetTextOption = TransformDeclaration & SetColorOptions & Partial<{
    */
   offset: Vector3Declaration
 }>
-
