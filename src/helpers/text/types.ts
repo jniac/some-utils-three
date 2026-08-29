@@ -65,7 +65,7 @@ export const defaultOptions = {
   textOffset: 0 as Vector3Declaration,
   orientation: 'billboard' as (keyof typeof orientations) | Orientation,
   textDefaults: <SetTextOption>{
-    color: '#ff00ff',
+    color: '#ffffff',
     size: 1,
   },
 }

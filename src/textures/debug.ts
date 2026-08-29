@@ -132,8 +132,8 @@ function createCanvas(p: Params): HTMLCanvasElement {
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillStyle = p.textColor
-    ctx.font = `${size * .75}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`
-    ctx.fillText(p.bigChar, size * .5, size * .58)
+    ctx.font = `${size * .85}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`
+    ctx.fillText(p.bigChar, size * .5, size * .59)
   }
 
   return canvas
