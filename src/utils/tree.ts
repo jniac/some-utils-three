@@ -103,9 +103,9 @@ setup(new Object3D(), { name: 'foo' })
  */
 export const addTo = setup
 
-export function isDescendantOf(child: Object3D, parent: Object3D): boolean {
+export function isDescendantOf(child: Object3D | null | undefined, parent: Object3D): boolean {
   let current = child
-  while (current.parent) {
+  while (current?.parent) {
     if (current.parent === parent) {
       return true
     }
@@ -114,7 +114,7 @@ export function isDescendantOf(child: Object3D, parent: Object3D): boolean {
   return false
 }
 
-export function isAncestorOf(parent: Object3D, child: Object3D): boolean {
+export function isAncestorOf(parent: Object3D, child: Object3D | null | undefined): boolean {
   return isDescendantOf(child, parent)
 }
 
