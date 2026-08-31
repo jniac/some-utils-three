@@ -84,6 +84,22 @@ export class ThreePointerEvent {
   }
 }
 
+/**
+ * ## Pointer & userData
+ * Object3D instances can intercept pointer events, and can have userData properties to handle them.
+ * 
+ * - `userData.onPointerTap`:  
+ *   A `function` that will be called when the pointer taps on the object.  
+ * 
+ * - `userData.pointerDistanceOffset`:  
+ *   A `number` that will be added to the distance of the intersection, to allow for custom ordering of intersections (useful for coplanar objects).
+ * 
+ * - `userData.ignorePointer`:  
+ *   A `boolean` that will make the object and its children ignore pointer events.
+ * 
+ * - `userData.pointerArea`:  
+ *   A `boolean` that will make the object and its children be considered as a pointer area, even if they are not visible or are helpers.
+ */
 export class Pointer {
   #enabled = true
 
@@ -374,7 +390,17 @@ export class Pointer {
       this.raycaster.intersectObject(node, false, intersections)
     }
 
-    intersections.sort((a, b) => a.distance - b.distance)
+    intersections.sort((a, b) => {
+      let aDistance = a.distance
+      let bDistance = b.distance
+      if (typeof a.object.userData.pointerDistanceOffset === 'number') {
+        aDistance += a.object.userData.pointerDistanceOffset
+      }
+      if (typeof b.object.userData.pointerDistanceOffset === 'number') {
+        bDistance += b.object.userData.pointerDistanceOffset
+      }
+      return aDistance - bDistance
+    })
 
     return intersections
   }

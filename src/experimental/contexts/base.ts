@@ -84,6 +84,9 @@ export class ThreeBaseContext {
   size = new Vector2()
   fullSize = new Vector2()
   pixelRatio = 1
+  /**
+   * cf {@link Pointer} documentation for more information about the pointer system.
+   */
   pointer = new Pointer()
   /**
    * The main scene for rendering.
