@@ -4,7 +4,7 @@ import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three'
 
 const defaultParams = {
   // "canvas" parameters
-  subdivisions: 8,
+  subdivisions: 10, // 10 is better for uv test
   size: 1024,
   lineSize: 2,
   lineColor: 'hsl(0, 0%, 80%)',
@@ -71,6 +71,52 @@ function createCanvas(p: Params): HTMLCanvasElement {
     }
   }
 
+  // --- grid lines (half visible on edges)
+  ctx.strokeStyle = p.lineColor
+  ctx.lineWidth = lineSize
+  ctx.lineCap = 'butt'
+
+  // Lines should be centered on boundaries; edges get clipped => half visible
+  // To avoid .5px wobble, don’t snap; just draw at exact multiples.
+  ctx.beginPath()
+  for (let i = 0; i <= subdivisions; i++) {
+    const x = i * cell
+    ctx.moveTo(x, 0)
+    ctx.lineTo(x, size)
+
+    const y = i * cell
+    ctx.moveTo(0, y)
+    ctx.lineTo(size, y)
+  }
+
+  // Diagonals
+  ctx.moveTo(0, 0)
+  ctx.lineTo(size, size)
+  ctx.moveTo(size, 0)
+  ctx.lineTo(0, size)
+
+  // Border "fringes"
+  const cellSubdivision = 10
+  const total = subdivisions * cellSubdivision
+  const step = size / total
+  for (let i = 1; i < total; i++) {
+    const x = size * i / total
+
+    ctx.moveTo(x, 0)
+    ctx.lineTo(x, step)
+    ctx.moveTo(x, size)
+    ctx.lineTo(x, size - step)
+
+    ctx.moveTo(0, x)
+    ctx.lineTo(step, x)
+    ctx.moveTo(size, x)
+    ctx.lineTo(size - step, x)
+  }
+
+  ctx.ellipse(size / 2, size / 2, size / 2, size / 2, 0, 0, 2 * Math.PI)
+
+  ctx.stroke()
+
   // --- per-cell corner labels
   // small, subtle text; keep it readable on both checker colors
   const fontPx = Math.max(10, Math.floor(cell * .18))
@@ -107,25 +153,6 @@ function createCanvas(p: Params): HTMLCanvasElement {
   ctx.fillText(`0,1`, cell * .5, cell * .5)
   ctx.fillText(`1,0`, cell * (subdivisions - .5), cell * (subdivisions - .5))
   ctx.fillText(`1,1`, cell * (subdivisions - .5), cell * .5)
-
-  // --- grid lines (half visible on edges)
-  ctx.strokeStyle = p.lineColor
-  ctx.lineWidth = lineSize
-  ctx.lineCap = 'butt'
-
-  // Lines should be centered on boundaries; edges get clipped => half visible
-  // To avoid .5px wobble, don’t snap; just draw at exact multiples.
-  ctx.beginPath()
-  for (let i = 0; i <= subdivisions; i++) {
-    const x = i * cell
-    ctx.moveTo(x, 0)
-    ctx.lineTo(x, size)
-
-    const y = i * cell
-    ctx.moveTo(0, y)
-    ctx.lineTo(size, y)
-  }
-  ctx.stroke()
 
   // --- big character in the center
   if (p.bigChar) {
