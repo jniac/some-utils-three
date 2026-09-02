@@ -3,6 +3,11 @@ import { Texture, Vector4 } from 'three'
 import { Vector2Declaration } from '../../../declaration'
 import { GpuCompute, GpuComputeParams } from '../gpu-compute'
 
+enum ShaderMode {
+  Normal = 0,
+  ShowInput = 1,
+}
+
 const defaultParams = {
   ...GpuCompute.defaultParams,
 
@@ -11,21 +16,33 @@ const defaultParams = {
    * Defaults to 0.98
    */
   viscosity: 0.98,
+  /**
+   * Simulation cell scale.
+   * 
+   * Defaults to 1.0
+   */
   cellScale: 1.0,
   /**
    * Defaults to 0.98
    */
   damping: 0.98,
   /**
-   * 
+   * An input map (alternative to the point option, for more complex inputs).
    */
   inputMap: <null | Texture>null,
+  /**
+   * The shader mode.
+   * 
+   * Use `1` or `ShaderMode.ShowInput` to display the input.
+   */
+  mode: ShaderMode.Normal,
 }
 
 type Params = typeof defaultParams & GpuComputeParams
 
 export class GpuComputeWaterDemo extends GpuCompute<Params> {
   static override defaultParams = defaultParams
+  static ShaderMode = ShaderMode
 
   get viscosity() { return this.updateUniforms.uViscosity.value }
   set viscosity(value: number) { this.updateUniforms.uViscosity.value = value }
@@ -53,6 +70,7 @@ export class GpuComputeWaterDemo extends GpuCompute<Params> {
           uDamping: { value: this.params.damping },
           uPointer: { value: new Vector4(.5, .5, 0.1, 1.0) },
           uInputMap: { value: this.params.inputMap },
+          uParams: { value: new Vector4(this.params.mode) },
         },
         fragmentTop: /* glsl */`
           vec4 fetch(vec2 uv) {
@@ -84,23 +102,35 @@ export class GpuComputeWaterDemo extends GpuCompute<Params> {
 
           float newHeight = ((north.x + south.x + east.x + west.x) * 0.5 - center.y) * viscosity;
 
+          float inputValue = 0.0;
+
           // Pointer influence
           float radius = uPointer.z;
           float strength = uPointer.w;
           float dist = distance(uv * uTextureSize, uPointer.xy * uTextureSize) - radius;
           float cellLength = length(cellSize);
           float influence = smoothstep(cellLength * 0.5, -cellLength * 0.5, dist);
-          newHeight += influence * strength;
+          inputValue += influence * strength;
 
           // Input texture influence
           vec4 inputMap = texture2D(uInputMap, uv);
-          newHeight += inputMap.r * 0.5;
+          inputValue += inputMap.r * 0.5;
 
-          // Damping
-          newHeight *= uDamping;
-          center.x *= uDamping;
+          bool showInput = uParams.x == 1.0;
 
-          gl_FragColor = vec4(newHeight, center.x, 0.0, 1.0);
+          if (showInput) {
+            gl_FragColor = vec4(inputValue, inputValue, 0.0, 1.0);
+          }
+
+          else {
+            newHeight += inputValue;
+
+            // Damping
+            newHeight *= uDamping;
+            center.x *= uDamping;
+
+            gl_FragColor = vec4(newHeight, center.x, 0.0, 1.0);
+          }
         `,
       }
     })
