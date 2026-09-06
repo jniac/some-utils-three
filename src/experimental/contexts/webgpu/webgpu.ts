@@ -122,7 +122,7 @@ export class ThreeWebGPUContext extends ThreeBaseContext {
       handleAnyUserInteraction(document.body, this.ticker.requestActivation),
 
       // Pointer:
-      this.pointer.initialize(this.renderer.domElement, pointerScope, this.camera, this.ticker),
+      this.pointer.initialize(this.renderer.domElement, pointerScope, this.ticker, this.camera, this.scene),
 
       // Triple tick listeners to ensure the order of operations is correct:
       this.ticker.onTick(

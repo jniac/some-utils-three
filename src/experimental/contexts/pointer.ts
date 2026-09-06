@@ -1,10 +1,12 @@
 import { Camera, Intersection, Line3, Object3D, Plane, Ray, Raycaster, Sphere, Vector2, Vector3 } from 'three'
 
 import { allDescendantsOf } from 'some-utils-ts/iteration/tree'
+import { dumpDestroyables } from 'some-utils-ts/misc/destroy'
 import { Duplicable } from 'some-utils-ts/misc/duplicable'
-import { Ticker } from 'some-utils-ts/ticker'
+import { Ticker, TickPhase } from 'some-utils-ts/ticker'
+import { Destroyable } from 'some-utils-ts/types'
 
-import { Vector3DeclarationLoose, fromVector3Declaration } from '../../declaration'
+import { fromVector3Declaration, Vector3DeclarationLoose } from '../../declaration'
 import { isMesh } from '../../is'
 import { lineIntersectSphere } from '../../math/lineIntersectSphere'
 
@@ -103,6 +105,8 @@ export class ThreePointerEvent {
 export class Pointer {
   #enabled = true
 
+  name: string
+
   get buttons() { return this.state.buttons }
 
   state = new PointerState()
@@ -114,8 +118,18 @@ export class Pointer {
   domElement: HTMLElement | null = null
   scope: HTMLElement | null = null
   ticker: Ticker | null = null
+  scene: Object3D | null = null
 
   #eventIgnore = new Map<ThreePointerEventType, (event: ThreePointerEvent) => boolean>()
+
+  constructor({
+    enabled = true,
+    name = 'pointer',
+  } = {}) {
+    this.#enabled = enabled
+    this.name = name
+  }
+
   /**
    * Set a function to ignore pointer events of a specific type.
    * 
@@ -412,18 +426,18 @@ export class Pointer {
     return this.raycast(scene)
   }
 
-  updateStart(scene: Object3D) {
-    if (this.#enabled === false)
+  #updateStart() {
+    if (this.#enabled === false || this.scene === null)
       return
 
     // calculate the difference in pointer state
     this.diffState.diff(this.state, this.stateOld)
-    this.intersections = this.raycast(scene)
+    this.intersections = this.raycast(this.scene)
 
     // save the previous ray
     this.rayOld.copy(this.raycaster.ray)
 
-    this.#updatePointerEvents(scene)
+    this.#updatePointerEvents(this.scene)
   }
 
   #updatePointerEvents(scene: Object3D) {
@@ -435,6 +449,8 @@ export class Pointer {
       const ignore = this.#eventIgnore.get(event.type)
       if (ignore?.(event))
         return
+
+      console.log(this.name, 'pointer tap event:', first?.object?.name || first?.object.constructor.name)
 
       const originalScope = first?.object ?? scene
       let scope: Object3D | null = originalScope
@@ -450,7 +466,7 @@ export class Pointer {
     }
   }
 
-  updateEnd() {
+  #updateEnd() {
     if (this.#enabled === false)
       return
 
@@ -460,8 +476,10 @@ export class Pointer {
   }
 
   #enableListenersState = {
+    destroyables: <Destroyable[]>[],
     disable: () => { },
   }
+
   #enableListeners() {
     const domElement = this.domElement!
     const scope = this.scope!
@@ -491,6 +509,8 @@ export class Pointer {
       // if (event.target instanceof HTMLCanvasElement === false)
       //   return
 
+      console.log(this.name, 'pointer down event:', this.scene?.name)
+
       document.addEventListener('pointerup', onPointerUp)
 
       this.state.downEvent = event
@@ -513,8 +533,29 @@ export class Pointer {
       document.removeEventListener('pointerup', onPointerUp)
       document.removeEventListener('pointerdown', onPointerDown)
     }
+
+    // Tick update listeners
+    this.#enableListenersState.destroyables.push(
+      ticker.onTick(
+        {
+          phase: TickPhase.BeforeUpdate,
+          name: 'ThreeContext.Pointer:BeforeUpdate',
+        },
+        () => this.#updateStart(),
+      ),
+      ticker.onTick(
+        {
+          phase: TickPhase.AfterRender,
+          name: 'ThreeContext.Pointer:AfterRender',
+        },
+        () => this.#updateEnd(),
+      ),
+    )
   }
+
   #disableListeners() {
+    dumpDestroyables(this.#enableListenersState.destroyables)
+    this.#enableListenersState.destroyables = []
     this.#enableListenersState.disable()
     this.#enableListenersState.disable = () => { }
   }
@@ -533,15 +574,25 @@ export class Pointer {
     return this
   }
 
-  initialize(domElement: HTMLElement, scope: HTMLElement, camera: Camera, ticker: Ticker) {
+  initialize(
+    domElement: HTMLElement,
+    scope: HTMLElement,
+    ticker: Ticker,
+    camera: Camera,
+    scene: Object3D,
+  ) {
     this.domElement = domElement
     this.scope = scope
     this.camera = camera
     this.ticker = ticker
+    this.scene = scene
 
-    if (this.#enabled)
+    if (this.#enabled) {
       this.#enableListeners()
+    }
 
-    return this.#enableListenersState.disable
+    return () => {
+      this.#disableListeners()
+    }
   }
 }

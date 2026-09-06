@@ -241,9 +241,10 @@ export class ThreeBaseContext {
     throw new Error('Not implemented')
   }
 
-  beforeUpdate() {
-    this.pointer.updateStart(this.scene)
-  }
+  /**
+   * Currently a pure virtual method, meant to be overridden by subclasses if needed.
+   */
+  beforeUpdate() { }
 
   /**
    * Base render function that is called on every tick.
@@ -270,9 +271,10 @@ export class ThreeBaseContext {
     }
   }
 
-  afterRender() {
-    this.pointer.updateEnd()
-  }
+  /**
+   * Currently a pure virtual method, meant to be overridden by subclasses if needed.
+   */
+  afterRender() { }
 
   /**
    * `selector` can be a string, a RegExp, a function or a class:

@@ -179,7 +179,12 @@ export class ThreeWebGLContext extends ThreeBaseContext {
 
     this.onDestroy(
       // Pointer
-      this.pointer.initialize(this.renderer.domElement, pointerScope, this.camera, this.ticker),
+      this.pointer.initialize(
+        this.renderer.domElement,
+        pointerScope,
+        this.ticker,
+        this.camera,
+        this.scene),
 
       // Request activation
       handleAnyUserInteraction(this.ticker.requestActivation),
