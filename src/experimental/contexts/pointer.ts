@@ -450,8 +450,6 @@ export class Pointer {
       if (ignore?.(event))
         return
 
-      console.log(this.name, 'pointer tap event:', first?.object?.name || first?.object.constructor.name)
-
       const originalScope = first?.object ?? scene
       let scope: Object3D | null = originalScope
       type OnPointerTap = (event: ThreePointerEvent) => void
@@ -508,8 +506,6 @@ export class Pointer {
       // ~~Ignore events that are not from the canvas (but from other injected elements)~~
       // if (event.target instanceof HTMLCanvasElement === false)
       //   return
-
-      console.log(this.name, 'pointer down event:', this.scene?.name)
 
       document.addEventListener('pointerup', onPointerUp)
 
