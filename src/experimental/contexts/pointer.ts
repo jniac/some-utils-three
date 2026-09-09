@@ -86,6 +86,15 @@ export class ThreePointerEvent {
   }
 }
 
+class PointerSnapshot {
+  constructor(
+    public time: number,
+    public frame: number,
+    public clientX: number,
+    public clientY: number,
+  ) { }
+}
+
 /**
  * ## Pointer & userData
  * Object3D instances can intercept pointer events, and can have userData properties to handle them.
@@ -112,8 +121,8 @@ export class Pointer {
   state = new PointerState()
   stateOld = new PointerState()
   diffState = new PointerState()
-  downTimes = new Map<PointerButton, number>()
-  upTimes = new Map<PointerButton, number>()
+  downSnapshots = new Map<PointerButton, PointerSnapshot>()
+  upSnapshots = new Map<PointerButton, PointerSnapshot>()
 
   domElement: HTMLElement | null = null
   scope: HTMLElement | null = null
@@ -209,14 +218,21 @@ export class Pointer {
   }
 
   /**
-   * Return true if the pointer button was pressed then released within the specified duration.
+   * Return true if the pointer button was pressed then released within the 
+   * specified duration and within the specified pixel movement.
    */
-  buttonTap(button = PointerButton.Left, maxDuration = .25) {
+  buttonTap(button = PointerButton.Left, {
+    maxDuration = .25,
+    maxPixelDelta = 5,
+  } = {}) {
     if (this.buttonDownExit(button) === false)
       return false
 
-    const delta = this.upTimes.get(button)! - this.downTimes.get(button)!
-    return delta < maxDuration
+    const up = this.upSnapshots.get(button)!
+    const down = this.downSnapshots.get(button)!
+    const deltaTime = up.time - down.time
+    const deltaMove = Math.hypot(up.clientX - down.clientX, up.clientY - down.clientY)
+    return deltaTime < maxDuration && deltaMove < maxPixelDelta
   }
 
   get enabled() { return this.#enabled }
@@ -511,14 +527,14 @@ export class Pointer {
 
       this.state.downEvent = event
       this.state.buttons |= (1 << event.button)
-      this.downTimes.set(event.button, ticker.time)
+      this.downSnapshots.set(event.button, new PointerSnapshot(ticker.time, ticker.frame, event.clientX, event.clientY))
     }
 
     const onPointerUp = (event: PointerEvent) => {
       document.removeEventListener('pointerup', onPointerUp)
 
       this.state.buttons &= ~(1 << event.button)
-      this.upTimes.set(event.button, ticker.time)
+      this.upSnapshots.set(event.button, new PointerSnapshot(ticker.time, ticker.frame, event.clientX, event.clientY))
     }
 
     document.addEventListener('pointermove', onPointerMove)
