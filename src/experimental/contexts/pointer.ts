@@ -60,10 +60,13 @@ class PointerState {
 
 enum ThreePointerEventType {
   Tap,
+  Swipe,
 }
 
 export class ThreePointerEvent {
   static get Type() { return ThreePointerEventType }
+
+  clientDelta = new Vector2()
 
   constructor(
     public readonly type: ThreePointerEventType,
@@ -83,6 +86,28 @@ export class ThreePointerEvent {
 
   consume() {
     this.consumed = true
+  }
+}
+
+function dispatchEvent(
+  event: ThreePointerEvent,
+  ignoreMap: Map<ThreePointerEventType, (event: ThreePointerEvent) => boolean>,
+  callbackName: string,
+) {
+  const ignore = ignoreMap.get(event.type)
+  if (ignore?.(event))
+    return
+
+  // Dispatch the event to the appropriate handler here
+  let scope: Object3D | null = event.intersection?.object ?? null
+  type Callback = (event: ThreePointerEvent) => void
+  while (scope && event.consumed === false) {
+    if (scope.userData && typeof scope.userData === 'object' && callbackName in scope.userData) {
+      const callback = scope.userData[callbackName] as Callback
+      callback(event)
+      event.consume()
+    }
+    scope = scope.parent
   }
 }
 
@@ -206,14 +231,14 @@ export class Pointer {
   /**
    * Return true if the pointer button was pressed in the current frame but not in the previous frame (enter).
    */
-  buttonDownEnter(button = PointerButton.Left) {
+  isButtonDownEnter(button = PointerButton.Left) {
     return this.buttonDown(button) && !this.buttonDownOld(button)
   }
 
   /**
    * Return true if the pointer button was pressed in the previous frame but not in the current frame (exit).
    */
-  buttonDownExit(button = PointerButton.Left) {
+  isButtonDownExit(button = PointerButton.Left) {
     return !this.buttonDown(button) && this.buttonDownOld(button)
   }
 
@@ -221,11 +246,11 @@ export class Pointer {
    * Return true if the pointer button was pressed then released within the 
    * specified duration and within the specified pixel movement.
    */
-  buttonTap(button = PointerButton.Left, {
+  isButtonTap(button = PointerButton.Left, {
     maxDuration = .25,
     maxPixelDelta = 5,
   } = {}) {
-    if (this.buttonDownExit(button) === false)
+    if (this.isButtonDownExit(button) === false)
       return false
 
     const up = this.upSnapshots.get(button)!
@@ -233,6 +258,37 @@ export class Pointer {
     const deltaTime = up.time - down.time
     const deltaMove = Math.hypot(up.clientX - down.clientX, up.clientY - down.clientY)
     return deltaTime < maxDuration && deltaMove < maxPixelDelta
+  }
+
+  /**
+   * Notes:
+   * - Shoud we rely here on algorithm already done in some-utils-dom/handle/pointer
+   *   instead of a new implementation? That sounds smarter.
+   */
+  isSwipe(button = PointerButton.Left, {
+    maxDuration = .333,
+    minVelocity = 800,
+  } = {}) {
+    if (this.isButtonDownExit(button) === false)
+      return null
+
+    const up = this.upSnapshots.get(button)!
+    const down = this.downSnapshots.get(button)!
+    const duration = up.time - down.time
+    const deltaX = up.clientX - down.clientX
+    const deltaY = up.clientY - down.clientY
+    const distance = Math.hypot(deltaX, deltaY)
+    const velocity = distance / duration
+    const isSwipe = duration < maxDuration && velocity > minVelocity
+
+    if (isSwipe === false)
+      return null
+
+    return {
+      clientDelta: new Vector2(deltaX, deltaY),
+      duration,
+      velocity,
+    }
   }
 
   get enabled() { return this.#enabled }
@@ -459,24 +515,16 @@ export class Pointer {
   #updatePointerEvents(scene: Object3D) {
     const [first] = this.intersections
 
-    if (this.buttonTap()) {
+    if (this.isButtonTap()) {
       const event = new ThreePointerEvent(ThreePointerEventType.Tap, first ?? null, this.state)
+      dispatchEvent(event, this.#eventIgnore, 'onPointerTap')
+    }
 
-      const ignore = this.#eventIgnore.get(event.type)
-      if (ignore?.(event))
-        return
-
-      const originalScope = first?.object ?? scene
-      let scope: Object3D | null = originalScope
-      type OnPointerTap = (event: ThreePointerEvent) => void
-      while (scope && event.consumed === false) {
-        if (scope.userData.onPointerTap) {
-          const onPointerTap = scope.userData.onPointerTap as OnPointerTap
-          onPointerTap(event)
-          event.consume()
-        }
-        scope = scope.parent
-      }
+    const swipe = this.isSwipe()
+    if (swipe) {
+      const event = new ThreePointerEvent(ThreePointerEventType.Swipe, first ?? null, this.state)
+      event.clientDelta.copy(swipe.clientDelta)
+      dispatchEvent(event, this.#eventIgnore, 'onPointerSwipe')
     }
   }
 
