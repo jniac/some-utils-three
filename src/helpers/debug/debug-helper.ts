@@ -530,7 +530,10 @@ class DebugHelper extends Group {
           v0.set(positionArray[i * 2], positionArray[i * 2 + 1], 0)
           this.point(v0, { color, size: vertices * 0.025, shape: 'circle' })
           if (vertices > 0)
-            this.text(v0, String(i), { size: textSize * vertices, color, offset: [0, textSize * vertices * .2, 0] })
+            this.text(v0, String(i), {
+              size: textSize * vertices, color,
+              offset: [0, textSize * vertices * .2, 0],
+            })
         }
         break
       }
@@ -540,7 +543,10 @@ class DebugHelper extends Group {
           v0.fromArray(positionArray, i * 3)
           this.point(v0, { color, size: vertices * 0.025, shape: 'circle' })
           if (vertices > 0)
-            this.text(v0, String(i), { size: textSize * vertices, color, offset: [0, textSize * vertices * .2, 0] })
+            this.text(v0, String(i), {
+              size: textSize * vertices, color,
+              offset: [0, textSize * vertices * .2, 0],
+            })
 
           if (normalArray) {
             v1.fromArray(normalArray, i * 3)
@@ -660,12 +666,13 @@ class DebugHelper extends Group {
     return this
   }
 
-  zOffset(value: number | { lines?: number, points?: number }): this {
-    const [linesOffset, pointsOffset] = typeof value === 'number'
-      ? [value, value]
-      : [value.lines ?? 0, value.points ?? 0]
+  zOffset(value: number | { lines?: number, points?: number, texts?: number }): this {
+    const [linesOffset, pointsOffset, textsOffset] = typeof value === 'number'
+      ? [value, value, value]
+      : [value.lines ?? 0, value.points ?? 0, value.texts ?? 0]
     this.parts.linesManager.zOffset(linesOffset)
     this.parts.pointsManager.zOffset(pointsOffset)
+    this.parts.textsManager.parts.textHelper.depthOffset(textsOffset)
     return this
   }
 

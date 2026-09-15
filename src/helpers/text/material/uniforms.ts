@@ -18,6 +18,7 @@ export function createTextUniforms(userOptions: Options, data: TextHelperData, a
     uOrientation: { value: solveOrientation(options.orientation) },
     uTextAlignment: { value: solveTextAlign(options.textAlign) },
     uTextOffset: { value: fromVector3Declaration(options.textOffset) },
+    uTextDepthOffset: { value: options.textDepthOffset },
     uPlaneSize: { value: planeSize },
     uCharSize: { value: options.charSize },
     uLineLength: { value: options.lineLength },

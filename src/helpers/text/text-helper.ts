@@ -1,18 +1,18 @@
-import { BufferGeometry, Color, InstancedBufferAttribute, InstancedMesh, Material, Matrix4, Object3D, PlaneGeometry, Vector2, Vector3 } from 'three'
+import { BufferGeometry, Color, InstancedBufferAttribute, InstancedMesh, Matrix4, Object3D, PlaneGeometry, Vector2, Vector3 } from 'three'
 
 import { fromTransformDeclarations, fromVector3Declaration, TransformDeclaration } from '../../declaration'
 import { makeMatrix4 } from '../../utils/make'
 
 import { TextHelperAtlas } from './atlas'
 import { TextHelperData } from './data'
-import { createTextNodeMaterial } from './material/node'
+import { TextHelperNodeMaterial } from './material/node'
 import { createTextUniforms } from './material/uniforms'
-import { createWebglMaterial } from './material/webgl'
+import { TextHelperWebglMaterial } from './material/webgl'
 import { defaultOptions, SetColorOptions, SetTextOption } from './types'
 import { getDataStringView } from './utils'
 
 let nextId = 0
-export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
+export class TextHelper extends InstancedMesh<BufferGeometry, TextHelperWebglMaterial | TextHelperNodeMaterial> {
   // Expose some statics
   static readonly defaultOptions = defaultOptions
   static readonly Atlas = TextHelperAtlas
@@ -70,8 +70,8 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
     geometry.setAttribute('aTextOffset', textOffsetInstanceAttribute)
 
     const material = options.nodeMaterial
-      ? createTextNodeMaterial(uniforms, atlas)
-      : createWebglMaterial(uniforms, atlas)
+      ? new TextHelperNodeMaterial(uniforms, atlas)
+      : new TextHelperWebglMaterial(uniforms, atlas)
     super(geometry, material, options.textCount)
 
     this.onBeforeRender = (renderer, scene, camera, geometry, material, group) => {
@@ -194,5 +194,10 @@ export class TextHelper extends InstancedMesh<BufferGeometry, Material> {
       start,
       length,
     )
+  }
+
+  depthOffset(depthOffset: number) {
+    this.material.uniforms.uTextDepthOffset.value = depthOffset
+    return this
   }
 }

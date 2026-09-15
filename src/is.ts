@@ -1,4 +1,5 @@
-import { ColorRepresentation, CubeTexture, Euler, Matrix4, Mesh, Object3D, Plane, Quaternion, Sprite, Texture, Vector2, Vector3, Vector4 } from 'three'
+import { ColorRepresentation, CubeTexture, Euler, Matrix4, Mesh, Object3D, Plane, Quaternion, Sprite, Texture, Vector2, Vector3, Vector4, WebGLRenderer } from 'three'
+import { WebGPURenderer } from 'three/webgpu'
 
 /**
  * Safe type check for Vector3 (safer than `instanceof` which may fail with different versions of Three.js).
@@ -84,6 +85,14 @@ export function isColorRepresentation(value: any): value is ColorRepresentation 
     || typeof value === 'number'
     || !!value?.isColor
   )
+}
+
+export function isWebGLRenderer(value: any): value is WebGLRenderer {
+  return !!value?.isWebGLRenderer
+}
+
+export function isWebGPURenderer(value: any): value is WebGPURenderer {
+  return !!value?.isWebGPURenderer
 }
 
 

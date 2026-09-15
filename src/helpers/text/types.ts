@@ -63,6 +63,10 @@ export const defaultOptions = {
    * @default 0
    */
   textOffset: 0 as Vector3Declaration,
+  /**
+   * The offset of the text in the local 3D space along the camera's view direction.
+   */
+  textDepthOffset: 0,
   orientation: 'billboard' as (keyof typeof orientations) | Orientation,
   textDefaults: <SetTextOption>{
     color: '#ffffff',

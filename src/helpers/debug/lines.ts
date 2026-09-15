@@ -1,3 +1,4 @@
+import { BufferAttribute, BufferGeometry, ColorRepresentation, GreaterDepth, LessEqualDepth, LineBasicMaterial, LineSegments, Matrix4, WebGLRenderer } from 'three'
 import { bufferAttribute, varying } from 'three/tsl'
 import { LineBasicNodeMaterial, WebGPURenderer } from 'three/webgpu'
 
@@ -5,9 +6,8 @@ import { Vector3Declaration } from 'some-utils-ts/declaration'
 import { Rectangle, RectangleDeclaration } from 'some-utils-ts/math/geom/rectangle'
 import { OneOrMany } from 'some-utils-ts/types'
 import { fromOneOrMany } from 'some-utils-ts/types/utils'
-import { BufferAttribute, BufferGeometry, ColorRepresentation, GreaterDepth, LessEqualDepth, LineBasicMaterial, LineSegments, Matrix4, WebGLRenderer } from 'three'
 
-import { EulerDeclaration, TransformDeclaration, fromEulerDeclaration, fromTransformDeclarations, fromVector3Declaration } from '../../declaration'
+import { EulerDeclaration, TransformDeclaration, fromEulerDeclaration, fromTransformDeclarations, fromVector3Declaration, isWebGLRenderer, isWebGPURenderer } from '../../declaration'
 import { ShaderForge } from '../../shader-forge'
 
 import { BaseManager } from './base'
@@ -309,15 +309,19 @@ export class LinesManager extends BaseManager {
     }
   }
 
+  #hasChosenMaterial = false
+  #forChosenMaterialUniforms = { zOffset: 0 }
   #chooseMaterial(renderer: WebGLRenderer | WebGPURenderer) {
-    if (renderer instanceof WebGLRenderer) {
+    if (isWebGLRenderer(renderer)) {
       const material = new CustomLineMaterial()
+      material.uniforms.uZOffset.value = this.#forChosenMaterialUniforms.zOffset
       this.parts.lines.material = material
       this.parts.xrayLines.material = material
+      this.#hasChosenMaterial = true
       return
     }
 
-    if (renderer instanceof WebGPURenderer) {
+    if (isWebGPURenderer(renderer)) {
       const material = new LineBasicNodeMaterial({
         vertexColors: true,
         transparent: true,
@@ -327,6 +331,7 @@ export class LinesManager extends BaseManager {
       material.opacityNode = varying(aOpacity)
       this.parts.lines.material = material
       this.parts.xrayLines.material = material
+      this.#hasChosenMaterial = true
       return
     }
 
@@ -362,11 +367,18 @@ export class LinesManager extends BaseManager {
   }
 
   zOffset(amount: number): this {
-    if (this.parts.lines.material instanceof CustomLineMaterial) {
-      this.parts.lines.material.uniforms.uZOffset.value = amount
-    } else {
-      console.warn('"zOffset" is not implemented for node material')
+    if (this.#hasChosenMaterial === false) {
+      this.#forChosenMaterialUniforms.zOffset = amount
     }
+
+    else {
+      if (this.parts.lines.material instanceof CustomLineMaterial) {
+        this.parts.lines.material.uniforms.uZOffset.value = amount
+      } else {
+        console.warn('"zOffset" is not implemented for node material', this.parts.lines.material)
+      }
+    }
+
     return this
   }
 
