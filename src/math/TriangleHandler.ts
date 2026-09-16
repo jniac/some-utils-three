@@ -1,4 +1,6 @@
-import { BufferGeometry, Vector3, Vector3Like } from 'three'
+import { BufferGeometry, Matrix4, Vector2, Vector3, Vector3Like } from 'three'
+
+import { Matrix2 } from './Matrix2'
 
 export class TriangleHandler {
   ax = 0
@@ -42,22 +44,116 @@ export class TriangleHandler {
     return this
   }
 
-  normal(out = new Vector3()) {
+  uv(outU = new Vector3(), outV = new Vector3()): [Vector3, Vector3] {
+    const { ax, ay, az, bx, by, bz, cx, cy, cz } = this
+    return [
+      outU.set(bx - ax, by - ay, bz - az),
+      outV.set(cx - ax, cy - ay, cz - az),
+    ]
+  }
+
+  uvAngle() {
     const { ax, ay, az, bx, by, bz, cx, cy, cz } = this
 
-    const abx = bx - ax
-    const aby = by - ay
-    const abz = bz - az
+    const ux = bx - ax, uy = by - ay, uz = bz - az
+    const vx = cx - ax, vy = cy - ay, vz = cz - az
 
-    const acx = cx - ax
-    const acy = cy - ay
-    const acz = cz - az
+    const uLen = Math.sqrt(ux * ux + uy * uy + uz * uz)
+    const vLen = Math.sqrt(vx * vx + vy * vy + vz * vz)
 
+    const dotProduct = ux * vx + uy * vy + uz * vz
+    const cosAngle = dotProduct / (uLen * vLen)
+
+    return Math.acos(cosAngle)
+  }
+
+  /**
+   * Builds a matrix that maps barycentric direction coefficients to a rectified
+   * 2D representation of the triangle plane.
+   *
+   * In barycentric space, a direction `(u, v)` represents the 3D vector:
+   *
+   *     u * AB + v * AC
+   *
+   * Because `AB` and `AC` are generally neither orthogonal nor unit-length,
+   * uniformly distributed angles in barycentric space do not produce uniformly
+   * distributed directions on the triangle.
+   *
+   * This matrix embeds the triangle basis into a Euclidean 2D space by placing
+   * `AB` on the positive X axis while preserving the lengths and angle of both
+   * basis vectors:
+   *
+   *     AB' = (|AB|, 0)
+   *     AC' = (|AC| cos(theta), |AC| sin(theta))
+   *
+   * Its inverse can therefore convert uniformly sampled 2D directions, such as
+   * `(cos(angle), sin(angle))`, into barycentric direction coefficients suitable
+   * for walking across a mesh.
+   */
+  barycentricToRectifiedMatrix(out = new Matrix2()): Matrix2 {
+    const { ax, ay, az, bx, by, bz, cx, cy, cz } = this
+
+    const ux = bx - ax, uy = by - ay, uz = bz - az
+    const vx = cx - ax, vy = cy - ay, vz = cz - az
+
+    const uLen = Math.sqrt(ux * ux + uy * uy + uz * uz)
+    const vLen = Math.sqrt(vx * vx + vy * vy + vz * vz)
+
+    const dotProduct = ux * vx + uy * vy + uz * vz
+    const cosAngle = dotProduct / (uLen * vLen)
+    const safeCosAngle = Math.max(-1, Math.min(1, cosAngle)) // Clamp to avoid NaN due to floating point errors
+
+    out.set(
+      uLen, vLen * safeCosAngle,
+      0, vLen * Math.sqrt(1 - safeCosAngle * safeCosAngle),
+    )
+    return out
+  }
+
+  /**
+   * Builds a matrix that maps rectified 2D directions back to barycentric direction coefficients.
+   */
+  rectifiedToBarycentricMatrix(out = new Matrix2()): Matrix2 {
+    return this.barycentricToRectifiedMatrix(out).invert()
+  }
+
+  uCrossV(out = new Vector3()) {
+    const { ax, ay, az, bx, by, bz, cx, cy, cz } = this
+    const ux = bx - ax, uy = by - ay, uz = bz - az
+    const vx = cx - ax, vy = cy - ay, vz = cz - az
     return out.set(
-      aby * acz - abz * acy,
-      abz * acx - abx * acz,
-      abx * acy - aby * acx,
-    ).normalize()
+      uy * vz - uz * vy,
+      uz * vx - ux * vz,
+      ux * vy - uy * vx,
+    )
+  }
+
+  normal(out = new Vector3()) {
+    return this.uCrossV(out).normalize()
+  }
+
+  localToWorldMatrix(out = new Matrix4()) {
+    const { ax, ay, az, bx, by, bz, cx, cy, cz } = this
+
+    const ux = bx - ax, uy = by - ay, uz = bz - az
+    const vx = cx - ax, vy = cy - ay, vz = cz - az
+
+    const nx = uy * vz - uz * vy
+    const ny = uz * vx - ux * vz
+    const nz = ux * vy - uy * vx
+
+    out.set(
+      ux, vx, nx, ax,
+      uy, vy, ny, ay,
+      uz, vz, nz, az,
+      0, 0, 0, 1,
+    )
+
+    return out
+  }
+
+  worldToLocalMatrix(out = new Matrix4()) {
+    return this.localToWorldMatrix(out).invert()
   }
 
   pointToLocal(point: Vector3Like, out = new Vector3()) {
@@ -85,26 +181,49 @@ export class TriangleHandler {
     return this.#toWorld(vector, out)
   }
 
+  localDirection(angle: number, out = new Vector3()) {
+    const x = Math.cos(angle)
+    const y = Math.sin(angle)
+    out.set(x, y, 0)
+    return out
+  }
+
+  angleToRectifiedBarycentricDirection(angle: number, out = new Vector3()) {
+    const v = new Vector2(Math.cos(angle), Math.sin(angle))
+    const m = this.rectifiedToBarycentricMatrix()
+    m.applyTo(v)
+    return out.set(v.x, v.y, 0)
+  }
+
+  /**
+   * What a name! This function returns a converter function that takes an angle in radians and outputs a 3D vector representing the corresponding barycentric direction coefficients in the triangle's local space. The converter uses the rectified-to-barycentric matrix to transform the 2D direction into barycentric coordinates.
+   */
+  createAngleToRectifiedBarycentricDirectionConverter(): (angle: number, out?: Vector3) => Vector3 {
+    const m = this.rectifiedToBarycentricMatrix()
+    const v = new Vector2()
+    const _out = new Vector3()
+    return (angle: number, out = _out) => {
+      v.set(Math.cos(angle), Math.sin(angle))
+      m.applyTo(v)
+      return out.set(v.x, v.y, 0)
+    }
+  }
+
   #toLocal(x: number, y: number, z: number, out: Vector3) {
     const { ax, ay, az, bx, by, bz, cx, cy, cz } = this
 
-    const abx = bx - ax
-    const aby = by - ay
-    const abz = bz - az
+    const ux = bx - ax, uy = by - ay, uz = bz - az
+    const vx = cx - ax, vy = cy - ay, vz = cz - az
 
-    const acx = cx - ax
-    const acy = cy - ay
-    const acz = cz - az
+    const nx = uy * vz - uz * vy
+    const ny = uz * vx - ux * vz
+    const nz = ux * vy - uy * vx
 
-    const nx = aby * acz - abz * acy
-    const ny = abz * acx - abx * acz
-    const nz = abx * acy - aby * acx
-
-    const abSq = abx * abx + aby * aby + abz * abz
-    const abAc = abx * acx + aby * acy + abz * acz
-    const acSq = acx * acx + acy * acy + acz * acz
-    const xAb = x * abx + y * aby + z * abz
-    const xAc = x * acx + y * acy + z * acz
+    const abSq = ux * ux + uy * uy + uz * uz
+    const abAc = ux * vx + uy * vy + uz * vz
+    const acSq = vx * vx + vy * vy + vz * vz
+    const xAb = x * ux + y * uy + z * uz
+    const xAc = x * vx + y * vy + z * vz
     const determinant = abSq * acSq - abAc * abAc
 
     return out.set(
@@ -117,26 +236,18 @@ export class TriangleHandler {
   #toWorld(vector: Vector3Like, out: Vector3) {
     const { ax, ay, az, bx, by, bz, cx, cy, cz } = this
 
-    const abx = bx - ax
-    const aby = by - ay
-    const abz = bz - az
+    const ux = bx - ax, uy = by - ay, uz = bz - az
+    const vx = cx - ax, vy = cy - ay, vz = cz - az
 
-    const acx = cx - ax
-    const acy = cy - ay
-    const acz = cz - az
+    const nx = uy * vz - uz * vy
+    const ny = uz * vx - ux * vz
+    const nz = ux * vy - uy * vx
 
-    const nx = aby * acz - abz * acy
-    const ny = abz * acx - abx * acz
-    const nz = abx * acy - aby * acx
-
-    const x = vector.x
-    const y = vector.y
-    const z = vector.z
-
+    const { x, y, z } = vector
     return out.set(
-      x * abx + y * acx + z * nx,
-      x * aby + y * acy + z * ny,
-      x * abz + y * acz + z * nz,
+      x * ux + y * vx + z * nx,
+      x * uy + y * vy + z * ny,
+      x * uz + y * vz + z * nz,
     )
   }
 }
