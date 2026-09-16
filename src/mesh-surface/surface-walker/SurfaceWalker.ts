@@ -27,7 +27,7 @@ class TriangleView {
     this.walker = walker
     this.triangleIndex = triangleIndex
 
-    this.walker.getTriangleVertices(triangleIndex, [this.A, this.B, this.C])
+    this.walker.triangleVertices(triangleIndex, [this.A, this.B, this.C])
     this.AB.subVectors(this.B, this.A)
     this.AC.subVectors(this.C, this.A)
     this.AB_length = this.AB.length()
@@ -40,14 +40,18 @@ class TriangleView {
     return new TriangleView(this.walker, this.triangleIndex)
   }
 
-  static #getPosition_cache = new Vector2();
-  getPosition(uvArg: Vector2Declaration, out = new Vector3()): Vector3 {
-    const uv = fromVector2Declaration(uvArg, TriangleView.#getPosition_cache)
+  getPositionFromUV(u: number, v: number, out = new Vector3()): Vector3 {
     return out
       .set(0, 0, 0)
-      .addScaledVector(this.A, 1 - uv.x - uv.y)
-      .addScaledVector(this.B, uv.x)
-      .addScaledVector(this.C, uv.y)
+      .addScaledVector(this.A, 1 - u - v)
+      .addScaledVector(this.B, u)
+      .addScaledVector(this.C, v)
+  }
+
+  static #getPosition_cache = new Vector2()
+  getPosition(uvArg: Vector2Declaration, out = new Vector3()): Vector3 {
+    const uv = fromVector2Declaration(uvArg, TriangleView.#getPosition_cache)
+    return this.getPositionFromUV(uv.x, uv.y, out)
   }
 
   static #getUV_cache = {
@@ -124,11 +128,11 @@ class PathSegment {
   }
 
   getPosition0(out = new Vector3()): Vector3 {
-    return this.walker.getTriangleView(this.triangleIndex).getPosition(this.uv0, out)
+    return this.walker.triangle(this.triangleIndex).getPosition(this.uv0, out)
   }
 
   getPosition1(out = new Vector3()): Vector3 {
-    return this.walker.getTriangleView(this.triangleIndex).getPosition(this.uv1, out)
+    return this.walker.triangle(this.triangleIndex).getPosition(this.uv1, out)
   }
 }
 
@@ -292,8 +296,29 @@ export class WalkResult {
   }
 
   getFinalPosition(out = new Vector3()): Vector3 {
-    return this.walker.getTriangleView(this.finalTriangleIndex).getPosition(this.finalUV, out)
+    return this.walker.triangle(this.finalTriangleIndex).getPosition(this.finalUV, out)
   }
+}
+
+export type SurfacePoint = {
+  triangleIndex: number
+  u: number
+  v: number
+}
+
+export type SurfacePointDeclaration =
+  | SurfacePoint
+  | [triangleIndex: number, u: number, v: number]
+
+export function fromSurfacePointDeclaration(decl: SurfacePointDeclaration): SurfacePoint {
+  if (Array.isArray(decl)) {
+    return {
+      triangleIndex: decl[0],
+      u: decl[1],
+      v: decl[2],
+    }
+  }
+  return decl
 }
 
 /**
@@ -314,7 +339,7 @@ export class SurfaceWalker {
    * 
    * Value is 0xFFFF if there is no adjacent triangle on that edge (boundary edge).
    */
-  triangleAdjacency = new Uint16Array(0)
+  triangleAdjacencyArray = new Uint16Array(0)
 
   get triangleCount() {
     if (this.indicesBuffer) {
@@ -331,7 +356,7 @@ export class SurfaceWalker {
       new Vector3(),
     ] as [Vector3, Vector3, Vector3],
   }
-  getTriangleVertices(triangleIndex: number, out?: [Vector3, Vector3, Vector3]): [Vector3, Vector3, Vector3] {
+  triangleVertices(triangleIndex: number, out?: [Vector3, Vector3, Vector3]): [Vector3, Vector3, Vector3] {
     const { ABC } = SurfaceWalker.#getTriangleVertices_cache
     const A = out?.[0] ?? ABC[0]
     const B = out?.[1] ?? ABC[1]
@@ -372,18 +397,18 @@ export class SurfaceWalker {
     offset = (offset % 3 + 3) % 3
 
     // Rotate adjacency info
-    if (this.triangleAdjacency.length > 0) {
-      const adj0 = this.triangleAdjacency[triangleIndex * 3 + 0]
-      const adj1 = this.triangleAdjacency[triangleIndex * 3 + 1]
-      const adj2 = this.triangleAdjacency[triangleIndex * 3 + 2]
+    if (this.triangleAdjacencyArray.length > 0) {
+      const adj0 = this.triangleAdjacencyArray[triangleIndex * 3 + 0]
+      const adj1 = this.triangleAdjacencyArray[triangleIndex * 3 + 1]
+      const adj2 = this.triangleAdjacencyArray[triangleIndex * 3 + 2]
       if (offset === 1) {
-        this.triangleAdjacency[triangleIndex * 3 + 0] = adj1
-        this.triangleAdjacency[triangleIndex * 3 + 1] = adj2
-        this.triangleAdjacency[triangleIndex * 3 + 2] = adj0
+        this.triangleAdjacencyArray[triangleIndex * 3 + 0] = adj1
+        this.triangleAdjacencyArray[triangleIndex * 3 + 1] = adj2
+        this.triangleAdjacencyArray[triangleIndex * 3 + 2] = adj0
       } else if (offset === 2) {
-        this.triangleAdjacency[triangleIndex * 3 + 0] = adj2
-        this.triangleAdjacency[triangleIndex * 3 + 1] = adj0
-        this.triangleAdjacency[triangleIndex * 3 + 2] = adj1
+        this.triangleAdjacencyArray[triangleIndex * 3 + 0] = adj2
+        this.triangleAdjacencyArray[triangleIndex * 3 + 1] = adj0
+        this.triangleAdjacencyArray[triangleIndex * 3 + 2] = adj1
       }
     }
 
@@ -437,9 +462,9 @@ export class SurfaceWalker {
     return this
   }
 
-  #getTriangle_cache = new TriangleView(this, -1);
-  getTriangleView(triangleIndex: number, out?: TriangleView): TriangleView {
-    return (out ?? this.#getTriangle_cache).set(this, triangleIndex)
+  #triangle_cache = new TriangleView(this, -1);
+  triangle(triangleIndex: number, out?: TriangleView): TriangleView {
+    return (out ?? this.#triangle_cache).set(this, triangleIndex)
   }
 
   fromGeometry(geometry: BufferGeometry) {
@@ -468,11 +493,11 @@ export class SurfaceWalker {
     })
 
     const triangleCount = this.triangleCount
-    this.triangleAdjacency = new Uint16Array(triangleCount * 3)
-    this.triangleAdjacency.fill(0xFFFF)
+    this.triangleAdjacencyArray = new Uint16Array(triangleCount * 3)
+    this.triangleAdjacencyArray.fill(0xFFFF)
 
     for (let triangleIndex = 0; triangleIndex < triangleCount; triangleIndex++) {
-      const triangleVertices = this.getTriangleVertices(triangleIndex)
+      const triangleVertices = this.triangleVertices(triangleIndex)
       for (let localVertexIndex = 0; localVertexIndex < 3; localVertexIndex++) {
         const vertex = triangleVertices[localVertexIndex]
         vertexToTriangleMap.add(vertex, { triangleIndex, localVertexIndex })
@@ -480,7 +505,7 @@ export class SurfaceWalker {
     }
 
     for (let triangleIndex = 0; triangleIndex < triangleCount; triangleIndex++) {
-      const [v0, v1, v2] = this.getTriangleVertices(triangleIndex)
+      const [v0, v1, v2] = this.triangleVertices(triangleIndex)
       const candidates0 = vertexToTriangleMap.get(v0)!.filter(e => e.triangleIndex !== triangleIndex)
       const candidates1 = vertexToTriangleMap.get(v1)!.filter(e => e.triangleIndex !== triangleIndex)
       const candidates2 = vertexToTriangleMap.get(v2)!.filter(e => e.triangleIndex !== triangleIndex)
@@ -492,13 +517,13 @@ export class SurfaceWalker {
       // Edge 2 (v2-v0): shared by candidates2 and candidates0
       const edge2 = candidates0.findIndex(e0 => candidates2.some(e2 => e2.triangleIndex === e0.triangleIndex))
 
-      this.triangleAdjacency[triangleIndex * 3 + 0] = edge0 >= 0 ? candidates1[edge0].triangleIndex : 0xFFFF
-      this.triangleAdjacency[triangleIndex * 3 + 1] = edge1 >= 0 ? candidates2[edge1].triangleIndex : 0xFFFF
-      this.triangleAdjacency[triangleIndex * 3 + 2] = edge2 >= 0 ? candidates0[edge2].triangleIndex : 0xFFFF
+      this.triangleAdjacencyArray[triangleIndex * 3 + 0] = edge0 >= 0 ? candidates1[edge0].triangleIndex : 0xFFFF
+      this.triangleAdjacencyArray[triangleIndex * 3 + 1] = edge1 >= 0 ? candidates2[edge1].triangleIndex : 0xFFFF
+      this.triangleAdjacencyArray[triangleIndex * 3 + 2] = edge2 >= 0 ? candidates0[edge2].triangleIndex : 0xFFFF
     }
   }
 
-  static #getTriangleAdjacency_cache = [0, 0, 0] as [number, number, number];
+  static #triangleAdjacency_cache = [0, 0, 0] as [number, number, number];
   /**
    * Returns the adjacent triangle indices for each edge.
    * 
@@ -508,13 +533,18 @@ export class SurfaceWalker {
    * Notes:
    * - ⚠️ The returned array is a shared cache, do not store it.
    */
-  getTriangleAdjacency(triangleIndex: number): [number, number, number] {
-    const cache = SurfaceWalker.#getTriangleAdjacency_cache
+  triangleAdjacency(triangleIndex: number): [number, number, number] {
+    const cache = SurfaceWalker.#triangleAdjacency_cache
     const normalize = (index: number) => index === 0xFFFF ? -1 : index
-    cache[0] = normalize(this.triangleAdjacency[triangleIndex * 3 + 0])
-    cache[1] = normalize(this.triangleAdjacency[triangleIndex * 3 + 1])
-    cache[2] = normalize(this.triangleAdjacency[triangleIndex * 3 + 2])
+    cache[0] = normalize(this.triangleAdjacencyArray[triangleIndex * 3 + 0])
+    cache[1] = normalize(this.triangleAdjacencyArray[triangleIndex * 3 + 1])
+    cache[2] = normalize(this.triangleAdjacencyArray[triangleIndex * 3 + 2])
     return cache
+  }
+
+  surfacePointToPosition(point: SurfacePoint, out = new Vector3()): Vector3 {
+    const { triangleIndex: index, u, v } = point
+    return this.triangle(index).getPositionFromUV(u, v, out)
   }
 
   // Reusable instances to avoid allocations in hot path
@@ -654,7 +684,7 @@ export class SurfaceWalker {
       }
 
       // Check if there's an adjacent triangle across this edge
-      const adjacency = this.getTriangleAdjacency(currentTriangleIndex)
+      const adjacency = this.triangleAdjacency(currentTriangleIndex)
       const nextTriangleIndex = adjacency[e0]
 
       if (nextTriangleIndex === -1) {
