@@ -1,4 +1,4 @@
-import { Vector2 } from 'three'
+import { Vector2Like } from 'three'
 
 /**
  * Because Three.js does not have a Matrix2 class completely implemented, this 
@@ -34,7 +34,17 @@ export class Matrix2 {
   }
 
   identity(): this {
-    return this.set(1, 0, 0, 1)
+    return this.set(
+      1, 0,
+      0, 1,
+    )
+  }
+
+  setBasis(u: Vector2Like, v: Vector2Like): this {
+    return this.set(
+      u.x, v.x,
+      u.y, v.y,
+    )
   }
 
   invert(): this {
@@ -93,12 +103,18 @@ export class Matrix2 {
     )
   }
 
-  applyTo(v: Vector2): Vector2 {
+  /**
+   * Applies this matrix to a 2D vector.
+   * 
+   * Notes:
+   * - Mutates the input vector in place.
+   * - Suitable for any object with `x` and `y` properties. Vector3 can be used, but the `z` component will be ignored.
+   */
+  applyTo<T extends { x: number, y: number }>(v: T): T {
     const x = v.x
     const y = v.y
-    return v.set(
-      this.a * x + this.b * y,
-      this.c * x + this.d * y
-    )
+    v.x = this.a * x + this.b * y
+    v.y = this.c * x + this.d * y
+    return v
   }
 }
