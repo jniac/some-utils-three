@@ -108,31 +108,38 @@ class TriangleView {
 /**
  * Represents a segment of the walk path that lies within a single triangle.
  */
-class PathSegment {
-  walker: SurfaceWalker
+class LinkedPathSegment {
   triangleIndex: number
-  uv0: Vector2
-  uv1: Vector2
-  next: PathSegment | null = null
+  u0: number
+  v0: number
+  u1: number
+  v1: number
+
+  walker: SurfaceWalker
+  next: LinkedPathSegment | null = null
 
   constructor(
     walker: SurfaceWalker,
     triangleIndex: number,
-    uv0: Vector2,
-    uv1: Vector2
+    u0: number,
+    v0: number,
+    u1: number,
+    v1: number
   ) {
     this.walker = walker
     this.triangleIndex = triangleIndex
-    this.uv0 = uv0
-    this.uv1 = uv1
+    this.u0 = u0
+    this.v0 = v0
+    this.u1 = u1
+    this.v1 = v1
   }
 
   getPosition0(out = new Vector3()): Vector3 {
-    return this.walker.triangle(this.triangleIndex).getPosition(this.uv0, out)
+    return this.walker.triangle(this.triangleIndex).getPositionFromUV(this.u0, this.v0, out)
   }
 
   getPosition1(out = new Vector3()): Vector3 {
-    return this.walker.triangle(this.triangleIndex).getPosition(this.uv1, out)
+    return this.walker.triangle(this.triangleIndex).getPositionFromUV(this.u1, this.v1, out)
   }
 }
 
@@ -282,7 +289,7 @@ export class WalkResult {
     public finalUV: Vector2,
 
     /** Path segments traversed (each segment is within one triangle) */
-    public path: PathSegment[],
+    public path: LinkedPathSegment[],
 
     /** Walk direction in the final triangle's barycentric space */
     public remainingDeltaUV: Vector2,
@@ -616,7 +623,7 @@ export class SurfaceWalker {
       state.distanceMatrix.identity()
     }
 
-    const path: PathSegment[] = []
+    const path: LinkedPathSegment[] = []
     let currentTriangleIndex = startTriangleIndex
     let iterations = 0
     let distance = 0
@@ -636,11 +643,13 @@ export class SurfaceWalker {
       if (Number.isFinite(availableDistance) && segmentDistance >= availableDistance) {
         const ratio = segmentDistance > 0 ? availableDistance / segmentDistance : 0
         const finalUV = state.currentUV.clone().lerp(endUV, ratio)
-        path.push(new PathSegment(
+        path.push(new LinkedPathSegment(
           this,
           currentTriangleIndex,
-          state.currentUV.clone(),
-          finalUV.clone()
+          state.currentUV.x,
+          state.currentUV.y,
+          finalUV.x,
+          finalUV.y
         ))
 
         return new WalkResult(
@@ -655,11 +664,13 @@ export class SurfaceWalker {
       }
 
       distance += segmentDistance
-      path.push(new PathSegment(
+      path.push(new LinkedPathSegment(
         this,
         currentTriangleIndex,
-        state.currentUV.clone(),
-        endUV.clone()
+        state.currentUV.x,
+        state.currentUV.y,
+        endUV.x,
+        endUV.y
       ))
       return null
     }
