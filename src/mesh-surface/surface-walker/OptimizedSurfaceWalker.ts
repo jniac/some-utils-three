@@ -1,31 +1,6 @@
 import { BufferGeometry, Matrix4 } from 'three'
 
-import type { SurfacePoint } from './SurfaceWalker'
-
-export type MutableVector2Like = {
-  x: number
-  y: number
-}
-
-export type MutableVector3Like = {
-  x: number
-  y: number
-  z: number
-}
-
-export enum WalkStatus {
-  BoundaryHit,
-  MaxIterations,
-  MaxDistance,
-}
-
-export type PathSegment = {
-  triangleIndex: number
-  u0: number
-  v0: number
-  u1: number
-  v1: number
-}
+import { MutableVector2Like, MutableVector3Like, PathSegment, SurfacePoint, WalkStatus } from './types'
 
 export type OptimizedWalkResult = {
   point: SurfacePoint
@@ -51,7 +26,7 @@ const edgeVertices = [
 
 function createResult(): OptimizedWalkResult {
   return {
-    point: { triangleIndex: -1, u: 0, v: 0 },
+    point: { triangleIndex: -1, x: 0, y: 0 },
     direction: { x: 0, y: 0 },
     status: WalkStatus.MaxIterations,
     iterations: 0,
@@ -209,7 +184,7 @@ export class OptimizedSurfaceWalker {
     point: SurfacePoint,
     out?: T,
   ): T {
-    const { triangleIndex, u, v } = point
+    const { triangleIndex, x: u, y: v } = point
     const originOffset = triangleIndex * 3
     const basisOffset = triangleIndex * 6
     const { origins, bases } = this.state
@@ -247,8 +222,8 @@ export class OptimizedSurfaceWalker {
     } = this.state
 
     let triangleIndex = start.triangleIndex
-    let u = start.u
-    let v = start.v
+    let u = start.x
+    let v = start.y
     let du = direction.x
     let dv = direction.y
     let distance = 0
@@ -448,8 +423,8 @@ export class OptimizedSurfaceWalker {
     distance: number,
   ): OptimizedWalkResult {
     out.point.triangleIndex = triangleIndex
-    out.point.u = u
-    out.point.v = v
+    out.point.x = u
+    out.point.y = v
     out.direction.x = directionU
     out.direction.y = directionV
     out.status = status

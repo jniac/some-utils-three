@@ -5,6 +5,7 @@ import { Matrix2 } from '../../math/Matrix2'
 
 import { HashMapArray } from '../../collections/hash-map'
 import { distancePointToLineSq, findFirstEdgeIntersection, solveTriangle2D, transposeIntersectionUV } from './math'
+import { PathSegment, SurfacePoint, WalkStatus } from './types'
 
 class TriangleView {
   walker!: SurfaceWalker
@@ -108,7 +109,7 @@ class TriangleView {
 /**
  * Represents a segment of the walk path that lies within a single triangle.
  */
-class LinkedPathSegment {
+class LinkedPathSegment implements PathSegment {
   triangleIndex: number
   u0: number
   v0: number
@@ -265,12 +266,6 @@ class Triangle2DSolver {
   }
 }
 
-enum WalkResultStatus {
-  BoundaryHit,
-  MaxIterations,
-  MaxDistance,
-}
-
 /**
  * Result of a walk operation across the mesh surface.
  */
@@ -295,22 +290,16 @@ export class WalkResult {
     public remainingDeltaUV: Vector2,
 
     /** Reason why the walk stopped */
-    public status: WalkResultStatus,
+    public status: WalkStatus,
   ) { }
 
   get statusString(): string {
-    return WalkResultStatus[this.status]
+    return WalkStatus[this.status]
   }
 
   getFinalPosition(out = new Vector3()): Vector3 {
     return this.walker.triangle(this.finalTriangleIndex).getPosition(this.finalUV, out)
   }
-}
-
-export type SurfacePoint = {
-  triangleIndex: number
-  u: number
-  v: number
 }
 
 export type SurfacePointDeclaration =
@@ -321,8 +310,8 @@ export function fromSurfacePointDeclaration(decl: SurfacePointDeclaration): Surf
   if (Array.isArray(decl)) {
     return {
       triangleIndex: decl[0],
-      u: decl[1],
-      v: decl[2],
+      x: decl[1],
+      y: decl[2],
     }
   }
   return decl
@@ -550,7 +539,7 @@ export class SurfaceWalker {
   }
 
   surfacePointToPosition(point: SurfacePoint, out = new Vector3()): Vector3 {
-    const { triangleIndex: index, u, v } = point
+    const { triangleIndex: index, x: u, y: v } = point
     return this.triangle(index).getPositionFromUV(u, v, out)
   }
 
@@ -659,7 +648,7 @@ export class SurfaceWalker {
           finalUV,
           path,
           state.remainingDelta.clone(),
-          WalkResultStatus.MaxDistance,
+          WalkStatus.MaxDistance,
         )
       }
 
@@ -707,7 +696,7 @@ export class SurfaceWalker {
           state.intersectionUV.clone(),
           path,
           state.remainingDelta.clone(),
-          WalkResultStatus.BoundaryHit,
+          WalkStatus.BoundaryHit,
         )
       }
 
@@ -745,7 +734,7 @@ export class SurfaceWalker {
       state.currentUV.clone(),
       path,
       state.remainingDelta.clone(),
-      WalkResultStatus.MaxIterations,
+      WalkStatus.MaxIterations,
     )
   }
 }

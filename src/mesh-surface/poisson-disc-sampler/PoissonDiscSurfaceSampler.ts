@@ -120,7 +120,7 @@ export class PoissonDiscSurfaceSampler {
       const distance = radius * sampleAnnulusRadius(1, 2, random)
       const result = this.surfaceWalker.walk(
         point.triangleIndex,
-        [point.u, point.v],
+        [point.x, point.y],
         direction,
         { maxDistance: distance }
       )
@@ -131,8 +131,8 @@ export class PoissonDiscSurfaceSampler {
 
       const candidate = {
         triangleIndex: result.finalTriangleIndex,
-        u: result.finalUV.x,
-        v: result.finalUV.y,
+        x: result.finalUV.x,
+        y: result.finalUV.y,
       }
       if (this.#isValid(candidate)) {
         return candidate

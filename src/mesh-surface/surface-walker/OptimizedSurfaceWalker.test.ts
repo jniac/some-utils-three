@@ -1,17 +1,15 @@
 import { BoxGeometry, PlaneGeometry, TorusKnotGeometry, Vector3 } from 'three'
 import { describe, expect, test } from 'vitest'
 
-import {
-  OptimizedSurfaceWalker,
-  OptimizedWalkStatus,
-} from './OptimizedSurfaceWalker'
+import { OptimizedSurfaceWalker } from './OptimizedSurfaceWalker'
 import { SurfaceWalker } from './SurfaceWalker'
+import { WalkStatus } from './types'
 
 const directions = [
-  { u: 1, v: 0.37 },
-  { u: -0.42, v: 1 },
-  { u: 0.31, v: -1 },
-  { u: -1, v: -0.23 },
+  { x: 1, y: 0.37 },
+  { x: -0.42, y: 1 },
+  { x: 0.31, y: -1 },
+  { x: -1, y: -0.23 },
 ]
 
 describe('OptimizedSurfaceWalker', () => {
@@ -26,11 +24,11 @@ describe('OptimizedSurfaceWalker', () => {
     const optimizedPosition = new Vector3()
 
     for (const direction of directions) {
-      const start = { triangleIndex, u: 1 / 3, v: 1 / 3 }
+      const start = { triangleIndex, x: 1 / 3, y: 1 / 3 }
       const expected = reference.walk(
         start.triangleIndex,
-        [start.u, start.v],
-        [direction.u, direction.v],
+        [start.x, start.y],
+        [direction.x, direction.y],
         { maxDistance: 0.75 }
       )
       const actual = optimized.walk(start, direction, { maxDistance: 0.75 })
@@ -38,7 +36,7 @@ describe('OptimizedSurfaceWalker', () => {
       expected.getFinalPosition(referencePosition)
       optimized.surfacePointToPosition(actual.point, optimizedPosition)
 
-      expect(actual.status).toBe(OptimizedWalkStatus.MaxDistance)
+      expect(actual.status).toBe(WalkStatus.MaxDistance)
       expect(optimizedPosition.distanceTo(referencePosition)).toBeLessThan(1e-9)
     }
   })
@@ -47,8 +45,8 @@ describe('OptimizedSurfaceWalker', () => {
     const walker = new OptimizedSurfaceWalker().fromGeometry(
       new PlaneGeometry(10, 10, 10, 10)
     )
-    const start = { triangleIndex: 110, u: 1 / 3, v: 1 / 3 }
-    const direction = { u: 1, v: 0.37 }
+    const start = { triangleIndex: 110, x: 1 / 3, y: 1 / 3 }
+    const direction = { x: 1, y: 0.37 }
     const result = walker.walk(start, direction, { maxDistance: 1 })
 
     expect(result.path).toBeUndefined()
