@@ -1,8 +1,8 @@
 import { PlaneGeometry, Vector3 } from 'three'
 import { describe, expect, test } from 'vitest'
 
-import { PoissonDiscSurfaceSampler } from './poisson'
-import { SurfaceWalker } from './surface-walker'
+import { SurfaceWalker } from '../surface-walker'
+import { PoissonDiscSurfaceSampler } from './PoissonDiscSurfaceSampler'
 
 function createRandom(seed: number): () => number {
   return () => {

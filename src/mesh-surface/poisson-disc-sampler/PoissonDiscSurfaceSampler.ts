@@ -1,8 +1,8 @@
 import { Vector2, Vector3 } from 'three'
 
-import { SpatialHashGrid3 } from '../collections/hash-map'
-import { Matrix2 } from '../math/Matrix2'
-import { fromSurfacePointDeclaration, SurfacePoint, SurfacePointDeclaration, SurfaceWalker } from './surface-walker'
+import { SpatialHashGrid3 } from '../../collections/hash-map'
+import { Matrix2 } from '../../math/Matrix2'
+import { fromSurfacePointDeclaration, SurfacePoint, SurfacePointDeclaration, SurfaceWalker } from '../surface-walker'
 
 function sampleAnnulusRadius(
   r1: number,
