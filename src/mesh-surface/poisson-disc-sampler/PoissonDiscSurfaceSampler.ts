@@ -1,8 +1,12 @@
-import { Vector2, Vector3 } from 'three'
-
 import { SpatialHashGrid3 } from '../../collections/hash-map'
-import { Matrix2 } from '../../math/Matrix2'
-import { fromSurfacePointDeclaration, SurfacePoint, SurfacePointDeclaration, SurfaceWalker } from '../surface-walker'
+import {
+  fromSurfacePointDeclaration,
+  OptimizedSurfaceWalker,
+  OptimizedWalkResult,
+  SurfacePoint,
+  SurfacePointDeclaration,
+  WalkStatus,
+} from '../surface-walker'
 
 function sampleAnnulusRadius(
   r1: number,
@@ -44,16 +48,21 @@ const defaultParams = {
 export class PoissonDiscSurfaceSampler {
   params!: typeof defaultParams
 
-  surfaceWalker: SurfaceWalker
+  surfaceWalker: OptimizedSurfaceWalker
 
   #grid: SpatialHashGrid3<SurfacePoint[]> | null = null
 
   state = {
     samples: [] as SurfacePoint[],
     openSet: [] as SurfacePoint[],
+    walkResult: null as OptimizedWalkResult | null,
+    direction: { x: 0, y: 0 },
+    candidatePosition: { x: 0, y: 0, z: 0 },
+    neighborPosition: { x: 0, y: 0, z: 0 },
+    samplePosition: { x: 0, y: 0, z: 0 },
   }
 
-  constructor(surfaceWalker: SurfaceWalker, params?: Partial<typeof defaultParams>) {
+  constructor(surfaceWalker: OptimizedSurfaceWalker, params?: Partial<typeof defaultParams>) {
     this.surfaceWalker = surfaceWalker
     this.setParams({ ...defaultParams, ...params })
   }
@@ -71,6 +80,7 @@ export class PoissonDiscSurfaceSampler {
     const origin = { ...fromSurfacePointDeclaration(originArg) }
     this.state.samples = [origin]
     this.state.openSet = [origin]
+    this.state.walkResult = null
     this.#grid = null
     return this
   }
@@ -96,43 +106,39 @@ export class PoissonDiscSurfaceSampler {
 
   #nextSample(point: SurfacePoint): SurfacePoint | null {
     const { maxAttempts, radius, random } = this.params
-    const triangle = this.surfaceWalker.triangle(point.triangleIndex)
-    const uLength = triangle.AB.length()
-    const vLength = triangle.AC.length()
-    const cosAngle = Math.max(
-      -1,
-      Math.min(1, triangle.AB.dot(triangle.AC) / (uLength * vLength))
-    )
-    const rectifiedToBarycentric = new Matrix2()
-      .set(
-        uLength, vLength * cosAngle,
-        0, vLength * Math.sqrt(1 - cosAngle * cosAngle)
-      )
-      .invert()
-    const direction = new Vector2()
+    const { metrics } = this.surfaceWalker.state
+    const metricOffset = point.triangleIndex * 3
+    const uLength = Math.sqrt(metrics[metricOffset])
+    const rectifiedVx = metrics[metricOffset + 1] / uLength
+    const rectifiedVy = Math.sqrt(Math.max(
+      0,
+      metrics[metricOffset + 2] - rectifiedVx * rectifiedVx,
+    ))
+    const { direction } = this.state
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const angle = random() * Math.PI * 2
-      direction.set(Math.cos(angle), Math.sin(angle))
-      rectifiedToBarycentric.applyTo(direction)
+      const rectifiedX = Math.cos(angle)
+      const rectifiedY = Math.sin(angle)
+      direction.x = rectifiedX / uLength
+        - rectifiedVx * rectifiedY / (uLength * rectifiedVy)
+      direction.y = rectifiedY / rectifiedVy
 
       // Sampling uniformly by area in the annulus [radius, 2 * radius].
       const distance = radius * sampleAnnulusRadius(1, 2, random)
-      const result = this.surfaceWalker.walk(
-        point.triangleIndex,
-        [point.x, point.y],
-        direction,
-        { maxDistance: distance }
-      )
+      const result = this.state.walkResult
+        ? this.surfaceWalker.walk(point, direction, distance, undefined, this.state.walkResult)
+        : this.surfaceWalker.walk(point, direction, distance)
+      this.state.walkResult = result
 
-      if (result.statusString !== 'MaxDistance') {
+      if (result.status !== WalkStatus.MaxDistance) {
         continue
       }
 
       const candidate = {
-        triangleIndex: result.finalTriangleIndex,
-        x: result.finalUV.x,
-        y: result.finalUV.y,
+        triangleIndex: result.point.triangleIndex,
+        x: result.point.x,
+        y: result.point.y,
       }
       if (this.#isValid(candidate)) {
         return candidate
@@ -150,7 +156,10 @@ export class PoissonDiscSurfaceSampler {
   }
 
   #addToGrid(sample: SurfacePoint): void {
-    const position = this.surfaceWalker.surfacePointToPosition(sample)
+    const position = this.surfaceWalker.surfacePointToPosition(
+      sample,
+      this.state.candidatePosition,
+    )
     const bucket = this.#grid!.get(position)
     if (bucket) {
       bucket.push(sample)
@@ -162,28 +171,32 @@ export class PoissonDiscSurfaceSampler {
   #isValid(candidate: SurfacePoint): boolean {
     const { radius } = this.params
     const radiusSq = radius * radius
-    const candidatePosition = this.surfaceWalker.surfacePointToPosition(candidate)
+    const {
+      candidatePosition,
+      neighborPosition,
+      samplePosition,
+    } = this.state
+    this.surfaceWalker.surfacePointToPosition(candidate, candidatePosition)
     const cellX = Math.floor(candidatePosition.x / radius)
     const cellY = Math.floor(candidatePosition.y / radius)
     const cellZ = Math.floor(candidatePosition.z / radius)
-    const neighborPosition = new Vector3()
-    const samplePosition = new Vector3()
 
     for (let x = -1; x <= 1; x++) {
       for (let y = -1; y <= 1; y++) {
         for (let z = -1; z <= 1; z++) {
-          neighborPosition.set(
-            (cellX + x + 0.5) * radius,
-            (cellY + y + 0.5) * radius,
-            (cellZ + z + 0.5) * radius
-          )
+          neighborPosition.x = (cellX + x + 0.5) * radius
+          neighborPosition.y = (cellY + y + 0.5) * radius
+          neighborPosition.z = (cellZ + z + 0.5) * radius
           const bucket = this.#grid!.get(neighborPosition)
           if (!bucket) {
             continue
           }
           for (const sample of bucket) {
             this.surfaceWalker.surfacePointToPosition(sample, samplePosition)
-            if (candidatePosition.distanceToSquared(samplePosition) < radiusSq) {
+            const dx = candidatePosition.x - samplePosition.x
+            const dy = candidatePosition.y - samplePosition.y
+            const dz = candidatePosition.z - samplePosition.z
+            if (dx * dx + dy * dy + dz * dz < radiusSq) {
               return false
             }
           }

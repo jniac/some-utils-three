@@ -13,8 +13,7 @@ export type OptimizedWalkResult = {
 
 export type OptimizedWalkOptions = {
   maxIterations?: number
-  maxDistance?: number
-  matrix?: Matrix4 | null
+  distanceMatrix?: Matrix4 | null
   recordPath?: boolean
 }
 
@@ -204,13 +203,13 @@ export class OptimizedSurfaceWalker {
   walk(
     start: SurfacePoint,
     direction: MutableVector2Like,
+    maxDistance = Infinity,
     options: OptimizedWalkOptions = {},
     out: OptimizedWalkResult = createResult(),
   ): OptimizedWalkResult {
     const {
       maxIterations = 1000,
-      maxDistance = Infinity,
-      matrix = null,
+      distanceMatrix = null,
       recordPath = false,
     } = options
     const {
@@ -272,7 +271,7 @@ export class OptimizedSurfaceWalker {
         segmentV,
         metrics,
         bases,
-        matrix,
+        distanceMatrix,
       )
       const availableDistance = Math.max(0, maxDistance - distance)
 
@@ -385,9 +384,9 @@ export class OptimizedSurfaceWalker {
     dv: number,
     metrics: Float64Array,
     bases: Float64Array,
-    matrix: Matrix4 | null,
+    distanceMatrix: Matrix4 | null,
   ): number {
-    if (!matrix) {
+    if (!distanceMatrix) {
       const metricOffset = triangleIndex * 3
       return Math.sqrt(
         du * du * metrics[metricOffset]
@@ -400,7 +399,7 @@ export class OptimizedSurfaceWalker {
     const x = bases[basisOffset] * du + bases[basisOffset + 3] * dv
     const y = bases[basisOffset + 1] * du + bases[basisOffset + 4] * dv
     const z = bases[basisOffset + 2] * du + bases[basisOffset + 5] * dv
-    const e = matrix.elements
+    const e = distanceMatrix.elements
     const transformedX = e[0] * x + e[4] * y + e[8] * z
     const transformedY = e[1] * x + e[5] * y + e[9] * z
     const transformedZ = e[2] * x + e[6] * y + e[10] * z

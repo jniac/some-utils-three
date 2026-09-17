@@ -1,7 +1,7 @@
 import { PlaneGeometry, Vector3 } from 'three'
 import { describe, expect, test } from 'vitest'
 
-import { SurfaceWalker } from '../surface-walker'
+import { OptimizedSurfaceWalker } from '../surface-walker'
 import { PoissonDiscSurfaceSampler } from './PoissonDiscSurfaceSampler'
 
 function createRandom(seed: number): () => number {
@@ -15,7 +15,7 @@ describe('PoissonDiscSurfaceSampler', () => {
   test('populates samples while preserving the minimum 3D distance', () => {
     const radius = 0.5
     const maxCount = 50
-    const walker = new SurfaceWalker().fromGeometry(
+    const walker = new OptimizedSurfaceWalker().fromGeometry(
       new PlaneGeometry(10, 10, 10, 10)
     )
     const sampler = new PoissonDiscSurfaceSampler(walker, {
@@ -24,7 +24,7 @@ describe('PoissonDiscSurfaceSampler', () => {
       maxAttempts: 30,
       random: createRandom(12345),
     })
-      .start({ triangleIndex: 110, u: 1 / 3, v: 1 / 3 })
+      .start({ triangleIndex: 110, x: 1 / 3, y: 1 / 3 })
       .sampleAll()
 
     expect(sampler.samples.length).toBeGreaterThan(1)

@@ -582,19 +582,19 @@ export class SurfaceWalker {
    * @param startTriangleIndex - Index of the starting triangle
    * @param startUVArg - Starting barycentric coordinates (u, v) where u+v <= 1
    * @param deltaUVArg - Walk direction in barycentric space; its magnitude is ignored
-   * @param maxIterations - Safety limit on triangle crossings (default 1000)
    * @param maxDistance - Maximum distance along the surface (default Infinity)
-   * @param matrix - Optional transform used when measuring the distance
+   * @param options.maxIterations - Safety limit on triangle crossings (default 1000)
+   * @param options.distanceMatrix - Optional transform used when measuring the distance
    * @returns WalkResult containing final position, path, and completion status
    */
   walk(
     startTriangleIndex: number,
     startUVArg: Vector2DeclarationLoose,
     deltaUVArg: Vector2DeclarationLoose,
+    maxDistance = Infinity,
     {
       maxIterations = 1000 as number,
-      maxDistance = Infinity as number,
-      matrix = null as Matrix4 | null,
+      distanceMatrix = null as Matrix4 | null,
     } = {}
   ): WalkResult {
     const now = () => globalThis.performance?.now?.() ?? Date.now()
@@ -606,8 +606,8 @@ export class SurfaceWalker {
     const state = this.#walkState
     state.currentUV.copy(startUV)
     state.remainingDelta.copy(deltaUV)
-    if (matrix) {
-      state.distanceMatrix.setFromMatrix4(matrix)
+    if (distanceMatrix) {
+      state.distanceMatrix.setFromMatrix4(distanceMatrix)
     } else {
       state.distanceMatrix.identity()
     }
