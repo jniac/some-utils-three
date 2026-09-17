@@ -101,7 +101,7 @@ describe('SpatialHashGrid3', () => {
 
     expect(grid.size).toBe(1)
     expect(grid.get({ x: 1, y: 1, z: 1 })).toBe('updated')
-    expect([...grid.keys()]).toEqual([{ x: 0, y: 0, z: 0 }])
+    expect([...grid.keys()]).toEqual([{ x: 0.1, y: 1.9, z: 0.5 }])
   })
 
   test('distinguishes adjacent cells, including negative coordinates', () => {
@@ -115,6 +115,15 @@ describe('SpatialHashGrid3', () => {
     expect(grid.get({ x: -2, y: 1, z: 1 })).toBe('negative')
     expect(grid.get({ x: 1.99, y: 1, z: 1 })).toBe('origin')
     expect(grid.get({ x: 3.99, y: 1, z: 1 })).toBe('positive')
+  })
+
+  test('keeps cloned keys in the same cell for fractional cell sizes', () => {
+    const grid = new SpatialHashGrid3<string>(0.1)
+
+    grid.set({ x: 4.35, y: -0.25, z: 8.15 }, 'sample')
+
+    expect(grid.get({ x: 4.35, y: -0.25, z: 8.15 })).toBe('sample')
+    expect(grid.get({ x: 4.39, y: -0.21, z: 8.19 })).toBe('sample')
   })
 })
 

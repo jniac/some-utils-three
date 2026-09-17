@@ -4,6 +4,17 @@ import { SpatialHashGrid3 } from '../collections/hash-map'
 import { Matrix2 } from '../math/Matrix2'
 import { fromSurfacePointDeclaration, SurfacePoint, SurfacePointDeclaration, SurfaceWalker } from './surface-walker'
 
+function sampleAnnulusRadius(
+  r1: number,
+  r2: number,
+  random = Math.random,
+): number {
+  const radius = Math.sqrt(
+    r1 * r1 + random() * (r2 * r2 - r1 * r1)
+  )
+  return radius
+}
+
 const defaultParams = {
   /**
    * The minimum distance between samples.
@@ -106,7 +117,7 @@ export class PoissonDiscSurfaceSampler {
       rectifiedToBarycentric.applyTo(direction)
 
       // Sampling uniformly by area in the annulus [radius, 2 * radius].
-      const distance = radius * Math.sqrt(1 + 3 * random())
+      const distance = radius * sampleAnnulusRadius(1, 2, random)
       const result = this.surfaceWalker.walk(
         point.triangleIndex,
         [point.u, point.v],
@@ -152,6 +163,9 @@ export class PoissonDiscSurfaceSampler {
     const { radius } = this.params
     const radiusSq = radius * radius
     const candidatePosition = this.surfaceWalker.surfacePointToPosition(candidate)
+    const cellX = Math.floor(candidatePosition.x / radius)
+    const cellY = Math.floor(candidatePosition.y / radius)
+    const cellZ = Math.floor(candidatePosition.z / radius)
     const neighborPosition = new Vector3()
     const samplePosition = new Vector3()
 
@@ -159,9 +173,9 @@ export class PoissonDiscSurfaceSampler {
       for (let y = -1; y <= 1; y++) {
         for (let z = -1; z <= 1; z++) {
           neighborPosition.set(
-            candidatePosition.x + x * radius,
-            candidatePosition.y + y * radius,
-            candidatePosition.z + z * radius
+            (cellX + x + 0.5) * radius,
+            (cellY + y + 0.5) * radius,
+            (cellZ + z + 0.5) * radius
           )
           const bucket = this.#grid!.get(neighborPosition)
           if (!bucket) {

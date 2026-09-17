@@ -5,6 +5,11 @@ import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three'
 const defaultParams = {
   // "canvas" parameters
   subdivisions: 10, // 10 is better for uv test
+  /**
+   * The size of the texture in pixels.
+   * 
+   * Default is 1024.
+   */
   size: 1024,
   lineSize: 2,
   lineColor: 'hsl(0, 0%, 80%)',

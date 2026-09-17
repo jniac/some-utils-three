@@ -157,10 +157,17 @@ export class SpatialHashGrid3<Value> extends HashMap<Vector3Like, Value> {
         const iz2 = Math.floor(v2.z / cellSize)
         return ix1 === ix2 && iy1 === iy2 && iz1 === iz2
       },
-      clone: v => {
-        const x = Math.floor(v.x / cellSize) * cellSize
-        const y = Math.floor(v.y / cellSize) * cellSize
-        const z = Math.floor(v.z / cellSize) * cellSize
+      clone: ({ x, y, z }) => {
+        // First I was thinking of rounding the coordinates to the nearest cell 
+        // origin, but that can cause issues with floating-point precision.
+        // x = Math.floor(v.x / cellSize) * cellSize
+        // y = Math.floor(v.y / cellSize) * cellSize
+        // z = Math.floor(v.z / cellSize) * cellSize
+
+        // Keep the original coordinates. Reconstructing a cell origin with
+        // floor(value / cellSize) * cellSize and hashing it again can move the
+        // clone to an adjacent cell because of floating-point rounding.
+
         return { x, y, z }
       },
     })
