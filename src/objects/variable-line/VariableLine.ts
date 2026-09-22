@@ -26,9 +26,9 @@ export class VariableLine extends Mesh<VariableLineGeometry, VariableLineMateria
   override onBeforeRender(renderer: WebGLRenderer): void {
     renderer.getCurrentViewport(this.#viewport)
     const { uniforms } = this.material
-    uniforms.resolution.value.set(this.#viewport.z, this.#viewport.w)
-    uniforms.viewportOrigin.value.set(this.#viewport.x, this.#viewport.y)
-    uniforms.pixelRatio.value = renderer.getRenderTarget()
+    uniforms.uResolution.value.set(this.#viewport.z, this.#viewport.w)
+    uniforms.uViewportOrigin.value.set(this.#viewport.x, this.#viewport.y)
+    uniforms.uPixelRatio.value = renderer.getRenderTarget()
       ? 1
       : renderer.getPixelRatio()
   }

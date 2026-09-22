@@ -1,51 +1,70 @@
 import { Color, ColorRepresentation, ShaderMaterial, Vector2 } from 'three'
 
-export interface VariableLineMaterialParameters {
-  color?: ColorRepresentation
-  linewidth?: number
-  opacity?: number
-  worldUnits?: boolean
+const defaultParameters = {
+  color: 'white' as ColorRepresentation,
+  linewidth: 1,
+  opacity: 1,
+  worldUnits: false,
 }
 
-/** Camera-facing capsules, with pixel or world-unit diameters. */
+function createUniforms() {
+  return {
+    uDiffuse: { value: new Color() },
+    uLinewidth: { value: 1 },
+    uPixelRatio: { value: 1 },
+    uWorldUnits: { value: false },
+    uOpacity: { value: 1 },
+    uResolution: { value: new Vector2(1, 1) },
+    uViewportOrigin: { value: new Vector2() },
+  }
+}
+
+/**
+ * Camera-facing "asymmetric" capsules, with pixel or world-unit diameters. 
+ */
 export class VariableLineMaterial extends ShaderMaterial {
-  constructor({
-    color = 'white',
-    linewidth = 1,
-    opacity = 1,
-    worldUnits = false,
-  }: VariableLineMaterialParameters = {}) {
+  constructor(parameters?: Partial<typeof defaultParameters>) {
+    const uniforms = createUniforms()
+
+    const {
+      color,
+      linewidth,
+      opacity,
+      worldUnits,
+    } = { ...defaultParameters, ...parameters }
+
+    uniforms.uDiffuse.value.set(color)
+    uniforms.uLinewidth.value = linewidth
+    uniforms.uOpacity.value = opacity
+    uniforms.uWorldUnits.value = worldUnits
+
     super({
-      uniforms: {
-        diffuse: { value: new Color(color) },
-        linewidth: { value: linewidth },
-        pixelRatio: { value: 1 },
-        worldUnits: { value: worldUnits },
-        opacity: { value: opacity },
-        resolution: { value: new Vector2(1, 1) },
-      },
+      uniforms,
       transparent: true,
       depthWrite: false,
       vertexShader: /* glsl */ `
-        uniform float linewidth;
-        uniform float pixelRatio;
-        uniform bool worldUnits;
-        uniform vec2 resolution;
+        uniform float uLinewidth;
+        uniform float uPixelRatio;
+        uniform bool uWorldUnits;
+        uniform vec2 uResolution;
+
         attribute vec3 instanceStart;
         attribute vec3 instanceEnd;
         attribute float instanceWidthStart;
         attribute float instanceWidthEnd;
+
         varying vec2 vStart;
         varying vec2 vEnd;
         varying vec2 vRadii;
         varying float vVisible;
+
         #include <common>
         #include <logdepthbuf_pars_vertex>
 
         void main() {
           vec4 start = modelViewMatrix * vec4(instanceStart, 1.0);
           vec4 end = modelViewMatrix * vec4(instanceEnd, 1.0);
-          vec2 radii = 0.5 * max(linewidth, 0.0) * vec2(instanceWidthStart, instanceWidthEnd);
+          vec2 radii = 0.5 * max(uLinewidth, 0.0) * vec2(instanceWidthStart, instanceWidthEnd);
           vVisible = 1.0;
           // Trim before projection, interpolating the width at the new endpoint.
           if (projectionMatrix[2][3] == -1.0) {
@@ -66,15 +85,15 @@ export class VariableLineMaterial extends ShaderMaterial {
           }
           vec4 clipStart = projectionMatrix * start;
           vec4 clipEnd = projectionMatrix * end;
-          vStart = clipStart.xy / clipStart.w * resolution * 0.5;
-          vEnd = clipEnd.xy / clipEnd.w * resolution * 0.5;
-          if (worldUnits) {
+          vStart = clipStart.xy / clipStart.w * uResolution * 0.5;
+          vEnd = clipEnd.xy / clipEnd.w * uResolution * 0.5;
+          if (uWorldUnits) {
             // Project a camera-facing world-space radius at each endpoint.
             // World widths are independent of model scale, as with LineMaterial.
-            float pixelsPerUnit = abs(projectionMatrix[1][1]) * resolution.y * 0.5;
+            float pixelsPerUnit = abs(projectionMatrix[1][1]) * uResolution.y * 0.5;
             radii *= pixelsPerUnit / vec2(clipStart.w, clipEnd.w);
           } else {
-            radii *= pixelRatio;
+            radii *= uPixelRatio;
           }
           vRadii = radii;
           vec2 delta = vEnd - vStart;
@@ -86,20 +105,23 @@ export class VariableLineMaterial extends ShaderMaterial {
           bool atEnd = position.y > 0.0;
           vec2 offset = extent * (normal * position.x + dir * position.y);
           vec4 clip = atEnd ? clipEnd : clipStart;
-          clip.xy += offset * 2.0 / resolution * clip.w;
+          clip.xy += offset * 2.0 / uResolution * clip.w;
           gl_Position = clip;
+
           #include <logdepthbuf_vertex>
         }
       `,
       fragmentShader: /* glsl */ `
-        uniform vec3 diffuse;
-        uniform float opacity;
-        uniform vec2 resolution;
-        uniform vec2 viewportOrigin;
+        uniform vec3 uDiffuse;
+        uniform float uOpacity;
+        uniform vec2 uResolution;
+        uniform vec2 uViewportOrigin;
+
         varying vec2 vStart;
         varying vec2 vEnd;
         varying vec2 vRadii;
         varying float vVisible;
+
         #include <common>
         #include <logdepthbuf_pars_fragment>
 
@@ -122,33 +144,35 @@ export class VariableLineMaterial extends ShaderMaterial {
           vec2 delta = vEnd - vStart;
           float h = length(delta);
           vec2 dir = h > 0.00001 ? delta / h : vec2(0.0, 1.0);
-          vec2 q = gl_FragCoord.xy - viewportOrigin - resolution * 0.5 - vStart;
+          vec2 q = gl_FragCoord.xy - uViewportOrigin - uResolution * 0.5 - vStart;
           vec2 p = vec2(dot(q, vec2(dir.y, -dir.x)), dot(q, dir));
           float d = sdUnevenCapsule(p, vRadii.x, vRadii.y, h);
           float aa = max(fwidth(d), 0.0001);
           float coverage = 1.0 - smoothstep(-aa, aa, d);
           if (coverage <= 0.0) discard;
-          gl_FragColor = vec4(diffuse, opacity * coverage);
+          vec4 diffuseColor = vec4(uDiffuse, uOpacity * coverage);
+          gl_FragColor = diffuseColor;
           #include <logdepthbuf_fragment>
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }
       `,
     })
-    this.uniforms.viewportOrigin = { value: new Vector2() }
   }
 
   get worldUnits(): boolean {
-    return this.uniforms.worldUnits.value
+    return this.uniforms.uWorldUnits.value
   }
   set worldUnits(value: boolean) {
-    this.uniforms.worldUnits.value = value
+    this.uniforms.uWorldUnits.value = value
   }
 
-  get linewidth(): number {
-    return this.uniforms.linewidth.value
+  get uLinewidth(): number {
+    return this.uniforms.uLinewidth.value
   }
   set linewidth(value: number) {
-    if (this.uniforms.linewidth) this.uniforms.linewidth.value = value
+    if (this.uniforms.uLinewidth) { // Required, but why?
+      this.uniforms.uLinewidth.value = value
+    }
   }
 }
