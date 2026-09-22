@@ -3,9 +3,16 @@ import { Mesh, Vector4, WebGLRenderer } from 'three'
 import { VariableLineGeometry } from './VariableLineGeometry'
 import { VariableLineMaterial } from './VariableLineMaterial'
 
-/** One instanced quad per segment. Picking is not implemented. */
+/** 
+ * One instanced quad per segment. 
+ * 
+ * Picking is not implemented yet.
+ */
 export class VariableLine extends Mesh<VariableLineGeometry, VariableLineMaterial> {
-  private readonly viewport = new Vector4()
+  static Geometry = VariableLineGeometry
+  static Material = VariableLineMaterial
+
+  #viewport = new Vector4()
 
   constructor(
     geometry = new VariableLineGeometry(),
@@ -17,10 +24,10 @@ export class VariableLine extends Mesh<VariableLineGeometry, VariableLineMateria
   }
 
   override onBeforeRender(renderer: WebGLRenderer): void {
-    renderer.getCurrentViewport(this.viewport)
+    renderer.getCurrentViewport(this.#viewport)
     const { uniforms } = this.material
-    uniforms.resolution.value.set(this.viewport.z, this.viewport.w)
-    uniforms.viewportOrigin.value.set(this.viewport.x, this.viewport.y)
+    uniforms.resolution.value.set(this.#viewport.z, this.#viewport.w)
+    uniforms.viewportOrigin.value.set(this.#viewport.x, this.#viewport.y)
     uniforms.pixelRatio.value = renderer.getRenderTarget()
       ? 1
       : renderer.getPixelRatio()

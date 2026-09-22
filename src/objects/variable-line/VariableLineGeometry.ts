@@ -1,33 +1,34 @@
 import {
   DynamicDrawUsage,
-  Vector4,
   Float32BufferAttribute,
   InstancedBufferGeometry,
   InstancedInterleavedBuffer,
   InterleavedBufferAttribute,
+  Vector4,
 } from 'three'
 
-/** Mutate target with xyz and full width in w. Called once per point. */
-export type VariableLinePointDelegate = (index: number, target: Vector4) => void
+/**
+ * Mutate target with xyz and full width in w. Called once per point.
+ */
+export type VariableLinePointDelegate = (index: number, point: Vector4) => void
 
-/** Reusable interleaved storage for a variable-width polyline. */
+/**
+ * Reusable interleaved storage for a variable-width polyline.
+ */
 export class VariableLineGeometry extends InstancedBufferGeometry {
-  private buffer?: InstancedInterleavedBuffer
-  private readonly point = new Vector4()
+  #buffer?: InstancedInterleavedBuffer
+  #point = new Vector4()
 
   constructor(segmentCapacity = 0) {
     super()
     this.setIndex([0, 1, 2, 2, 1, 3])
-    this.setAttribute(
-      'position',
-      new Float32BufferAttribute([-1, -1, 0, 1, -1, 0, -1, 1, 0, 1, 1, 0], 3),
-    )
+    this.setAttribute('position', new Float32BufferAttribute([-1, -1, 0, 1, -1, 0, -1, 1, 0, 1, 1, 0], 3))
     this.instanceCount = 0
     this.reserve(segmentCapacity)
   }
 
   get capacity(): number {
-    return this.buffer?.count ?? 0
+    return this.#buffer?.count ?? 0
   }
 
   /** Reserve segments up front to avoid allocation during animation. */
@@ -35,34 +36,30 @@ export class VariableLineGeometry extends InstancedBufferGeometry {
     if (!Number.isSafeInteger(segmentCapacity) || segmentCapacity < 0) {
       throw new Error('Expected a nonnegative integer segment capacity')
     }
-    if (segmentCapacity <= this.capacity) return this
-    const data = new Float32Array(
-      Math.max(segmentCapacity, this.capacity * 2) * 8,
-    )
-    if (this.buffer) {
-      data.set(this.buffer.array)
+
+    if (segmentCapacity <= this.capacity)
+      return this
+
+    const data = new Float32Array(Math.max(segmentCapacity, this.capacity * 2) * 8)
+
+    if (this.#buffer) {
+      data.set(this.#buffer.array)
       // Release old GPU buffers before replacing attributes (WebGL cannot resize them).
       this.dispose()
     }
     const buffer = new InstancedInterleavedBuffer(data, 8)
     buffer.setUsage(DynamicDrawUsage)
-    this.buffer = buffer
-    this.setAttribute(
-      'instanceStart',
-      new InterleavedBufferAttribute(buffer, 3, 0),
-    )
-    this.setAttribute(
-      'instanceEnd',
-      new InterleavedBufferAttribute(buffer, 3, 3),
-    )
-    this.setAttribute(
-      'instanceWidthStart',
-      new InterleavedBufferAttribute(buffer, 1, 6),
-    )
-    this.setAttribute(
-      'instanceWidthEnd',
-      new InterleavedBufferAttribute(buffer, 1, 7),
-    )
+    this.#buffer = buffer
+
+    this.setAttribute('instanceStart',
+      new InterleavedBufferAttribute(buffer, 3, 0))
+    this.setAttribute('instanceEnd',
+      new InterleavedBufferAttribute(buffer, 3, 3))
+    this.setAttribute('instanceWidthStart',
+      new InterleavedBufferAttribute(buffer, 1, 6))
+    this.setAttribute('instanceWidthEnd',
+      new InterleavedBufferAttribute(buffer, 1, 7))
+
     return this
   }
 
@@ -76,22 +73,34 @@ export class VariableLineGeometry extends InstancedBufferGeometry {
     // Hide partial results if a delegate throws or returns invalid data.
     this.instanceCount = 0
     for (let i = 0; i < pointCount; i++) {
-      const point = this.point
+      const point = this.#point
       delegate(i, point)
-      const { x, y, z, w } = point
-      if (
+
+      let { x, y, z, w } = point
+
+      if (Number.isNaN(x))
+        x = 0
+      if (Number.isNaN(y))
+        y = 0
+      if (Number.isNaN(z))
+        z = 0
+      if (Number.isNaN(w))
+        w = 0
+
+      const pointIsNotOk =
         !Number.isFinite(x) ||
         !Number.isFinite(y) ||
         !Number.isFinite(z) ||
         !Number.isFinite(w) ||
         w < 0
-      ) {
-        throw new Error(
-          'Positions must be finite and widths finite and nonnegative',
-        )
-      }
-      if (count === 0) continue
-      const data = this.buffer!.array
+
+      if (pointIsNotOk)
+        throw new Error(`Positions must be finite and widths finite and nonnegative (${x}, ${y}, ${z}, ${w})`)
+
+      if (count === 0)
+        continue
+
+      const data = this.#buffer!.array
       if (i > 0) {
         const offset = (i - 1) * 8
         data[offset + 3] = x
@@ -107,19 +116,22 @@ export class VariableLineGeometry extends InstancedBufferGeometry {
         data[offset + 6] = w
       }
     }
+
     this.instanceCount = count
-    if (this.buffer && count > 0) {
-      this.buffer.clearUpdateRanges()
-      this.buffer.addUpdateRange(0, count * 8)
-      this.buffer.needsUpdate = true
+
+    if (this.#buffer && count > 0) {
+      this.#buffer.clearUpdateRanges()
+      this.#buffer.addUpdateRange(0, count * 8)
+      this.#buffer.needsUpdate = true
     }
+
     return this
   }
 
   setPositions(positions: ArrayLike<number>, widths: ArrayLike<number>): this {
-    if (positions.length % 3 !== 0 || widths.length !== positions.length / 3) {
+    if (positions.length % 3 !== 0 || widths.length !== positions.length / 3)
       throw new Error('Expected xyz positions and one width per point')
-    }
+
     return this.updatePoints(widths.length, (i, point) => {
       point.set(
         positions[i * 3],
