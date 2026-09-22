@@ -25,7 +25,7 @@ describe('variable-width polyline', () => {
     expect(geometry.instanceCount).toBe(1)
     expect(() => geometry.setPositions([0, 0, 0], [-1])).toThrow()
     expect(() => geometry.setPositions([0, 0, 0], [])).toThrow()
-    expect(() => geometry.setPositions([NaN, 0, 0], [1])).toThrow()
+    expect(() => geometry.setPositions([NaN, 0, 0], [1])).not.toThrow()
     geometry.setPositions([], [])
     expect(geometry.instanceCount).toBe(0)
     geometry.dispose()
@@ -35,7 +35,7 @@ describe('variable-width polyline', () => {
     const material = new VariableLineMaterial({ linewidth: 2 })
     expect(material.linewidth).toBe(2)
     material.linewidth = 3
-    expect(material.uniforms.linewidth.value).toBe(3)
+    expect(material.uniforms.uLinewidth.value).toBe(3)
     material.dispose()
   })
   it('updates each point once while retaining the buffer and attributes', () => {
@@ -82,13 +82,63 @@ describe('variable-width polyline', () => {
     geometry.dispose()
   })
 
-  it('switches between pixel and world widths without recompiling the shader', () => {
+  it('switches between pixel and world widths by changing the WORLD_UNITS define', () => {
     const material = new VariableLineMaterial({ worldUnits: true })
     const version = material.version
     expect(material.worldUnits).toBe(true)
     material.worldUnits = false
-    expect(material.uniforms.worldUnits.value).toBe(false)
-    expect(material.version).toBe(version)
+    expect(material.defines.WORLD_UNITS).toBeUndefined()
+    expect(material.depthMaterial.defines?.WORLD_UNITS).toBeUndefined()
+    expect(material.version).toBeGreaterThan(version)
     material.dispose()
+  })
+  it('writes reusable endpoint colors and preserves them when capacity grows', () => {
+    const geometry = new VariableLineGeometry(2, true)
+    let targetColor: unknown
+    geometry.updatePoints(3, (i, point, color) => {
+      point.set(i, 0, 0, 1)
+      targetColor ??= color
+      expect(color).toBe(targetColor)
+      color.setRGB(i / 2, 0.2, 1)
+    })
+    const colors = geometry.getAttribute('instanceColorStart')
+    expect(colors.getX(1)).toBe(0.5)
+    expect(geometry.getAttribute('instanceColorEnd').getX(0)).toBe(0.5)
+    geometry.updatePoints(3, (i, point, color) => {
+      point.set(i, 0, 0, 1)
+      color.setRGB(0.2, 0.3, 0.4)
+    })
+    expect(geometry.getAttribute('instanceColorStart')).toBe(colors)
+    geometry.reserve(5)
+    expect(geometry.getAttribute('instanceColorEnd').getZ(1)).toBeCloseTo(0.4)
+    geometry.dispose()
+  })
+
+  it('keeps colors optional and selects feature-specific shader programs', () => {
+    const geometry = new VariableLineGeometry(4)
+    expect(geometry.getAttribute('instanceColorStart')).toBeUndefined()
+    geometry.enableVertexColors()
+    expect(geometry.getAttribute('instanceColorStart').getX(0)).toBe(1)
+    const material = new VariableLineMaterial({
+      vertexColors: true,
+      worldPosition: true,
+      shadows: true,
+    })
+    expect(material.vertexColors).toBe(true)
+    expect(material.defines.USE_WORLD_POSITION).toBe('')
+    expect(material.lights).toBe(true)
+    material.worldPosition = false
+    material.shadows = false
+    material.setVertexColors(false)
+    expect(material.defines.USE_WORLD_POSITION).toBeUndefined()
+    expect(material.defines.LINE_RECEIVE_SHADOWS).toBeUndefined()
+    expect(material.vertexColors).toBe(false)
+    expect(material.lights).toBe(false)
+    let disposed = 0
+    material.depthMaterial.addEventListener('dispose', () => disposed++)
+    material.distanceMaterial.addEventListener('dispose', () => disposed++)
+    material.dispose()
+    expect(disposed).toBe(2)
+    geometry.dispose()
   })
 })

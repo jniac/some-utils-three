@@ -1,4 +1,5 @@
 import {
+  Color,
   DynamicDrawUsage,
   Float32BufferAttribute,
   InstancedBufferGeometry,
@@ -10,7 +11,11 @@ import {
 /**
  * Mutate target with xyz and full width in w. Called once per point.
  */
-export type VariableLinePointDelegate = (index: number, point: Vector4) => void
+export type VariableLinePointDelegate = (
+  index: number,
+  point: Vector4,
+  color: Color,
+) => void
 
 /**
  * Reusable interleaved storage for a variable-width polyline.
@@ -18,17 +23,48 @@ export type VariableLinePointDelegate = (index: number, point: Vector4) => void
 export class VariableLineGeometry extends InstancedBufferGeometry {
   #buffer?: InstancedInterleavedBuffer
   #point = new Vector4()
+  #color = new Color()
+  #colors?: InstancedInterleavedBuffer
+  #vertexColors = false
 
-  constructor(segmentCapacity = 0) {
+  constructor(segmentCapacity = 0, { vertexColors = false } = {}) {
     super()
     this.setIndex([0, 1, 2, 2, 1, 3])
-    this.setAttribute('position', new Float32BufferAttribute([-1, -1, 0, 1, -1, 0, -1, 1, 0, 1, 1, 0], 3))
+    this.setAttribute(
+      'position',
+      new Float32BufferAttribute([-1, -1, 0, 1, -1, 0, -1, 1, 0, 1, 1, 0], 3),
+    )
     this.instanceCount = 0
+    this.#vertexColors = vertexColors
     this.reserve(segmentCapacity)
   }
 
   get capacity(): number {
     return this.#buffer?.count ?? 0
+  }
+
+  /** Allocate color storage once, before animation. Colors default to linear white. */
+  enableVertexColors(): this {
+    if (this.#vertexColors) return this
+    this.#vertexColors = true
+    if (this.capacity > 0) this.#allocateColors()
+    return this
+  }
+
+  #allocateColors(): void {
+    const array = new Float32Array(this.capacity * 6).fill(1)
+    if (this.#colors) array.set(this.#colors.array)
+    this.#colors = new InstancedInterleavedBuffer(array, 6).setUsage(
+      DynamicDrawUsage,
+    )
+    this.setAttribute(
+      'instanceColorStart',
+      new InterleavedBufferAttribute(this.#colors, 3, 0),
+    )
+    this.setAttribute(
+      'instanceColorEnd',
+      new InterleavedBufferAttribute(this.#colors, 3, 3),
+    )
   }
 
   /** Reserve segments up front to avoid allocation during animation. */
@@ -37,10 +73,11 @@ export class VariableLineGeometry extends InstancedBufferGeometry {
       throw new Error('Expected a nonnegative integer segment capacity')
     }
 
-    if (segmentCapacity <= this.capacity)
-      return this
+    if (segmentCapacity <= this.capacity) return this
 
-    const data = new Float32Array(Math.max(segmentCapacity, this.capacity * 2) * 8)
+    const data = new Float32Array(
+      Math.max(segmentCapacity, this.capacity * 2) * 8,
+    )
 
     if (this.#buffer) {
       data.set(this.#buffer.array)
@@ -50,15 +87,24 @@ export class VariableLineGeometry extends InstancedBufferGeometry {
     const buffer = new InstancedInterleavedBuffer(data, 8)
     buffer.setUsage(DynamicDrawUsage)
     this.#buffer = buffer
+    if (this.#vertexColors) this.#allocateColors()
 
-    this.setAttribute('instanceStart',
-      new InterleavedBufferAttribute(buffer, 3, 0))
-    this.setAttribute('instanceEnd',
-      new InterleavedBufferAttribute(buffer, 3, 3))
-    this.setAttribute('instanceWidthStart',
-      new InterleavedBufferAttribute(buffer, 1, 6))
-    this.setAttribute('instanceWidthEnd',
-      new InterleavedBufferAttribute(buffer, 1, 7))
+    this.setAttribute(
+      'instanceStart',
+      new InterleavedBufferAttribute(buffer, 3, 0),
+    )
+    this.setAttribute(
+      'instanceEnd',
+      new InterleavedBufferAttribute(buffer, 3, 3),
+    )
+    this.setAttribute(
+      'instanceWidthStart',
+      new InterleavedBufferAttribute(buffer, 1, 6),
+    )
+    this.setAttribute(
+      'instanceWidthEnd',
+      new InterleavedBufferAttribute(buffer, 1, 7),
+    )
 
     return this
   }
@@ -74,18 +120,23 @@ export class VariableLineGeometry extends InstancedBufferGeometry {
     this.instanceCount = 0
     for (let i = 0; i < pointCount; i++) {
       const point = this.#point
-      delegate(i, point)
+      const color = this.#color.setRGB(1, 1, 1)
+      delegate(i, point, color)
+      if (
+        this.#colors &&
+        (!Number.isFinite(color.r) ||
+          !Number.isFinite(color.g) ||
+          !Number.isFinite(color.b))
+      ) {
+        throw new Error('Colors must be finite')
+      }
 
       let { x, y, z, w } = point
 
-      if (Number.isNaN(x))
-        x = 0
-      if (Number.isNaN(y))
-        y = 0
-      if (Number.isNaN(z))
-        z = 0
-      if (Number.isNaN(w))
-        w = 0
+      if (Number.isNaN(x)) x = 0
+      if (Number.isNaN(y)) y = 0
+      if (Number.isNaN(z)) z = 0
+      if (Number.isNaN(w)) w = 0
 
       const pointIsNotOk =
         !Number.isFinite(x) ||
@@ -95,11 +146,27 @@ export class VariableLineGeometry extends InstancedBufferGeometry {
         w < 0
 
       if (pointIsNotOk)
-        throw new Error(`Positions must be finite and widths finite and nonnegative (${x}, ${y}, ${z}, ${w})`)
+        throw new Error(
+          `Positions must be finite and widths finite and nonnegative (${x}, ${y}, ${z}, ${w})`,
+        )
 
-      if (count === 0)
-        continue
+      if (count === 0) continue
 
+      if (this.#colors) {
+        const colors = this.#colors.array
+        if (i > 0) {
+          const offset = (i - 1) * 6 + 3
+          colors[offset] = color.r
+          colors[offset + 1] = color.g
+          colors[offset + 2] = color.b
+        }
+        if (i < count) {
+          const offset = i * 6
+          colors[offset] = color.r
+          colors[offset + 1] = color.g
+          colors[offset + 2] = color.b
+        }
+      }
       const data = this.#buffer!.array
       if (i > 0) {
         const offset = (i - 1) * 8
@@ -125,6 +192,11 @@ export class VariableLineGeometry extends InstancedBufferGeometry {
       this.#buffer.needsUpdate = true
     }
 
+    if (this.#colors && count > 0) {
+      this.#colors.clearUpdateRanges()
+      this.#colors.addUpdateRange(0, count * 6)
+      this.#colors.needsUpdate = true
+    }
     return this
   }
 

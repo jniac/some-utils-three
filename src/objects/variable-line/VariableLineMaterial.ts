@@ -1,178 +1,153 @@
-import { Color, ColorRepresentation, ShaderMaterial, Vector2 } from 'three'
+import {
+  Color,
+  ColorRepresentation,
+  DoubleSide,
+  Matrix4,
+  MeshDepthMaterial,
+  MeshDistanceMaterial,
+  RGBADepthPacking,
+  ShaderMaterial,
+  UniformsLib,
+  UniformsUtils,
+  Vector2,
+} from 'three'
 
-const defaultParameters = {
-  color: 'white' as ColorRepresentation,
-  linewidth: 1,
-  opacity: 1,
-  worldUnits: false,
+import { fragmentShader, vertexShader } from './shaders'
+
+export interface VariableLineMaterialParameters {
+  color?: ColorRepresentation
+  linewidth?: number
+  opacity?: number
+  worldUnits?: boolean
+  vertexColors?: boolean
+  worldPosition?: boolean
+  /** Compile the receiving-shadow path. Also set line.receiveShadow = true. */
+  shadows?: boolean
 }
 
-function createUniforms() {
-  return {
-    uDiffuse: { value: new Color() },
-    uLinewidth: { value: 1 },
-    uPixelRatio: { value: 1 },
-    uWorldUnits: { value: false },
-    uOpacity: { value: 1 },
-    uResolution: { value: new Vector2(1, 1) },
-    uViewportOrigin: { value: new Vector2() },
-  }
-}
-
-/**
- * Camera-facing "asymmetric" capsules, with pixel or world-unit diameters. 
- */
+/** Camera-facing capsules. Optional shader paths use three.js-style defines. */
 export class VariableLineMaterial extends ShaderMaterial {
-  constructor(parameters?: Partial<typeof defaultParameters>) {
-    const uniforms = createUniforms()
+  readonly depthMaterial = new MeshDepthMaterial({
+    depthPacking: RGBADepthPacking,
+  })
+  readonly distanceMaterial = new MeshDistanceMaterial()
 
-    const {
-      color,
-      linewidth,
-      opacity,
-      worldUnits,
-    } = { ...defaultParameters, ...parameters }
-
-    uniforms.uDiffuse.value.set(color)
-    uniforms.uLinewidth.value = linewidth
-    uniforms.uOpacity.value = opacity
-    uniforms.uWorldUnits.value = worldUnits
-
+  constructor({
+    color = 'white',
+    linewidth = 1,
+    opacity = 1,
+    worldUnits = false,
+    vertexColors = false,
+    worldPosition = false,
+    shadows = false,
+  }: VariableLineMaterialParameters = {}) {
     super({
-      uniforms,
+      uniforms: {
+        ...UniformsUtils.clone(UniformsLib.lights),
+        uDiffuse: { value: new Color(color) },
+        uLinewidth: { value: linewidth },
+        uPixelRatio: { value: 1 },
+        uOpacity: { value: opacity },
+        uResolution: { value: new Vector2(1, 1) },
+        uCameraView: { value: new Matrix4() },
+        uCameraProjection: { value: new Matrix4() },
+        uCameraProjectionInverse: { value: new Matrix4() },
+        uCameraWorld: { value: new Matrix4() },
+      },
+      defines: {},
+      vertexShader,
+      fragmentShader,
+      vertexColors,
       transparent: true,
       depthWrite: false,
-      vertexShader: /* glsl */ `
-        uniform float uLinewidth;
-        uniform float uPixelRatio;
-        uniform bool uWorldUnits;
-        uniform vec2 uResolution;
-
-        attribute vec3 instanceStart;
-        attribute vec3 instanceEnd;
-        attribute float instanceWidthStart;
-        attribute float instanceWidthEnd;
-
-        varying vec2 vStart;
-        varying vec2 vEnd;
-        varying vec2 vRadii;
-        varying float vVisible;
-
-        #include <common>
-        #include <logdepthbuf_pars_vertex>
-
-        void main() {
-          vec4 start = modelViewMatrix * vec4(instanceStart, 1.0);
-          vec4 end = modelViewMatrix * vec4(instanceEnd, 1.0);
-          vec2 radii = 0.5 * max(uLinewidth, 0.0) * vec2(instanceWidthStart, instanceWidthEnd);
-          vVisible = 1.0;
-          // Trim before projection, interpolating the width at the new endpoint.
-          if (projectionMatrix[2][3] == -1.0) {
-            float nearZ = -projectionMatrix[3][2] / (projectionMatrix[2][2] - 1.0);
-            if (start.z > nearZ && end.z > nearZ) {
-              vVisible = 0.0;
-              start.z = nearZ;
-              end.z = nearZ;
-            } else if (start.z > nearZ) {
-              float t = (nearZ - start.z) / (end.z - start.z);
-              start = mix(start, end, t);
-              radii.x = mix(radii.x, radii.y, t);
-            } else if (end.z > nearZ) {
-              float t = (nearZ - end.z) / (start.z - end.z);
-              end = mix(end, start, t);
-              radii.y = mix(radii.y, radii.x, t);
-            }
-          }
-          vec4 clipStart = projectionMatrix * start;
-          vec4 clipEnd = projectionMatrix * end;
-          vStart = clipStart.xy / clipStart.w * uResolution * 0.5;
-          vEnd = clipEnd.xy / clipEnd.w * uResolution * 0.5;
-          if (uWorldUnits) {
-            // Project a camera-facing world-space radius at each endpoint.
-            // World widths are independent of model scale, as with LineMaterial.
-            float pixelsPerUnit = abs(projectionMatrix[1][1]) * uResolution.y * 0.5;
-            radii *= pixelsPerUnit / vec2(clipStart.w, clipEnd.w);
-          } else {
-            radii *= uPixelRatio;
-          }
-          vRadii = radii;
-          vec2 delta = vEnd - vStart;
-          float h = length(delta);
-          vec2 dir = h > 0.00001 ? delta / h : vec2(0.0, 1.0);
-          vec2 normal = vec2(dir.y, -dir.x);
-          // A conservative rectangle contains both disks and their tangent hull.
-          float extent = max(radii.x, radii.y) + 1.5;
-          bool atEnd = position.y > 0.0;
-          vec2 offset = extent * (normal * position.x + dir * position.y);
-          vec4 clip = atEnd ? clipEnd : clipStart;
-          clip.xy += offset * 2.0 / uResolution * clip.w;
-          gl_Position = clip;
-
-          #include <logdepthbuf_vertex>
-        }
-      `,
-      fragmentShader: /* glsl */ `
-        uniform vec3 uDiffuse;
-        uniform float uOpacity;
-        uniform vec2 uResolution;
-        uniform vec2 uViewportOrigin;
-
-        varying vec2 vStart;
-        varying vec2 vEnd;
-        varying vec2 vRadii;
-        varying float vVisible;
-
-        #include <common>
-        #include <logdepthbuf_pars_fragment>
-
-        // Inigo Quilez: https://iquilezles.org/articles/distfunctions2d/
-        float sdUnevenCapsule(vec2 p, float r1, float r2, float h) {
-          // Includes zero-length segments and one disk containing the other.
-          if (h <= abs(r1 - r2)) {
-            return r1 >= r2 ? length(p) - r1 : length(p - vec2(0.0, h)) - r2;
-          }
-          p.x = abs(p.x);
-          float b = (r1 - r2) / h;
-          float a = sqrt(max(0.0, 1.0 - b * b));
-          float k = dot(p, vec2(-b, a));
-          if (k < 0.0) return length(p) - r1;
-          if (k > a * h) return length(p - vec2(0.0, h)) - r2;
-          return dot(p, vec2(a, b)) - r1;
-        }
-        void main() {
-          if (vVisible < 0.5 || max(vRadii.x, vRadii.y) <= 0.0) discard;
-          vec2 delta = vEnd - vStart;
-          float h = length(delta);
-          vec2 dir = h > 0.00001 ? delta / h : vec2(0.0, 1.0);
-          vec2 q = gl_FragCoord.xy - uViewportOrigin - uResolution * 0.5 - vStart;
-          vec2 p = vec2(dot(q, vec2(dir.y, -dir.x)), dot(q, dir));
-          float d = sdUnevenCapsule(p, vRadii.x, vRadii.y, h);
-          float aa = max(fwidth(d), 0.0001);
-          float coverage = 1.0 - smoothstep(-aa, aa, d);
-          if (coverage <= 0.0) discard;
-          vec4 diffuseColor = vec4(uDiffuse, uOpacity * coverage);
-          gl_FragColor = diffuseColor;
-          #include <logdepthbuf_fragment>
-          #include <tonemapping_fragment>
-          #include <colorspace_fragment>
-        }
-      `,
     })
+    this.shadowSide = DoubleSide
+    Object.assign(this.defaultAttributeValues, {
+      instanceColorStart: [1, 1, 1],
+      instanceColorEnd: [1, 1, 1],
+    })
+    this.worldUnits = worldUnits
+    this.worldPosition = worldPosition
+    this.shadows = shadows
+    for (const [material, pass] of [
+      [this.depthMaterial, 'LINE_DEPTH_PASS'],
+      [this.distanceMaterial, 'LINE_DISTANCE_PASS'],
+    ] as const) {
+      material.defines = { LINE_SHADOW_PASS: '', [pass]: '' }
+      material.onBeforeCompile = (shader) => {
+        // Share live uniform objects; animation needs no shadow-material copying.
+        Object.assign(shader.uniforms, this.uniforms)
+        shader.vertexShader = vertexShader
+        shader.fragmentShader = fragmentShader
+      }
+      material.customProgramCacheKey = () => `variable-line-${pass}-v1`
+    }
+    this.syncShadowDefines()
+  }
+
+  #setDefine(name: string, enabled: boolean): void {
+    if (name in this.defines === enabled) return
+    if (enabled) this.defines[name] = ''
+    else delete this.defines[name]
+    this.needsUpdate = true
   }
 
   get worldUnits(): boolean {
-    return this.uniforms.uWorldUnits.value
+    return 'WORLD_UNITS' in this.defines
   }
   set worldUnits(value: boolean) {
-    this.uniforms.uWorldUnits.value = value
+    this.#setDefine('WORLD_UNITS', value)
+    if (this.depthMaterial) this.syncShadowDefines()
   }
 
-  get uLinewidth(): number {
-    return this.uniforms.uLinewidth.value
+  get worldPosition(): boolean {
+    return 'USE_WORLD_POSITION' in this.defines
+  }
+  set worldPosition(value: boolean) {
+    this.#setDefine('USE_WORLD_POSITION', value)
+  }
+
+  get shadows(): boolean {
+    return this.lights
+  }
+  set shadows(value: boolean) {
+    if (this.lights === value) return
+    this.lights = value
+    // The renderer owns USE_SHADOWMAP. This opt-in removes shadow code entirely.
+    this.#setDefine('LINE_RECEIVE_SHADOWS', value)
+    this.needsUpdate = true
+  }
+
+  setVertexColors(value: boolean): this {
+    if (this.vertexColors !== value) {
+      this.vertexColors = value
+      this.needsUpdate = true
+    }
+    return this
+  }
+
+  get linewidth(): number {
+    return this.uniforms.uLinewidth?.value ?? 1
   }
   set linewidth(value: number) {
-    if (this.uniforms.uLinewidth) { // Required, but why?
-      this.uniforms.uLinewidth.value = value
+    // ShaderMaterial's constructor sets linewidth before uniforms are installed.
+    if (this.uniforms.uLinewidth) this.uniforms.uLinewidth.value = value
+  }
+
+  syncShadowDefines(): void {
+    for (const material of [this.depthMaterial, this.distanceMaterial]) {
+      material.defines ??= {}
+      if ('WORLD_UNITS' in material.defines !== this.worldUnits) {
+        if (this.worldUnits) material.defines.WORLD_UNITS = ''
+        else delete material.defines.WORLD_UNITS
+        material.needsUpdate = true
+      }
     }
+  }
+
+  override dispose(): void {
+    this.depthMaterial.dispose()
+    this.distanceMaterial.dispose()
+    super.dispose()
   }
 }
