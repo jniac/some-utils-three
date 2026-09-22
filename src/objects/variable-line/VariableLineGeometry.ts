@@ -6,6 +6,7 @@ import {
   InstancedInterleavedBuffer,
   InterleavedBufferAttribute,
   Vector4,
+  Vector3,
 } from 'three'
 
 /**
@@ -26,8 +27,15 @@ export class VariableLineGeometry extends InstancedBufferGeometry {
   #color = new Color()
   #colors?: InstancedInterleavedBuffer
   #vertexColors = false
+  #tangents?: InstancedInterleavedBuffer
+  #smoothNormals = false
+  #incoming = new Vector3()
+  #outgoing = new Vector3()
 
-  constructor(segmentCapacity = 0, { vertexColors = false } = {}) {
+  constructor(
+    segmentCapacity = 0,
+    { vertexColors = false, smoothNormals = false } = {},
+  ) {
     super()
     this.setIndex([0, 1, 2, 2, 1, 3])
     this.setAttribute(
@@ -36,6 +44,7 @@ export class VariableLineGeometry extends InstancedBufferGeometry {
     )
     this.instanceCount = 0
     this.#vertexColors = vertexColors
+    this.#smoothNormals = smoothNormals
     this.reserve(segmentCapacity)
   }
 
@@ -67,6 +76,74 @@ export class VariableLineGeometry extends InstancedBufferGeometry {
     )
   }
 
+  /** Enable reusable shared endpoint tangents for smoothed cylinder normals. */
+  enableSmoothNormals(): this {
+    if (this.#smoothNormals) return this
+    this.#smoothNormals = true
+    if (this.capacity > 0) {
+      this.#allocateTangents()
+      this.#updateTangents(this.instanceCount)
+    }
+    return this
+  }
+
+  #allocateTangents(): void {
+    const array = new Float32Array(this.capacity * 6)
+    if (this.#tangents) array.set(this.#tangents.array)
+    this.#tangents = new InstancedInterleavedBuffer(array, 6).setUsage(
+      DynamicDrawUsage,
+    )
+    this.setAttribute(
+      'instanceTangentStart',
+      new InterleavedBufferAttribute(this.#tangents, 3, 0),
+    )
+    this.setAttribute(
+      'instanceTangentEnd',
+      new InterleavedBufferAttribute(this.#tangents, 3, 3),
+    )
+  }
+
+  #updateTangents(count: number): void {
+    if (!this.#tangents || !this.#buffer || count === 0) return
+    const positions = this.#buffer.array
+    const tangents = this.#tangents.array
+    const incoming = this.#incoming
+    const outgoing = this.#outgoing
+    for (let i = 0; i <= count; i++) {
+      incoming.set(0, 0, 0)
+      outgoing.set(0, 0, 0)
+      if (i > 0) {
+        const j = (i - 1) * 8
+        incoming
+          .set(
+            positions[j + 3] - positions[j],
+            positions[j + 4] - positions[j + 1],
+            positions[j + 5] - positions[j + 2],
+          )
+          .normalize()
+      }
+      if (i < count) {
+        const j = i * 8
+        outgoing
+          .set(
+            positions[j + 3] - positions[j],
+            positions[j + 4] - positions[j + 1],
+            positions[j + 5] - positions[j + 2],
+          )
+          .normalize()
+      }
+      // A reversal has no unique bisector: retain the incoming direction.
+      if (outgoing.dot(incoming) > -0.9999) incoming.add(outgoing)
+      if (incoming.lengthSq() < 1e-12) incoming.set(0, 1, 0)
+      incoming.normalize()
+      if (i > 0) incoming.toArray(tangents, (i - 1) * 6 + 3)
+      if (i < count) incoming.toArray(tangents, i * 6)
+    }
+    this.#tangents.clearUpdateRanges()
+    this.#tangents.addUpdateRange(0, count * 6)
+    this.#tangents.needsUpdate = true
+  }
+
   /** Reserve segments up front to avoid allocation during animation. */
   reserve(segmentCapacity: number): this {
     if (!Number.isSafeInteger(segmentCapacity) || segmentCapacity < 0) {
@@ -88,6 +165,7 @@ export class VariableLineGeometry extends InstancedBufferGeometry {
     buffer.setUsage(DynamicDrawUsage)
     this.#buffer = buffer
     if (this.#vertexColors) this.#allocateColors()
+    if (this.#smoothNormals) this.#allocateTangents()
 
     this.setAttribute(
       'instanceStart',
@@ -184,6 +262,7 @@ export class VariableLineGeometry extends InstancedBufferGeometry {
       }
     }
 
+    this.#updateTangents(count)
     this.instanceCount = count
 
     if (this.#buffer && count > 0) {

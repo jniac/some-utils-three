@@ -9,47 +9,58 @@ import {
   ShaderMaterial,
   UniformsLib,
   UniformsUtils,
-  Vector2,
+  Vector2
 } from 'three'
 
 import { fragmentShader, vertexShader } from './shaders'
 
-export interface VariableLineMaterialParameters {
-  color?: ColorRepresentation
-  linewidth?: number
-  opacity?: number
-  worldUnits?: boolean
-  vertexColors?: boolean
-  worldPosition?: boolean
+const defaultVariableLineMaterialParameters = {
+  color: 'white' as ColorRepresentation,
+  linewidth: 1,
+  opacity: 1,
+  worldUnits: false,
+  vertexColors: false,
+  worldPosition: false,
   /** Compile the receiving-shadow path. Also set line.receiveShadow = true. */
-  shadows?: boolean
-  lighting?: boolean
-  normalMode?: 'flat' | 'capsule'
-  shadowBillboard?: 'light' | 'camera'
+  shadows: false,
+  lighting: false,
+  normalMode: 'flat' as 'flat' | 'capsule',
+  smoothNormals: false,
+  shadowBillboard: 'light' as 'light' | 'camera',
   /** Positive normalized-depth bias, applied only when receiving shadows. */
-  shadowReceiveBias?: number
+  shadowReceiveBias: 0.001,
+  /** Positive normalized-depth offset applied only while casting shadows. */
+  shadowCastBias: 0.02,
 }
+
+export type VariableLineMaterialParameters = typeof defaultVariableLineMaterialParameters
 
 /** Camera-facing capsules. Optional shader paths use three.js-style defines. */
 export class VariableLineMaterial extends ShaderMaterial {
+  static readonly defaultParameters = defaultVariableLineMaterialParameters
+
   readonly depthMaterial = new MeshDepthMaterial({
     depthPacking: RGBADepthPacking,
   })
   readonly distanceMaterial = new MeshDistanceMaterial()
 
-  constructor({
-    color = 'white',
-    linewidth = 1,
-    opacity = 1,
-    worldUnits = false,
-    vertexColors = false,
-    worldPosition = false,
-    shadows = false,
-    lighting = shadows,
-    normalMode = 'flat',
-    shadowBillboard = 'light',
-    shadowReceiveBias = 0.01,
-  }: VariableLineMaterialParameters = {}) {
+  constructor(parameters?: Partial<VariableLineMaterialParameters>) {
+    const {
+      color,
+      linewidth,
+      opacity,
+      worldUnits,
+      vertexColors,
+      worldPosition,
+      shadows,
+      lighting,
+      normalMode,
+      smoothNormals,
+      shadowBillboard,
+      shadowReceiveBias,
+      shadowCastBias,
+    } = { ...defaultVariableLineMaterialParameters, ...parameters }
+
     super({
       uniforms: {
         ...UniformsUtils.clone(UniformsLib.lights),
@@ -58,6 +69,7 @@ export class VariableLineMaterial extends ShaderMaterial {
         uPixelRatio: { value: 1 },
         uOpacity: { value: opacity },
         uShadowReceiveBias: { value: shadowReceiveBias },
+        uShadowCastBias: { value: shadowCastBias },
         uResolution: { value: new Vector2(1, 1) },
         uCameraView: { value: new Matrix4() },
         uCameraProjection: { value: new Matrix4() },
@@ -71,18 +83,25 @@ export class VariableLineMaterial extends ShaderMaterial {
       transparent: true,
       depthWrite: true,
     })
+
     this.shadowSide = DoubleSide
     Object.assign(this.defaultAttributeValues, {
       instanceColorStart: [1, 1, 1],
       instanceColorEnd: [1, 1, 1],
+      instanceTangentStart: [0, 0, 0],
+      instanceTangentEnd: [0, 0, 0],
     })
+
     this.worldUnits = worldUnits
     this.worldPosition = worldPosition
     this.shadowReceiveBias = shadowReceiveBias
+    this.shadowCastBias = shadowCastBias
     this.normalMode = normalMode
+    this.smoothNormals = smoothNormals
     this.lighting = lighting
     this.shadows = shadows
     this.shadowBillboard = shadowBillboard
+
     for (const [material, pass] of [
       [this.depthMaterial, 'LINE_DEPTH_PASS'],
       [this.distanceMaterial, 'LINE_DISTANCE_PASS'],
@@ -121,6 +140,13 @@ export class VariableLineMaterial extends ShaderMaterial {
     this.#setDefine('USE_WORLD_POSITION', value)
   }
 
+  get smoothNormals(): boolean {
+    return 'USE_SMOOTH_NORMALS' in this.defines
+  }
+  set smoothNormals(value: boolean) {
+    this.#setDefine('USE_SMOOTH_NORMALS', value)
+  }
+
   get normalMode(): 'flat' | 'capsule' {
     return 'USE_CAPSULE_NORMAL' in this.defines ? 'capsule' : 'flat'
   }
@@ -154,6 +180,15 @@ export class VariableLineMaterial extends ShaderMaterial {
       throw new Error('Expected light or camera')
     this.#setDefine('SHADOW_BILLBOARD_LIGHT', value === 'light')
     if (this.depthMaterial) this.syncShadowDefines()
+  }
+
+  get shadowCastBias(): number {
+    return this.uniforms.uShadowCastBias.value
+  }
+  set shadowCastBias(value: number) {
+    if (!Number.isFinite(value) || value < 0)
+      throw new Error('Expected a finite nonnegative cast bias')
+    this.uniforms.uShadowCastBias.value = value
   }
 
   get shadowReceiveBias(): number {

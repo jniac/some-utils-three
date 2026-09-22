@@ -242,4 +242,78 @@ describe('variable-width polyline', () => {
     expect(capsule.normalMode).toBe('capsule')
     capsule.dispose()
   })
+  it('shares normalized bisectors without repeating the point delegate or reallocating', () => {
+    const geometry = new VariableLineGeometry(4, { smoothNormals: true })
+    let calls = 0
+    const update = (i: number, point: import('three').Vector4) => {
+      calls++
+      if (i === 0) point.set(0, 0, 0, 1)
+      if (i === 1) point.set(2, 0, 0, 1)
+      if (i === 2) point.set(2, 1, 0, 1)
+    }
+    geometry.updatePoints(3, update)
+    const start = geometry.getAttribute('instanceTangentStart')
+    const end = geometry.getAttribute('instanceTangentEnd')
+    expect(start.getX(0)).toBe(1)
+    expect(end.getY(1)).toBe(1)
+    expect(end.getX(0)).toBeCloseTo(Math.SQRT1_2)
+    expect(end.getY(0)).toBeCloseTo(Math.SQRT1_2)
+    expect(start.getX(1)).toBe(end.getX(0))
+    expect(start.getY(1)).toBe(end.getY(0))
+    geometry.updatePoints(3, update)
+    expect(calls).toBe(6)
+    expect(geometry.getAttribute('instanceTangentStart')).toBe(start)
+    geometry.dispose()
+  })
+
+  it('keeps tangents finite for coincident points and reversals and supports late opt-in', () => {
+    const geometry = new VariableLineGeometry().setPositions(
+      [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+      [1, 1, 1, 1],
+    )
+    expect(geometry.getAttribute('instanceTangentStart')).toBeUndefined()
+    geometry.enableSmoothNormals()
+    const end = geometry.getAttribute('instanceTangentEnd')
+    expect(end.getX(0)).toBe(1)
+    for (let i = 0; i < 3; i++) {
+      expect(Math.hypot(end.getX(i), end.getY(i), end.getZ(i))).toBeCloseTo(1)
+    }
+    geometry.reserve(10)
+    expect(geometry.getAttribute('instanceTangentEnd').getX(0)).toBe(1)
+    geometry.dispose()
+    const material = new VariableLineMaterial({
+      normalMode: 'capsule',
+      smoothNormals: true,
+    })
+    expect(material.defines.USE_SMOOTH_NORMALS).toBe('')
+    expect(material.depthMaterial.defines?.USE_SMOOTH_NORMALS).toBeUndefined()
+    material.smoothNormals = false
+    expect(material.defines.USE_SMOOTH_NORMALS).toBeUndefined()
+    material.dispose()
+  })
+  it('updates cast bias independently of reception and without recompiling', () => {
+    const material = new VariableLineMaterial({
+      shadows: true,
+      shadowReceiveBias: 0.003,
+    })
+    expect(material.shadowCastBias).toBe(0)
+    const version = material.version
+    const depthVersion = material.depthMaterial.version
+    const distanceVersion = material.distanceMaterial.version
+    material.shadowCastBias = 0.005
+    expect(material.uniforms.uShadowCastBias.value).toBe(0.005)
+    expect(material.shadowReceiveBias).toBe(0.003)
+    expect(material.version).toBe(version)
+    expect(material.depthMaterial.version).toBe(depthVersion)
+    expect(material.distanceMaterial.version).toBe(distanceVersion)
+    for (const value of [-1, NaN, Infinity]) {
+      expect(() => {
+        material.shadowCastBias = value
+      }).toThrow()
+    }
+    material.dispose()
+    const configured = new VariableLineMaterial({ shadowCastBias: 0.002 })
+    expect(configured.shadowCastBias).toBe(0.002)
+    configured.dispose()
+  })
 })

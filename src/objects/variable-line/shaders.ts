@@ -19,6 +19,16 @@ export const vertexShader = /* glsl */ `
   attribute vec3 instanceEnd;
   attribute float instanceWidthStart;
   attribute float instanceWidthEnd;
+  #if defined(USE_LIGHTING) && defined(USE_CAPSULE_NORMAL) && defined(USE_SMOOTH_NORMALS)
+    attribute vec3 instanceTangentStart;
+    attribute vec3 instanceTangentEnd;
+    vec2 projectTangent(vec4 clip, vec3 tangent) {
+      vec4 derivative = uCameraProjection * uCameraView * modelMatrix * vec4(tangent, 0.0);
+      vec2 direction = (derivative.xy * clip.w - clip.xy * derivative.w) * uResolution;
+      float len = length(direction);
+      return len > 0.00001 ? direction / len : vec2(0.0);
+    }
+  #endif
 
   varying vec2 vStart;
   varying vec2 vEnd;
@@ -26,6 +36,10 @@ export const vertexShader = /* glsl */ `
   varying float vVisible;
 
 
+  #if defined(USE_LIGHTING) && defined(USE_CAPSULE_NORMAL) && defined(USE_SMOOTH_NORMALS)
+    varying vec2 vTangentStart;
+    varying vec2 vTangentEnd;
+  #endif
   varying vec4 vBillboardClip;
   #ifdef USE_COLOR
     varying vec3 vColorStart;
@@ -51,6 +65,10 @@ export const vertexShader = /* glsl */ `
   void main() {
     vec4 start = uCameraView * modelMatrix * vec4(instanceStart, 1.0);
     vec4 end = uCameraView * modelMatrix * vec4(instanceEnd, 1.0);
+    #if defined(USE_LIGHTING) && defined(USE_CAPSULE_NORMAL) && defined(USE_SMOOTH_NORMALS)
+      vec3 tangentStart = instanceTangentStart;
+      vec3 tangentEnd = instanceTangentEnd;
+    #endif
     vec2 radii = 0.5 * max(uLinewidth, 0.0) * vec2(instanceWidthStart, instanceWidthEnd);
     vVisible = 1.0;
     #ifdef USE_COLOR
@@ -68,6 +86,9 @@ export const vertexShader = /* glsl */ `
         float t = (nearZ - start.z) / (end.z - start.z);
         start = mix(start, end, t);
         radii.x = mix(radii.x, radii.y, t);
+        #if defined(USE_LIGHTING) && defined(USE_CAPSULE_NORMAL) && defined(USE_SMOOTH_NORMALS)
+          tangentStart = mix(tangentStart, tangentEnd, t);
+        #endif
         #ifdef USE_COLOR
           vColorStart = mix(vColorStart, vColorEnd, t);
         #endif
@@ -75,6 +96,9 @@ export const vertexShader = /* glsl */ `
         float t = (nearZ - end.z) / (start.z - end.z);
         end = mix(end, start, t);
         radii.y = mix(radii.y, radii.x, t);
+        #if defined(USE_LIGHTING) && defined(USE_CAPSULE_NORMAL) && defined(USE_SMOOTH_NORMALS)
+          tangentEnd = mix(tangentEnd, tangentStart, t);
+        #endif
         #ifdef USE_COLOR
           vColorEnd = mix(vColorEnd, vColorStart, t);
         #endif
@@ -82,6 +106,10 @@ export const vertexShader = /* glsl */ `
     }
     vec4 clipStart = uCameraProjection * start;
     vec4 clipEnd = uCameraProjection * end;
+    #if defined(USE_LIGHTING) && defined(USE_CAPSULE_NORMAL) && defined(USE_SMOOTH_NORMALS)
+      vTangentStart = projectTangent(clipStart, tangentStart);
+      vTangentEnd = projectTangent(clipEnd, tangentEnd);
+    #endif
     vStart = clipStart.xy / clipStart.w * uResolution * 0.5;
     vEnd = clipEnd.xy / clipEnd.w * uResolution * 0.5;
     #ifdef WORLD_UNITS
@@ -132,6 +160,9 @@ export const fragmentShader = /* glsl */ `
   #ifndef LINE_RECEIVE_SHADOWS
     #undef USE_SHADOWMAP
   #endif
+  #ifdef LINE_SHADOW_PASS
+    uniform float uShadowCastBias;
+  #endif
   uniform vec3 uDiffuse;
   uniform float uOpacity;
   uniform vec2 uResolution;
@@ -142,6 +173,10 @@ export const fragmentShader = /* glsl */ `
   varying vec2 vRadii;
   varying float vVisible;
 
+  #if defined(USE_LIGHTING) && defined(USE_CAPSULE_NORMAL) && defined(USE_SMOOTH_NORMALS)
+    varying vec2 vTangentStart;
+    varying vec2 vTangentEnd;
+  #endif
   varying vec4 vBillboardClip;
   #ifdef USE_COLOR
     varying vec3 vColorStart;
@@ -206,13 +241,15 @@ export const fragmentShader = /* glsl */ `
     #ifdef LINE_SHADOW_PASS
       // Shadow maps store a hard silhouette, not blended antialiasing.
       if (d > 0.0 || uOpacity <= 0.0) discard;
+      // Hardware depth textures (including point-light cube maps) read this depth.
+      gl_FragDepth = clamp(gl_FragCoord.z + uShadowCastBias, 0.0, 1.0);
     #endif
     #ifdef LINE_DEPTH_PASS
       float depth = 0.5 * vHighPrecisionZW.x / vHighPrecisionZW.y + 0.5;
-      gl_FragColor = packDepthToRGBA(depth);
+      gl_FragColor = packDepthToRGBA(clamp(depth + uShadowCastBias, 0.0, 1.0));
     #elif defined(LINE_DISTANCE_PASS)
       float distanceToLight = length(vWorldPosition - referencePosition);
-      gl_FragColor = packDepthToRGBA(clamp((distanceToLight - nearDistance) / (farDistance - nearDistance), 0.0, 1.0));
+      gl_FragColor = packDepthToRGBA(clamp((distanceToLight - nearDistance) / (farDistance - nearDistance) + uShadowCastBias, 0.0, 1.0));
     #else
     float opacity = uOpacity * coverage;
     if (opacity < 1.0) discard;
@@ -226,9 +263,17 @@ export const fragmentShader = /* glsl */ `
       vec3 geometryNormal = vec3(0.0, 0.0, 1.0);
       #ifdef USE_CAPSULE_NORMAL
         vec3 localNormal = unevenCapsuleNormal(p, vRadii.x, vRadii.y, h);
+        vec2 shadingDir = dir;
+        #ifdef USE_SMOOTH_NORMALS
+          float tangentT = h > 0.00001 ? clamp(p.y / h, 0.0, 1.0) : 0.0;
+          vec2 startDir = dot(vTangentStart, vTangentStart) > 0.5 ? vTangentStart : dir;
+          vec2 endDir = dot(vTangentEnd, vTangentEnd) > 0.5 ? vTangentEnd : dir;
+          vec2 blendedDir = mix(startDir, endDir, tangentT);
+          if (dot(blendedDir, blendedDir) > 0.00001) shadingDir = normalize(blendedDir);
+        #endif
         // Rotate the projected capsule frame into view space (same space as lights).
         geometryNormal = vec3(
-          vec2(dir.y, -dir.x) * localNormal.x + dir * localNormal.y,
+          vec2(shadingDir.y, -shadingDir.x) * localNormal.x + shadingDir * localNormal.y,
           localNormal.z
         );
       #endif
