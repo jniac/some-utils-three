@@ -1,6 +1,7 @@
 import { ShaderChunk } from 'three'
 
 import { lightingLoops } from './lighting'
+import { capsuleNormals } from './normals'
 
 export const vertexShader = /* glsl */ `
   #ifndef LINE_RECEIVE_SHADOWS
@@ -174,6 +175,8 @@ export const fragmentShader = /* glsl */ `
 
   #include <logdepthbuf_pars_fragment>
 
+  ${capsuleNormals}
+
   // Inigo Quilez: https://iquilezles.org/articles/distfunctions2d/
   float sdUnevenCapsule(vec2 p, float r1, float r2, float h) {
     // Includes zero-length segments and one disk containing the other.
@@ -220,7 +223,15 @@ export const fragmentShader = /* glsl */ `
     #endif
     #ifdef USE_LIGHTING
       vec3 geometryPosition = (viewMatrix * vec4(vWorldPosition, 1.0)).xyz;
-      // The visible surface is a camera-facing ribbon, with a view-space +Z normal.
+      vec3 geometryNormal = vec3(0.0, 0.0, 1.0);
+      #ifdef USE_CAPSULE_NORMAL
+        vec3 localNormal = unevenCapsuleNormal(p, vRadii.x, vRadii.y, h);
+        // Rotate the projected capsule frame into view space (same space as lights).
+        geometryNormal = vec3(
+          vec2(dir.y, -dir.x) * localNormal.x + dir * localNormal.y,
+          localNormal.z
+        );
+      #endif
       vec3 irradiance = ambientLightColor;
       IncidentLight directLight;
       ${lightingLoops}

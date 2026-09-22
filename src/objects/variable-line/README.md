@@ -93,3 +93,19 @@ En unités monde, les diamètres restent les mêmes depuis la lumière. En mode 
 Pour remplacer le matériau d’une ligne, mettre également à jour ses `customDepthMaterial` et `customDistanceMaterial` avant la première passe d’ombre.
 
 `material.dispose()` libère aussi ses deux matériaux d’ombre. Ne pas disposer le matériau tant qu’une autre ligne le partage. La démo `/wip/variable-line/shadow` permet de tester les trois types de lumière et les variantes avec et sans fonctionnalités optionnelles.
+
+## Normales de capsule (expérimental)
+
+```ts
+const material = new VariableLineMaterial({
+  lighting: true,
+  normalMode: 'capsule',
+})
+material.normalMode = 'flat' // Ancien rendu, valeur par défaut de la bibliothèque
+```
+
+`normalMode: 'capsule'` active `USE_CAPSULE_NORMAL`. Le nom de l’option est conservé, mais l’éclairage est désormais cylindrique sur toute la capsule : la normale varie uniquement sur la largeur, sans composante suivant l’axe du segment. Le rayon est interpolé entre les extrémités puis conservé dans chaque cap. Les arrondis ne servent qu’au découpage 2D de la silhouette ; ils ne ferment pas le cylindre par des sphères. Les points confondus et les disques contenus l’un dans l’autre utilisent le plus grand rayon. La normale est exprimée en espace caméra et utilisée par les lumières directionnelles, spots, ponctuelles et hémisphériques. L’ambiante reste uniforme.
+
+Le calcul est absent des programmes sans `USE_LIGHTING` et des passes d’ombre. Changer le mode invalide uniquement le programme du matériau visible ; aucune modification de géométrie n’est nécessaire. La démo `/wip/variable-line/shadow` démarre en mode capsule et permet de comparer avec les normales plates.
+
+C’est un effet d’éclairage basé sur la capsule **projetée**, pas une intersection avec un volume 3D. La profondeur, `vWorldPosition`, les ombres et leur biais normal restent ceux du billboard. Des raccords peuvent rester visibles entre segments qui se recouvrent, particulièrement aux angles et avec des variations d’épaisseur rapides. La perspective et les segments orientés en profondeur restent approximatifs.

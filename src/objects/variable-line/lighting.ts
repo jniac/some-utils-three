@@ -11,7 +11,7 @@ export const lightingLoops = /* glsl */ `
       if (receiveShadow) visibility = getShadow(directionalShadowMap[i], shadow.shadowMapSize,
         shadow.shadowIntensity, shadow.shadowBias - uShadowReceiveBias, shadow.shadowRadius, vDirectionalShadowCoord[i]);
     #endif
-    irradiance += directLight.color * max(directLight.direction.z, 0.0) * visibility;
+    irradiance += directLight.color * max(dot(geometryNormal, directLight.direction), 0.0) * visibility;
   }
   #pragma unroll_loop_end
 #endif
@@ -25,7 +25,7 @@ export const lightingLoops = /* glsl */ `
       if (receiveShadow) visibility = getShadow(spotShadowMap[i], shadow.shadowMapSize,
         shadow.shadowIntensity, shadow.shadowBias - uShadowReceiveBias, shadow.shadowRadius, vSpotLightCoord[i]);
     #endif
-    irradiance += directLight.color * max(directLight.direction.z, 0.0) * visibility;
+    irradiance += directLight.color * max(dot(geometryNormal, directLight.direction), 0.0) * visibility;
   }
   #pragma unroll_loop_end
 #endif
@@ -40,14 +40,14 @@ export const lightingLoops = /* glsl */ `
         shadow.shadowIntensity, shadow.shadowBias - uShadowReceiveBias, shadow.shadowRadius,
         vPointShadowCoord[i], shadow.shadowCameraNear, shadow.shadowCameraFar);
     #endif
-    irradiance += directLight.color * max(directLight.direction.z, 0.0) * visibility;
+    irradiance += directLight.color * max(dot(geometryNormal, directLight.direction), 0.0) * visibility;
   }
   #pragma unroll_loop_end
 #endif
 #if NUM_HEMI_LIGHTS > 0
   #pragma unroll_loop_start
   for (int i = 0; i < NUM_HEMI_LIGHTS; i++) {
-    irradiance += getHemisphereLightIrradiance(hemisphereLights[i], vec3(0.0, 0.0, 1.0));
+    irradiance += getHemisphereLightIrradiance(hemisphereLights[i], geometryNormal);
   }
   #pragma unroll_loop_end
 #endif

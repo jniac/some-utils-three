@@ -217,4 +217,29 @@ describe('variable-width polyline', () => {
     line.geometry.dispose()
     line.material.dispose()
   })
+  it('selects capsule normals without modifying shadow programs or buffers', () => {
+    const material = new VariableLineMaterial({ lighting: true })
+    expect(material.normalMode).toBe('flat')
+    const depthVersion = material.depthMaterial.version
+    const distanceVersion = material.distanceMaterial.version
+    const version = material.version
+    material.normalMode = 'capsule'
+    expect(material.defines.USE_CAPSULE_NORMAL).toBe('')
+    expect(material.version).toBeGreaterThan(version)
+    const capsuleVersion = material.version
+    material.normalMode = 'capsule'
+    expect(material.version).toBe(capsuleVersion)
+    expect(material.depthMaterial.version).toBe(depthVersion)
+    expect(material.distanceMaterial.version).toBe(distanceVersion)
+    expect(material.depthMaterial.defines?.USE_CAPSULE_NORMAL).toBeUndefined()
+    material.normalMode = 'flat'
+    expect(material.defines.USE_CAPSULE_NORMAL).toBeUndefined()
+    material.dispose()
+    const capsule = new VariableLineMaterial({
+      normalMode: 'capsule',
+      lighting: true,
+    })
+    expect(capsule.normalMode).toBe('capsule')
+    capsule.dispose()
+  })
 })

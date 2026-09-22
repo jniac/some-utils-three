@@ -24,6 +24,7 @@ export interface VariableLineMaterialParameters {
   /** Compile the receiving-shadow path. Also set line.receiveShadow = true. */
   shadows?: boolean
   lighting?: boolean
+  normalMode?: 'flat' | 'capsule'
   shadowBillboard?: 'light' | 'camera'
   /** Positive normalized-depth bias, applied only when receiving shadows. */
   shadowReceiveBias?: number
@@ -45,6 +46,7 @@ export class VariableLineMaterial extends ShaderMaterial {
     worldPosition = false,
     shadows = false,
     lighting = shadows,
+    normalMode = 'flat',
     shadowBillboard = 'light',
     shadowReceiveBias = 0.01,
   }: VariableLineMaterialParameters = {}) {
@@ -77,6 +79,7 @@ export class VariableLineMaterial extends ShaderMaterial {
     this.worldUnits = worldUnits
     this.worldPosition = worldPosition
     this.shadowReceiveBias = shadowReceiveBias
+    this.normalMode = normalMode
     this.lighting = lighting
     this.shadows = shadows
     this.shadowBillboard = shadowBillboard
@@ -116,6 +119,15 @@ export class VariableLineMaterial extends ShaderMaterial {
   }
   set worldPosition(value: boolean) {
     this.#setDefine('USE_WORLD_POSITION', value)
+  }
+
+  get normalMode(): 'flat' | 'capsule' {
+    return 'USE_CAPSULE_NORMAL' in this.defines ? 'capsule' : 'flat'
+  }
+  set normalMode(value: 'flat' | 'capsule') {
+    if (value !== 'flat' && value !== 'capsule')
+      throw new Error('Expected flat or capsule')
+    this.#setDefine('USE_CAPSULE_NORMAL', value === 'capsule')
   }
 
   get lighting(): boolean {
