@@ -57,13 +57,17 @@ export class VariableLine extends Mesh<
     renderer: WebGLRenderer,
     _object: unknown,
     camera: Camera,
+    shadowCamera: Camera,
   ): void {
-    // Shadows render before the color pass. Use the main camera, never the light camera.
-    // getCurrentViewport() here is the shadow-map viewport, so use the canvas viewport.
-    renderer.getViewport(this.#viewport)
-    const pixelRatio = renderer.getPixelRatio()
-    this.#viewport.multiplyScalar(pixelRatio)
-    this.#updateCamera(camera, pixelRatio)
+    if (this.material.shadowBillboard === 'light') {
+      renderer.getCurrentViewport(this.#viewport)
+      this.#updateCamera(shadowCamera, 1)
+    } else {
+      renderer.getViewport(this.#viewport)
+      const pixelRatio = renderer.getPixelRatio()
+      this.#viewport.multiplyScalar(pixelRatio)
+      this.#updateCamera(camera, pixelRatio)
+    }
     this.material.syncShadowDefines()
   }
 

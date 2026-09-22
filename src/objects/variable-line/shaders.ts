@@ -1,3 +1,7 @@
+import { ShaderChunk } from 'three'
+
+import { lightingLoops } from './lighting'
+
 export const vertexShader = /* glsl */ `
   #ifndef LINE_RECEIVE_SHADOWS
     #undef USE_SHADOWMAP
@@ -26,7 +30,7 @@ export const vertexShader = /* glsl */ `
     varying vec3 vColorStart;
     varying vec3 vColorEnd;
   #endif
-  #if defined(USE_WORLD_POSITION) || defined(USE_SHADOWMAP) || defined(LINE_SHADOW_PASS)
+  #if defined(USE_LIGHTING) || defined(USE_WORLD_POSITION) || defined(USE_SHADOWMAP) || defined(LINE_SHADOW_PASS)
     varying vec3 vWorldPosition;
   #endif
   #ifdef LINE_DEPTH_PASS
@@ -100,11 +104,11 @@ export const vertexShader = /* glsl */ `
     clip.xy += offset * 2.0 / uResolution * clip.w;
     vBillboardClip = clip;
     gl_Position = clip;
-    #if defined(USE_WORLD_POSITION) || defined(USE_SHADOWMAP) || defined(LINE_SHADOW_PASS)
+    #if defined(USE_LIGHTING) || defined(USE_WORLD_POSITION) || defined(USE_SHADOWMAP) || defined(LINE_SHADOW_PASS)
       vec4 cameraPosition = uCameraProjectionInverse * clip;
       vec4 worldPosition = uCameraWorld * vec4(cameraPosition.xyz / cameraPosition.w, 1.0);
       vWorldPosition = worldPosition.xyz;
-      #ifdef LINE_SHADOW_PASS
+      #if defined(LINE_SHADOW_PASS) && !defined(SHADOW_BILLBOARD_LIGHT)
         gl_Position = projectionMatrix * viewMatrix * worldPosition;
       #elif defined(LINE_RECEIVE_SHADOWS)
         // A camera-facing normal allows three.js shadowNormalBias to work.
@@ -130,7 +134,7 @@ export const fragmentShader = /* glsl */ `
   uniform vec3 uDiffuse;
   uniform float uOpacity;
   uniform vec2 uResolution;
-  uniform bool receiveShadow;
+
 
   varying vec2 vStart;
   varying vec2 vEnd;
@@ -142,7 +146,7 @@ export const fragmentShader = /* glsl */ `
     varying vec3 vColorStart;
     varying vec3 vColorEnd;
   #endif
-  #if defined(USE_WORLD_POSITION) || defined(USE_SHADOWMAP) || defined(LINE_SHADOW_PASS)
+  #if defined(USE_LIGHTING) || defined(USE_WORLD_POSITION) || defined(USE_SHADOWMAP) || defined(LINE_SHADOW_PASS)
     varying vec3 vWorldPosition;
   #endif
   #ifdef LINE_DEPTH_PASS
@@ -156,10 +160,18 @@ export const fragmentShader = /* glsl */ `
     uniform float nearDistance;
     uniform float farDistance;
   #endif
+  #if defined(USE_LIGHTING) || defined(LINE_RECEIVE_SHADOWS)
+    uniform float uShadowReceiveBias;
+    #include <lights_pars_begin>
+  #endif
   #ifdef LINE_RECEIVE_SHADOWS
     #include <shadowmap_pars_fragment>
-    #include <shadowmask_pars_fragment>
+    #ifndef USE_LIGHTING
+      ${ShaderChunk.shadowmask_pars_fragment.replaceAll('.shadowBias', '.shadowBias - uShadowReceiveBias')}
+    #endif
+
   #endif
+
   #include <logdepthbuf_pars_fragment>
 
   // Inigo Quilez: https://iquilezles.org/articles/distfunctions2d/
@@ -199,12 +211,21 @@ export const fragmentShader = /* glsl */ `
       float distanceToLight = length(vWorldPosition - referencePosition);
       gl_FragColor = packDepthToRGBA(clamp((distanceToLight - nearDistance) / (farDistance - nearDistance), 0.0, 1.0));
     #else
-    vec4 diffuseColor = vec4(uDiffuse, uOpacity * coverage);
+    float opacity = uOpacity * coverage;
+    if (opacity < 1.0) discard;
+    vec4 diffuseColor = vec4(uDiffuse, opacity);
     #ifdef USE_COLOR
       float colorT = h > 0.00001 ? clamp(p.y / h, 0.0, 1.0) : 0.0;
       diffuseColor.rgb *= mix(vColorStart, vColorEnd, colorT);
     #endif
-    #ifdef USE_SHADOWMAP
+    #ifdef USE_LIGHTING
+      vec3 geometryPosition = (viewMatrix * vec4(vWorldPosition, 1.0)).xyz;
+      // The visible surface is a camera-facing ribbon, with a view-space +Z normal.
+      vec3 irradiance = ambientLightColor;
+      IncidentLight directLight;
+      ${lightingLoops}
+      diffuseColor.rgb *= irradiance * RECIPROCAL_PI;
+    #elif defined(USE_SHADOWMAP)
       diffuseColor.rgb *= getShadowMask();
     #endif
     gl_FragColor = diffuseColor;

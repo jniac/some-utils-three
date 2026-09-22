@@ -1,8 +1,9 @@
-import { DynamicDrawUsage } from 'three'
+import { DynamicDrawUsage, PerspectiveCamera, type WebGLRenderer } from 'three'
 import { describe, expect, it } from 'vitest'
 
 import { VariableLineGeometry } from './VariableLineGeometry'
 import { VariableLineMaterial } from './VariableLineMaterial'
+import { VariableLine } from './VariableLine'
 
 describe('variable-width polyline', () => {
   it('preserves the shared endpoint width across adjacent segments', () => {
@@ -93,7 +94,7 @@ describe('variable-width polyline', () => {
     material.dispose()
   })
   it('writes reusable endpoint colors and preserves them when capacity grows', () => {
-    const geometry = new VariableLineGeometry(2, true)
+    const geometry = new VariableLineGeometry(2, { vertexColors: true })
     let targetColor: unknown
     geometry.updatePoints(3, (i, point, color) => {
       point.set(i, 0, 0, 1)
@@ -133,6 +134,8 @@ describe('variable-width polyline', () => {
     expect(material.defines.USE_WORLD_POSITION).toBeUndefined()
     expect(material.defines.LINE_RECEIVE_SHADOWS).toBeUndefined()
     expect(material.vertexColors).toBe(false)
+    expect(material.lights).toBe(true)
+    material.lighting = false
     expect(material.lights).toBe(false)
     let disposed = 0
     material.depthMaterial.addEventListener('dispose', () => disposed++)
@@ -140,5 +143,78 @@ describe('variable-width polyline', () => {
     material.dispose()
     expect(disposed).toBe(2)
     geometry.dispose()
+  })
+  it('defaults shadow billboards to light cameras and invalidates both shadow programs', () => {
+    const material = new VariableLineMaterial()
+    expect(material.shadowBillboard).toBe('light')
+    expect(material.depthMaterial.defines?.SHADOW_BILLBOARD_LIGHT).toBe('')
+    const version = material.depthMaterial.version
+    material.shadowBillboard = 'camera'
+    expect(
+      material.depthMaterial.defines?.SHADOW_BILLBOARD_LIGHT,
+    ).toBeUndefined()
+    expect(
+      material.distanceMaterial.defines?.SHADOW_BILLBOARD_LIGHT,
+    ).toBeUndefined()
+    expect(material.depthMaterial.version).toBeGreaterThan(version)
+    const nextVersion = material.depthMaterial.version
+    material.shadowBillboard = 'camera'
+    expect(material.depthMaterial.version).toBe(nextVersion)
+    material.dispose()
+  })
+  it('adjusts reception bias without recompiling or changing shadow-pass defines', () => {
+    const material = new VariableLineMaterial({ shadows: true })
+    const version = material.version
+    const depthVersion = material.depthMaterial.version
+    material.shadowReceiveBias = 0.005
+    expect(material.uniforms.uShadowReceiveBias.value).toBe(0.005)
+    expect(material.version).toBe(version)
+    expect(material.depthMaterial.version).toBe(depthVersion)
+    expect(() => {
+      material.shadowReceiveBias = -1
+    }).toThrow()
+    material.shadows = false
+    expect(material.lighting).toBe(true)
+    expect(material.lights).toBe(true)
+    material.dispose()
+  })
+
+  it('uses the light camera and shadow viewport unless camera mode is selected', () => {
+    const line = new VariableLine()
+    const camera = new PerspectiveCamera(60, 2, 0.1, 100)
+    const shadowCamera = new PerspectiveCamera(90, 1, 0.5, 20)
+    camera.position.set(0, 0, 10)
+    shadowCamera.position.set(10, 0, 0)
+    camera.updateMatrixWorld()
+    shadowCamera.updateMatrixWorld()
+    const renderer = {
+      getCurrentViewport: (target: import('three').Vector4) =>
+        target.set(0, 0, 512, 512),
+      getViewport: (target: import('three').Vector4) =>
+        target.set(0, 0, 800, 400),
+      getPixelRatio: () => 2,
+    } as unknown as WebGLRenderer
+    line.onBeforeShadow(renderer, line, camera, shadowCamera)
+    expect(
+      line.material.uniforms.uCameraView.value.equals(
+        shadowCamera.matrixWorldInverse,
+      ),
+    ).toBe(true)
+    expect(line.material.uniforms.uResolution.value.toArray()).toEqual([
+      512, 512,
+    ])
+    expect(line.material.uniforms.uPixelRatio.value).toBe(1)
+    line.material.shadowBillboard = 'camera'
+    line.onBeforeShadow(renderer, line, camera, shadowCamera)
+    expect(
+      line.material.uniforms.uCameraView.value.equals(
+        camera.matrixWorldInverse,
+      ),
+    ).toBe(true)
+    expect(line.material.uniforms.uResolution.value.toArray()).toEqual([
+      1600, 800,
+    ])
+    line.geometry.dispose()
+    line.material.dispose()
   })
 })

@@ -23,6 +23,10 @@ export interface VariableLineMaterialParameters {
   worldPosition?: boolean
   /** Compile the receiving-shadow path. Also set line.receiveShadow = true. */
   shadows?: boolean
+  lighting?: boolean
+  shadowBillboard?: 'light' | 'camera'
+  /** Positive normalized-depth bias, applied only when receiving shadows. */
+  shadowReceiveBias?: number
 }
 
 /** Camera-facing capsules. Optional shader paths use three.js-style defines. */
@@ -40,6 +44,9 @@ export class VariableLineMaterial extends ShaderMaterial {
     vertexColors = false,
     worldPosition = false,
     shadows = false,
+    lighting = shadows,
+    shadowBillboard = 'light',
+    shadowReceiveBias = 0.01,
   }: VariableLineMaterialParameters = {}) {
     super({
       uniforms: {
@@ -48,6 +55,7 @@ export class VariableLineMaterial extends ShaderMaterial {
         uLinewidth: { value: linewidth },
         uPixelRatio: { value: 1 },
         uOpacity: { value: opacity },
+        uShadowReceiveBias: { value: shadowReceiveBias },
         uResolution: { value: new Vector2(1, 1) },
         uCameraView: { value: new Matrix4() },
         uCameraProjection: { value: new Matrix4() },
@@ -59,7 +67,7 @@ export class VariableLineMaterial extends ShaderMaterial {
       fragmentShader,
       vertexColors,
       transparent: true,
-      depthWrite: false,
+      depthWrite: true,
     })
     this.shadowSide = DoubleSide
     Object.assign(this.defaultAttributeValues, {
@@ -68,7 +76,10 @@ export class VariableLineMaterial extends ShaderMaterial {
     })
     this.worldUnits = worldUnits
     this.worldPosition = worldPosition
+    this.shadowReceiveBias = shadowReceiveBias
+    this.lighting = lighting
     this.shadows = shadows
+    this.shadowBillboard = shadowBillboard
     for (const [material, pass] of [
       [this.depthMaterial, 'LINE_DEPTH_PASS'],
       [this.distanceMaterial, 'LINE_DISTANCE_PASS'],
@@ -107,15 +118,39 @@ export class VariableLineMaterial extends ShaderMaterial {
     this.#setDefine('USE_WORLD_POSITION', value)
   }
 
+  get lighting(): boolean {
+    return 'USE_LIGHTING' in this.defines
+  }
+  set lighting(value: boolean) {
+    this.#setDefine('USE_LIGHTING', value)
+    this.lights = value || this.shadows
+  }
+
   get shadows(): boolean {
-    return this.lights
+    return 'LINE_RECEIVE_SHADOWS' in this.defines
   }
   set shadows(value: boolean) {
-    if (this.lights === value) return
-    this.lights = value
-    // The renderer owns USE_SHADOWMAP. This opt-in removes shadow code entirely.
     this.#setDefine('LINE_RECEIVE_SHADOWS', value)
-    this.needsUpdate = true
+    this.lights = value || this.lighting
+  }
+
+  get shadowBillboard(): 'light' | 'camera' {
+    return 'SHADOW_BILLBOARD_LIGHT' in this.defines ? 'light' : 'camera'
+  }
+  set shadowBillboard(value: 'light' | 'camera') {
+    if (value !== 'light' && value !== 'camera')
+      throw new Error('Expected light or camera')
+    this.#setDefine('SHADOW_BILLBOARD_LIGHT', value === 'light')
+    if (this.depthMaterial) this.syncShadowDefines()
+  }
+
+  get shadowReceiveBias(): number {
+    return this.uniforms.uShadowReceiveBias.value
+  }
+  set shadowReceiveBias(value: number) {
+    if (!Number.isFinite(value) || value < 0)
+      throw new Error('Expected a finite nonnegative bias')
+    this.uniforms.uShadowReceiveBias.value = value
   }
 
   setVertexColors(value: boolean): this {
@@ -137,6 +172,12 @@ export class VariableLineMaterial extends ShaderMaterial {
   syncShadowDefines(): void {
     for (const material of [this.depthMaterial, this.distanceMaterial]) {
       material.defines ??= {}
+      const lightBillboard = this.shadowBillboard === 'light'
+      if ('SHADOW_BILLBOARD_LIGHT' in material.defines !== lightBillboard) {
+        if (lightBillboard) material.defines.SHADOW_BILLBOARD_LIGHT = ''
+        else delete material.defines.SHADOW_BILLBOARD_LIGHT
+        material.needsUpdate = true
+      }
       if ('WORLD_UNITS' in material.defines !== this.worldUnits) {
         if (this.worldUnits) material.defines.WORLD_UNITS = ''
         else delete material.defines.WORLD_UNITS
