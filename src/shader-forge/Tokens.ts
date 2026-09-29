@@ -1,6 +1,7 @@
 
 const meshPhysicalMaterialVertexTokens = [
   'common',
+  'batching_pars_vertex',
   'uv_pars_vertex',
   'displacementmap_pars_vertex',
   'color_pars_vertex',
@@ -13,7 +14,9 @@ const meshPhysicalMaterialVertexTokens = [
   'clipping_planes_pars_vertex',
   'uv_vertex',
   'color_vertex',
+  'morphinstance_vertex',
   'morphcolor_vertex',
+  'batching_vertex',
   'beginnormal_vertex',
   'morphnormal_vertex',
   'skinbase_vertex',
@@ -34,7 +37,6 @@ const meshPhysicalMaterialVertexTokens = [
 
 const meshPhysicalMaterialFragmentTokens = [
   'common',
-  'packing',
   'dithering_pars_fragment',
   'color_pars_fragment',
   'uv_pars_fragment',
@@ -46,7 +48,6 @@ const meshPhysicalMaterialFragmentTokens = [
   'lightmap_pars_fragment',
   'emissivemap_pars_fragment',
   'iridescence_fragment',
-  'cube_uv_reflection_fragment',
   'envmap_common_pars_fragment',
   'envmap_physical_pars_fragment',
   'fog_pars_fragment',
@@ -98,13 +99,14 @@ type MeshPhysicalMaterialFragmentTokens = (typeof meshPhysicalMaterialFragmentTo
 type GlTokens = (typeof glTokens)[number]
 
 export type {
-  MeshPhysicalMaterialVertexTokens,
-  MeshPhysicalMaterialFragmentTokens,
   GlTokens,
+  MeshPhysicalMaterialFragmentTokens,
+  MeshPhysicalMaterialVertexTokens
 }
 
 export {
-  meshPhysicalMaterialVertexTokens,
-  meshPhysicalMaterialFragmentTokens,
   glTokens,
+  meshPhysicalMaterialFragmentTokens,
+  meshPhysicalMaterialVertexTokens
 }
+
