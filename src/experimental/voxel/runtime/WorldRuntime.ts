@@ -162,9 +162,9 @@ export class WorldRuntime {
     const maxChunkY = Math.floor(bounds.max.y / chunkSizeY)
     const maxChunkZ = Math.floor(bounds.max.z / chunkSizeZ)
 
-    for (let z = minChunkZ; z < maxChunkZ; z++) {
-      for (let y = minChunkY; y < maxChunkY; y++) {
-        for (let x = minChunkX; x < maxChunkX; x++) {
+    for (let z = minChunkZ; z <= maxChunkZ; z++) {
+      for (let y = minChunkY; y <= maxChunkY; y++) {
+        for (let x = minChunkX; x <= maxChunkX; x++) {
           this.#addExistingChunkFromChunkCoordinates(x, y, z, out)
         }
       }
@@ -182,17 +182,17 @@ export class WorldRuntime {
     const maxChunkZ = Math.floor((center.z + radius) / chunkSizeZ)
     const radiusSq = radius * radius
 
-    for (let z = minChunkZ; z < maxChunkZ; z++) {
+    for (let z = minChunkZ; z <= maxChunkZ; z++) {
       const chunkMinZ = z * chunkSizeZ
       const chunkMaxZ = chunkMinZ + chunkSizeZ
       const dz = distanceToRange(center.z, chunkMinZ, chunkMaxZ)
 
-      for (let y = minChunkY; y < maxChunkY; y++) {
+      for (let y = minChunkY; y <= maxChunkY; y++) {
         const chunkMinY = y * chunkSizeY
         const chunkMaxY = chunkMinY + chunkSizeY
         const dy = distanceToRange(center.y, chunkMinY, chunkMaxY)
 
-        for (let x = minChunkX; x < maxChunkX; x++) {
+        for (let x = minChunkX; x <= maxChunkX; x++) {
           const chunkMinX = x * chunkSizeX
           const chunkMaxX = chunkMinX + chunkSizeX
           const dx = distanceToRange(center.x, chunkMinX, chunkMaxX)

@@ -17,6 +17,26 @@ function createTestWorld() {
 }
 
 describe('WorldRuntime', () => {
+  test('finds a chunk when the entire box lies inside it', () => {
+    const { world } = createTestWorld()
+    const runtime = new WorldRuntime({ world })
+    runtime.setActiveZone('small', {
+      type: 'box', bounds: new Box3(new Vector3(.1, .1, .1), new Vector3(.9, .9, .9)),
+    })
+    expect([...runtime.computeWantedChunkKeys()]).toEqual([createChunkKeyFromVoxelPosition(world, 0, 0, 0)])
+  })
+
+  test('includes chunks intersecting the upper side of a sphere', () => {
+    const { world } = createTestWorld()
+    const runtime = new WorldRuntime({ world })
+    runtime.setActiveZone('small', {
+      type: 'sphere', sphere: new Sphere(new Vector3(3.9, 1, 1), .2),
+    })
+    expect(runtime.computeWantedChunkKeys()).toEqual(new Set([
+      createChunkKeyFromVoxelPosition(world, 0, 0, 0), createChunkKeyFromVoxelPosition(world, 4, 0, 0),
+    ]))
+  })
+
   test('mounts existing chunks intersecting active zones', () => {
     const { world } = createTestWorld()
     const mounted: string[] = []

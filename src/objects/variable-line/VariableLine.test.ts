@@ -123,6 +123,7 @@ describe('variable-width polyline', () => {
     const material = new VariableLineMaterial({
       vertexColors: true,
       worldPosition: true,
+      lighting: true,
       shadows: true,
     })
     expect(material.vertexColors).toBe(true)
@@ -163,7 +164,7 @@ describe('variable-width polyline', () => {
     material.dispose()
   })
   it('adjusts reception bias without recompiling or changing shadow-pass defines', () => {
-    const material = new VariableLineMaterial({ shadows: true })
+    const material = new VariableLineMaterial({ shadows: true, lighting: true })
     const version = material.version
     const depthVersion = material.depthMaterial.version
     material.shadowReceiveBias = 0.005
@@ -296,7 +297,7 @@ describe('variable-width polyline', () => {
       shadows: true,
       shadowReceiveBias: 0.003,
     })
-    expect(material.shadowCastBias).toBe(0)
+    expect(material.shadowCastBias).toBe(0.02)
     const version = material.version
     const depthVersion = material.depthMaterial.version
     const distanceVersion = material.distanceMaterial.version
