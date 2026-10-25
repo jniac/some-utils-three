@@ -1,5 +1,10 @@
 import { BufferGeometry, Vector2, Vector3 } from 'three'
 
+const _v0 = new Vector3()
+const _v1 = new Vector3()
+const _p0 = new Vector2()
+const _p1 = new Vector2()
+
 /**
  * Flips the normals of a BufferGeometry.
  * 
@@ -27,24 +32,20 @@ export function flipTriangles(geometry: BufferGeometry): BufferGeometry {
       attr.needsUpdate = true
       switch (itemSize) {
         case 3: {
-          const p0 = new Vector3()
-          const p1 = new Vector3()
           for (let i = 0; i < count; i += 3) {
-            p0.fromArray(array, (i + 0) * itemSize)
-            p1.fromArray(array, (i + 1) * itemSize)
-            p0.toArray(array, (i + 1) * itemSize)
-            p1.toArray(array, (i + 0) * itemSize)
+            _v0.fromArray(array, (i + 0) * itemSize)
+            _v1.fromArray(array, (i + 1) * itemSize)
+            _v0.toArray(array, (i + 1) * itemSize)
+            _v1.toArray(array, (i + 0) * itemSize)
           }
           break
         }
         case 2: {
-          const p0 = new Vector2()
-          const p1 = new Vector2()
           for (let i = 0; i < count; i += 3) {
-            p0.fromArray(array, (i + 0) * itemSize)
-            p1.fromArray(array, (i + 1) * itemSize)
-            p0.toArray(array, (i + 1) * itemSize)
-            p1.toArray(array, (i + 0) * itemSize)
+            _p0.fromArray(array, (i + 0) * itemSize)
+            _p1.fromArray(array, (i + 1) * itemSize)
+            _p0.toArray(array, (i + 1) * itemSize)
+            _p1.toArray(array, (i + 0) * itemSize)
           }
         }
       }
